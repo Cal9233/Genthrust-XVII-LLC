@@ -20,7 +20,7 @@ export const SERVICES = [
     description:
       'Instant access to a global network of certified parts. We find what you need, when you need it.',
     cta: 'Browse Catalog',
-    href: '#inventory',
+    href: '/inventory',
     featured: true,
   },
   {
@@ -30,7 +30,7 @@ export const SERVICES = [
     description:
       'FAA/EASA certified repair services with rapid turnaround times to keep your fleet flying.',
     cta: 'View Capabilities',
-    href: '#repairs',
+    href: '/repairs',
     featured: false,
   },
   {
@@ -40,7 +40,7 @@ export const SERVICES = [
     description:
       'Tailored provisioning and supply chain programs for commercial and cargo operators.',
     cta: 'Learn More',
-    href: '#contact',
+    href: '/contact',
     featured: false,
   },
 ]
