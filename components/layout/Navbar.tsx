@@ -27,17 +27,27 @@ export function Navbar() {
       animate={{ y: 0 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
-        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-500',
         isScrolled
-          ? 'bg-white/80 backdrop-blur-xl border-b border-slate-200 shadow-sm'
-          : 'bg-transparent'
+          ? 'bg-white/95 backdrop-blur-xl border-b border-slate-200/60 shadow-lg'
+          : 'bg-dark-charcoal-200/80 backdrop-blur-sm'
       )}
     >
-      <nav className="container mx-auto px-4 md:px-6">
+      {/* Subtle technical pattern overlay (only when not scrolled) */}
+      {!isScrolled && (
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0,85,184,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,85,184,0.5) 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+          }}
+        />
+      )}
+      <nav className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <a href="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 overflow-hidden">
+            <div className="relative w-11 h-11 overflow-hidden">
               <Image
                 src="/GenLogoTab.png"
                 alt="GENTHRUST Logo"
@@ -46,21 +56,30 @@ export function Navbar() {
                 priority
               />
             </div>
-            <span className="text-xl font-bold tracking-tight text-navy group-hover:text-electric-blue transition-colors">
+            <span className={cn(
+              'text-xl font-bold tracking-tight transition-colors',
+              isScrolled ? 'text-navy group-hover:text-electric-blue' : 'text-white group-hover:text-electric-blue-300'
+            )}>
               GENTHRUST
             </span>
           </a>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-10">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm font-medium text-slate-600 hover:text-navy transition-colors relative group"
+                className={cn(
+                  'text-sm font-semibold uppercase tracking-wide transition-colors relative group',
+                  isScrolled ? 'text-slate-700 hover:text-navy' : 'text-white/95 hover:text-white'
+                )}
               >
                 {link.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-electric-blue transition-all duration-300 group-hover:w-full" />
+                <span className={cn(
+                  'absolute -bottom-1 left-0 w-0 h-0.5 transition-all duration-300 group-hover:w-full',
+                  isScrolled ? 'bg-electric-blue' : 'bg-electric-blue-400'
+                )} />
               </a>
             ))}
           </div>
@@ -75,7 +94,10 @@ export function Navbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-navy hover:text-electric-blue transition-colors"
+            className={cn(
+              'md:hidden p-2 transition-colors',
+              isScrolled ? 'text-navy hover:text-electric-blue' : 'text-white/90 hover:text-white'
+            )}
             aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -91,7 +113,7 @@ export function Navbar() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="md:hidden bg-white/95 backdrop-blur-xl border-b border-slate-200"
+            className="md:hidden bg-white/98 backdrop-blur-xl border-b border-slate-200 shadow-lg"
           >
             <div className="container mx-auto px-4 py-6 flex flex-col gap-4">
               {NAV_LINKS.map((link) => (
