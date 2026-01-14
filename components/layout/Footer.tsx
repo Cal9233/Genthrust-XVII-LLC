@@ -18,11 +18,21 @@ export function Footer() {
   }
 
   return (
-    <footer className="relative bg-navy-dark border-t border-slate-800">
-      {/* Gradient line at top */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-electric-blue/50 to-transparent" />
+    <footer className="relative bg-gradient-to-b from-midnight-blue-200 to-dark-charcoal-200 border-t border-electric-blue/20">
+      {/* Enhanced gradient line at top */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-electric-blue/60 to-transparent" />
+      {/* Subtle gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-electric opacity-30" />
+      {/* Subtle technical pattern overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.04] pointer-events-none"
+        style={{
+          backgroundImage: `linear-gradient(rgba(0,85,184,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,85,184,0.5) 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }}
+      />
 
-      <div className="container mx-auto px-4 md:px-6 py-16">
+      <div className="container mx-auto px-4 md:px-6 py-16 relative z-10">
         <motion.div
           variants={staggerContainer}
           initial="hidden"
@@ -47,17 +57,17 @@ export function Footer() {
               Powering global aviation with certified parts, expert repairs, and reliable supply
               chain solutions.
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               <a
                 href="#"
-                className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white hover:bg-electric-blue/20 transition-all"
+                className="p-2.5 rounded-lg bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-slate-400 hover:text-white hover:bg-electric-blue/30 hover:border-electric-blue/50 hover:shadow-glow-blue transition-all duration-300"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-5 h-5" />
               </a>
               <a
                 href="#"
-                className="p-2 rounded-lg bg-slate-800/50 text-slate-400 hover:text-white hover:bg-electric-blue/20 transition-all"
+                className="p-2.5 rounded-lg bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-slate-400 hover:text-white hover:bg-electric-blue/30 hover:border-electric-blue/50 hover:shadow-glow-blue transition-all duration-300"
                 aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5" />
@@ -113,19 +123,19 @@ export function Footer() {
               Subscribe for aviation insights and inventory updates.
             </p>
             <form onSubmit={handleSubmit} className="relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-electric-blue/30 to-electric-blue/10 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity" />
+              <div className="absolute -inset-0.5 bg-gradient-to-r from-electric-blue/50 to-electric-blue/30 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
               <div className="relative flex">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-3 bg-slate-800/50 border border-white/10 rounded-l-lg text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-electric-blue/50 transition-colors"
+                  className="flex-1 px-4 py-3 bg-slate-800/70 backdrop-blur-sm border border-white/10 rounded-l-lg text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-electric-blue/60 focus:shadow-glow-blue-input transition-all duration-300"
                   required
                 />
                 <button
                   type="submit"
-                  className="px-4 bg-electric-blue hover:bg-electric-blue-700 text-white rounded-r-lg transition-colors"
+                  className="px-5 bg-electric-blue hover:bg-electric-blue-600 hover:shadow-glow-blue text-white rounded-r-lg transition-all duration-300 flex items-center justify-center"
                   aria-label="Subscribe"
                 >
                   <Send className="w-4 h-4" />

@@ -7,37 +7,46 @@ import { STATS } from '@/lib/constants'
 
 export function StatsBar() {
   return (
-    <section className="relative py-16 bg-slate-50 border-y border-slate-200">
-      {/* Subtle gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-electric-blue/5 to-transparent" />
+    <section className="relative py-20 bg-gradient-to-r from-midnight-blue-200 via-dark-charcoal-200 to-midnight-blue-200 border-y border-electric-blue/20 dark-theme-section">
+      {/* Enhanced gradient overlays */}
+      <div className="absolute inset-0 bg-gradient-electric opacity-60" />
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-electric-blue/15 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-radial from-electric-blue/10 via-transparent to-transparent" />
 
-      <div className="container mx-auto px-4 md:px-6">
+      {/* Subtle animated particles */}
+      <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-electric-blue/10 rounded-full blur-3xl animate-float" />
+      <div className="absolute bottom-1/2 right-1/4 w-64 h-64 bg-electric-blue/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
+
+      <div className="container mx-auto px-4 md:px-6 relative z-10">
         <motion.div
           variants={fadeInUp}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-100px' }}
-          className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-16 lg:gap-24"
+          className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-20 lg:gap-32"
         >
           {STATS.map((stat, index) => (
             <div key={stat.label} className="relative flex flex-col items-center text-center group">
+              {/* Glow effect on hover */}
+              <div className="absolute -inset-4 bg-electric-blue/0 group-hover:bg-electric-blue/10 rounded-full blur-2xl transition-all duration-500" />
+              
               {/* Stat value */}
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 relative">
                 <AnimatedCounter
                   value={stat.value}
                   suffix={stat.suffix}
-                  className="text-4xl md:text-5xl lg:text-6xl font-bold text-navy group-hover:text-electric-blue transition-colors"
+                  className="text-6xl md:text-7xl lg:text-8xl font-extrabold text-white group-hover:text-electric-blue-300 transition-all duration-300"
                 />
               </div>
 
               {/* Label */}
-              <p className="text-xs md:text-sm text-slate-500 uppercase tracking-widest mt-2">
+              <p className="text-base md:text-lg text-slate-200 uppercase tracking-wider mt-5 font-semibold">
                 {stat.label}
               </p>
 
-              {/* Separator (not on last item) */}
+              {/* Enhanced separator (not on last item) */}
               {index < STATS.length - 1 && (
-                <div className="hidden md:block absolute -right-8 lg:-right-12 top-1/2 -translate-y-1/2 w-px h-16 bg-gradient-to-b from-transparent via-slate-300 to-transparent" />
+                <div className="hidden md:block absolute -right-10 lg:-right-16 top-1/2 -translate-y-1/2 w-px h-20 bg-gradient-to-b from-transparent via-electric-blue/50 to-transparent" />
               )}
             </div>
           ))}
