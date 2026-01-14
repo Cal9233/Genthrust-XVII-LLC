@@ -7,7 +7,7 @@ import { WhyGenthrust } from '@/components/sections/WhyGenthrust'
 
 export default function Home() {
   return (
-    <main className="bg-white text-navy">
+    <main className="bg-white text-navy overflow-x-hidden">
       <Navbar />
       <HeroSection />
       <StatsBar />
