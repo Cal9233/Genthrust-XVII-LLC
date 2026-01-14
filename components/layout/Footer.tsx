@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { Linkedin, Twitter, Send } from 'lucide-react'
-import { fadeInUp, staggerContainer, staggerItem } from '@/lib/animations'
+import { fadeInUp, staggerContainer, staggerItem, iconRotate, scaleIn } from '@/lib/animations'
 import { FOOTER_LINKS } from '@/lib/constants'
 import { useState } from 'react'
 
@@ -58,20 +58,26 @@ export function Footer() {
               chain solutions.
             </p>
             <div className="flex gap-3">
-              <a
+              <motion.a
                 href="#"
+                variants={iconRotate}
+                initial="rest"
+                whileHover="hover"
                 className="p-2.5 rounded-lg bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-slate-400 hover:text-white hover:bg-electric-blue/30 hover:border-electric-blue/50 hover:shadow-glow-blue transition-all duration-300"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="w-5 h-5" />
-              </a>
-              <a
+              </motion.a>
+              <motion.a
                 href="#"
+                variants={iconRotate}
+                initial="rest"
+                whileHover="hover"
                 className="p-2.5 rounded-lg bg-slate-800/60 backdrop-blur-sm border border-slate-700/50 text-slate-400 hover:text-white hover:bg-electric-blue/30 hover:border-electric-blue/50 hover:shadow-glow-blue transition-all duration-300"
                 aria-label="Twitter"
               >
                 <Twitter className="w-5 h-5" />
-              </a>
+              </motion.a>
             </div>
           </motion.div>
 
@@ -125,21 +131,30 @@ export function Footer() {
             <form onSubmit={handleSubmit} className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-electric-blue/50 to-electric-blue/30 rounded-lg blur opacity-0 group-focus-within:opacity-100 transition-opacity duration-300" />
               <div className="relative flex">
-                <input
+                <motion.input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   className="flex-1 px-4 py-3 bg-slate-800/70 backdrop-blur-sm border border-white/10 rounded-l-lg text-white text-sm placeholder:text-slate-500 focus:outline-none focus:border-electric-blue/60 focus:shadow-glow-blue-input transition-all duration-300"
                   required
+                  whileFocus={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
                 />
-                <button
+                <motion.button
                   type="submit"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   className="px-5 bg-electric-blue hover:bg-electric-blue-600 hover:shadow-glow-blue text-white rounded-r-lg transition-all duration-300 flex items-center justify-center"
                   aria-label="Subscribe"
                 >
-                  <Send className="w-4 h-4" />
-                </button>
+                  <motion.div
+                    animate={{ x: email ? [0, 4, 0] : 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Send className="w-4 h-4" />
+                  </motion.div>
+                </motion.button>
               </div>
             </form>
           </motion.div>

@@ -1,9 +1,9 @@
 export const NAV_LINKS = [
-  { label: 'About', href: '#about' },
-  { label: 'Services', href: '#services' },
-  { label: 'Inventory', href: '#inventory' },
-  { label: 'Repairs', href: '#repairs' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'About', href: '/about' },
+  { label: 'Services', href: '/services' },
+  { label: 'Inventory', href: '/inventory' },
+  { label: 'Repairs', href: '/repairs' },
+  { label: 'Contact', href: '/contact' },
 ]
 
 export const STATS = [
