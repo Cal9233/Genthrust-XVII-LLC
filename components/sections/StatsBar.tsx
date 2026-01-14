@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { fadeInUp } from '@/lib/animations'
+import { staggerContainer, staggerItem } from '@/lib/animations'
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 import { STATS } from '@/lib/constants'
 
@@ -14,19 +14,46 @@ export function StatsBar() {
       <div className="absolute inset-0 bg-gradient-radial from-electric-blue/10 via-transparent to-transparent" />
 
       {/* Subtle animated particles */}
-      <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-electric-blue/10 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-1/2 right-1/4 w-64 h-64 bg-electric-blue/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '-3s' }} />
+      <motion.div
+        animate={{
+          y: [0, -20, 0],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
+        className="absolute top-1/2 left-1/4 w-64 h-64 bg-electric-blue/10 rounded-full blur-3xl"
+      />
+      <motion.div
+        animate={{
+          y: [0, 20, 0],
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 10,
+          repeat: Infinity,
+          ease: 'easeInOut',
+          delay: 1,
+        }}
+        className="absolute bottom-1/2 right-1/4 w-64 h-64 bg-electric-blue/10 rounded-full blur-3xl"
+      />
 
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <motion.div
-          variants={fadeInUp}
+          variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-100px' }}
           className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-20 lg:gap-32"
         >
           {STATS.map((stat, index) => (
-            <div key={stat.label} className="relative flex flex-col items-center text-center group">
+            <motion.div
+              key={stat.label}
+              variants={staggerItem}
+              className="relative flex flex-col items-center text-center group"
+            >
               {/* Glow effect on hover */}
               <div className="absolute -inset-4 bg-electric-blue/0 group-hover:bg-electric-blue/10 rounded-full blur-2xl transition-all duration-500" />
               
@@ -46,9 +73,15 @@ export function StatsBar() {
 
               {/* Enhanced separator (not on last item) */}
               {index < STATS.length - 1 && (
-                <div className="hidden md:block absolute -right-10 lg:-right-16 top-1/2 -translate-y-1/2 w-px h-20 bg-gradient-to-b from-transparent via-electric-blue/50 to-transparent" />
+                <motion.div
+                  initial={{ scaleY: 0 }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="hidden md:block absolute -right-10 lg:-right-16 top-1/2 -translate-y-1/2 w-px h-20 bg-gradient-to-b from-transparent via-electric-blue/50 to-transparent"
+                />
               )}
-            </div>
+            </motion.div>
           ))}
         </motion.div>
       </div>

@@ -2,8 +2,8 @@
 
 import { motion } from 'framer-motion'
 import { ArrowRight, Plane, Wrench, Package } from 'lucide-react'
-import { staggerContainer, staggerItem } from '@/lib/animations'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { staggerGrid, fadeInUp, slideInLeft, slideInRight } from '@/lib/animations'
+import { GlassCard, CardImage } from '@/components/ui/GlassCard'
 import { SERVICES } from '@/lib/constants'
 
 const iconMap = {
@@ -22,10 +22,10 @@ export function ServicesBento() {
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
           className="text-center mb-20"
         >
           <p className="text-electric-blue uppercase tracking-[0.3em] text-sm font-medium mb-4">
@@ -40,19 +40,22 @@ export function ServicesBento() {
 
         {/* Bento Grid */}
         <motion.div
-          variants={staggerContainer}
+          variants={staggerGrid}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-100px' }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
         >
-          {SERVICES.map((service) => {
+          {SERVICES.map((service, index) => {
             const Icon = iconMap[service.id as keyof typeof iconMap]
+            const isLeft = index % 3 === 0
+            const isRight = index % 3 === 2
+            const slideVariant = isLeft ? slideInLeft : isRight ? slideInRight : fadeInUp
 
             return (
               <motion.div
                 key={service.id}
-                variants={staggerItem}
+                variants={slideVariant}
                 className={service.featured ? 'md:col-span-2 lg:col-span-2 lg:row-span-2' : ''}
               >
                 <GlassCard
@@ -60,8 +63,8 @@ export function ServicesBento() {
                   className={service.featured ? 'h-full min-h-[400px]' : 'h-full min-h-[280px]'}
                 >
                   <div className="flex flex-col h-full p-6 md:p-8">
-                    {/* Image placeholder */}
-                    <div
+                    {/* Image placeholder with zoom effect */}
+                    <CardImage
                       className={`relative w-full bg-gradient-to-br from-electric-blue/10 via-electric-blue/5 to-slate-100 rounded-xl overflow-hidden mb-6 ${service.featured ? 'h-48 md:h-64' : 'h-32'}`}
                     >
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -73,7 +76,7 @@ export function ServicesBento() {
                       <div className="absolute bottom-2 right-2 text-xs text-slate-400 bg-white/80 px-2 py-1 rounded">
                         [Image Placeholder]
                       </div>
-                    </div>
+                    </CardImage>
 
                     {/* Content */}
                     <div className="flex-1">

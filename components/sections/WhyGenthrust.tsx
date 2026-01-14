@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Shield, Clock, Globe, Award } from 'lucide-react'
-import { staggerContainer, staggerItem, fadeInUp } from '@/lib/animations'
+import { staggerGrid, staggerItem, fadeInUp, iconRotate, iconBounce } from '@/lib/animations'
 import { ADVANTAGES, PARTNER_LOGOS } from '@/lib/constants'
 import { cn } from '@/lib/utils'
 
@@ -42,7 +42,7 @@ export function WhyGenthrust() {
 
         {/* Advantages Grid */}
         <motion.div
-          variants={staggerContainer}
+          variants={staggerGrid}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: '-100px' }}
@@ -55,12 +55,18 @@ export function WhyGenthrust() {
               <motion.div
                 key={advantage.title}
                 variants={staggerItem}
+                whileHover={{ y: -4 }}
                 className="group relative p-8 rounded-2xl bg-slate-900/60 backdrop-blur-sm border border-electric-blue/25 hover:border-electric-blue/50 transition-all duration-300"
               >
-                {/* Icon */}
-                <div className="relative w-16 h-16 rounded-xl bg-electric-blue/25 flex items-center justify-center mb-6 group-hover:bg-electric-blue/35 transition-all duration-300">
-                  <Icon className="w-8 h-8 text-electric-blue-400 group-hover:scale-110 transition-transform duration-300" />
-                </div>
+                {/* Icon with animation */}
+                <motion.div
+                  variants={iconBounce}
+                  initial="rest"
+                  whileHover="hover"
+                  className="relative w-16 h-16 rounded-xl bg-electric-blue/25 flex items-center justify-center mb-6 group-hover:bg-electric-blue/35 transition-all duration-300"
+                >
+                  <Icon className="w-8 h-8 text-electric-blue-400" />
+                </motion.div>
 
                 {/* Content */}
                 <h3 className="text-lg font-extrabold text-white mb-3 group-hover:text-electric-blue-300 transition-colors">{advantage.title}</h3>

@@ -3,16 +3,17 @@
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { ReactNode } from 'react'
-import { cardHover } from '@/lib/animations'
+import { cardHover, liftEffect, imageZoom } from '@/lib/animations'
 
 interface GlassCardProps {
   children: ReactNode
   className?: string
   featured?: boolean
   href?: string
+  imageContainerClassName?: string
 }
 
-export function GlassCard({ children, className, featured = false, href }: GlassCardProps) {
+export function GlassCard({ children, className, featured = false, href, imageContainerClassName }: GlassCardProps) {
   const Component = href ? motion.a : motion.div
 
   return (
@@ -32,11 +33,35 @@ export function GlassCard({ children, className, featured = false, href }: Glass
         className
       )}
     >
-      {/* Subtle gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-electric-blue/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {/* Enhanced gradient overlay on hover */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-electric-blue/5 via-transparent to-transparent"
+        initial={{ opacity: 0 }}
+        whileHover={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      />
 
       {/* Content */}
       <div className="relative z-10 h-full">{children}</div>
     </Component>
+  )
+}
+
+// Helper component for image zoom effect inside cards
+interface CardImageProps {
+  children: ReactNode
+  className?: string
+}
+
+export function CardImage({ children, className }: CardImageProps) {
+  return (
+    <motion.div
+      variants={imageZoom}
+      initial="rest"
+      whileHover="hover"
+      className={cn('overflow-hidden rounded-xl', className)}
+    >
+      {children}
+    </motion.div>
   )
 }
