@@ -76,9 +76,9 @@ export const FOOTER_LINKS = {
     { label: 'Terms', href: '#terms' },
   ],
   contact: {
-    address: '123 Aviation Way, Miami, FL 33131',
+    address: '9565 NW 40th Street Rd, Doral',
     phone: '+1 (305) 555-0123',
-    email: 'sales@genthrust.com',
+    email: 'sales@genthrust.net',
   },
 }
 
