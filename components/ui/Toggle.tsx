@@ -21,9 +21,9 @@ export function Toggle({
   label,
 }: ToggleProps) {
   const sizeClasses = {
-    sm: { track: 'w-9 h-5', thumb: 'w-4 h-4', translate: 'translate-x-4' },
-    md: { track: 'w-11 h-6', thumb: 'w-5 h-5', translate: 'translate-x-5' },
-    lg: { track: 'w-14 h-7', thumb: 'w-6 h-6', translate: 'translate-x-7' },
+    sm: { track: 'w-9 h-5', thumb: 'w-4 h-4', translate: 'translate-x-4', translatePx: 16 },
+    md: { track: 'w-11 h-6', thumb: 'w-5 h-5', translate: 'translate-x-5', translatePx: 20 },
+    lg: { track: 'w-14 h-7', thumb: 'w-6 h-6', translate: 'translate-x-7', translatePx: 28 },
   }
 
   const sizes = sizeClasses[size]
@@ -47,7 +47,7 @@ export function Toggle({
         <motion.span
           className={cn('block rounded-full bg-white shadow-md', sizes.thumb)}
           animate={{
-            x: checked ? sizes.translate.replace('translate-x-', '') : 0,
+            x: checked ? sizes.translatePx : 0,
           }}
           transition={{
             type: 'spring',
