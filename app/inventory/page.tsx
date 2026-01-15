@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
 import { motion } from 'framer-motion'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
@@ -7,6 +8,8 @@ import { fadeIn, fadeInUp, staggerGrid, staggerItem, slideInLeft, slideInRight }
 import { SearchInput } from '@/components/ui/SearchInput'
 import { Button } from '@/components/ui/Button'
 import { GlassCard, CardImage } from '@/components/ui/GlassCard'
+import { InventoryTable } from '@/components/ui/InventoryTable'
+import { InventoryItem } from '@/types/inventory'
 import { Plane, Package, Wrench, Settings, Search, Filter } from 'lucide-react'
 import Link from 'next/link'
 
@@ -74,6 +77,48 @@ const featuredParts = [
 ]
 
 export default function InventoryPage() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<InventoryItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Debounced search function
+  const performSearch = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([])
+      setIsLoading(false)
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) {
+        throw new Error('Failed to search inventory')
+      }
+      const data = await response.json()
+      setSearchResults(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+      setSearchResults([])
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  // Debounce effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      performSearch(searchQuery)
+    }, 300) // 300ms debounce delay
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, performSearch])
+
+  const hasSearched = searchQuery.trim().length > 0
+
   return (
     <motion.main
       variants={fadeIn}
@@ -136,8 +181,10 @@ export default function InventoryPage() {
             >
               <SearchInput
                 dark
-                placeholder="Search by part number, keyword, or aircraft type..."
+                placeholder="Search by part number or description..."
                 className="w-full"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
               <div className="flex flex-wrap justify-center gap-4 mt-6">
                 <Button variant="outline" size="sm">
@@ -213,63 +260,109 @@ export default function InventoryPage() {
         </div>
       </section>
 
-      {/* Featured Parts Section */}
-      <section className="relative py-28 bg-gradient-to-b from-dark-charcoal-300 via-dark-charcoal-200 to-dark-charcoal-300 overflow-hidden">
-        <div className="absolute top-1/2 left-0 w-96 h-96 bg-electric-blue/10 rounded-full blur-3xl -translate-y-1/2" />
-        <div className="absolute top-1/2 right-0 w-96 h-96 bg-crimson/10 rounded-full blur-3xl -translate-y-1/2" />
+      {/* Search Results Section */}
+      {hasSearched && (
+        <section className="relative py-28 bg-gradient-to-b from-dark-charcoal-300 via-dark-charcoal-200 to-dark-charcoal-300 overflow-hidden">
+          <div className="absolute top-1/2 left-0 w-96 h-96 bg-electric-blue/10 rounded-full blur-3xl -translate-y-1/2" />
+          <div className="absolute top-1/2 right-0 w-96 h-96 bg-crimson/10 rounded-full blur-3xl -translate-y-1/2" />
 
-        <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            className="text-center mb-20"
-          >
-            <p className="text-electric-blue-300 uppercase tracking-[0.3em] text-sm font-medium mb-4">
-              Featured Parts
-            </p>
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
-              <span className="text-electric-blue-400">AVAILABLE NOW</span>
-            </h2>
-          </motion.div>
+          <div className="container mx-auto px-4 md:px-6 relative z-10">
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+              className="text-center mb-12"
+            >
+              <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
+                <span className="text-electric-blue-400">SEARCH RESULTS</span>
+              </h2>
+              {searchResults.length > 0 && (
+                <p className="text-slate-300 text-lg">
+                  Found {searchResults.length} {searchResults.length === 1 ? 'item' : 'items'}
+                </p>
+              )}
+            </motion.div>
 
-          <motion.div
-            variants={staggerGrid}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto"
-          >
-            {featuredParts.map((part) => (
+            {error && (
               <motion.div
-                key={part.partNumber}
-                variants={staggerItem}
-                whileHover={{ y: -4 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-8 p-4 bg-red-950/30 border border-red-500/50 rounded-lg text-red-400 text-center"
               >
-                <GlassCard className="h-full p-6">
-                  <div className="mb-4">
-                    <span className="text-electric-blue-400 text-sm font-semibold">{part.partNumber}</span>
-                    <h3 className="text-xl font-extrabold text-white mt-2 mb-2">{part.description}</h3>
-                    <p className="text-slate-400 text-sm mb-4">{part.aircraft}</p>
-                  </div>
-                  <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-                    <span className="text-sm text-slate-300">Condition:</span>
-                    <span className="text-sm font-semibold text-green-400">{part.condition}</span>
-                  </div>
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-sm text-slate-300">Location:</span>
-                    <span className="text-sm font-semibold text-white">{part.location}</span>
-                  </div>
-                  <Button variant="outline" size="sm" className="w-full">
-                    Request Quote
-                  </Button>
-                </GlassCard>
+                {error}
               </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+            )}
+
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              animate="visible"
+            >
+              <InventoryTable items={searchResults} isLoading={isLoading} />
+            </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* Featured Parts Section - Only show when not searching */}
+      {!hasSearched && (
+        <section className="relative py-28 bg-gradient-to-b from-dark-charcoal-300 via-dark-charcoal-200 to-dark-charcoal-300 overflow-hidden">
+          <div className="absolute top-1/2 left-0 w-96 h-96 bg-electric-blue/10 rounded-full blur-3xl -translate-y-1/2" />
+          <div className="absolute top-1/2 right-0 w-96 h-96 bg-crimson/10 rounded-full blur-3xl -translate-y-1/2" />
+
+          <div className="container mx-auto px-4 md:px-6 relative z-10">
+            <motion.div
+              variants={fadeInUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-100px' }}
+              className="text-center mb-20"
+            >
+              <p className="text-electric-blue-300 uppercase tracking-[0.3em] text-sm font-medium mb-4">
+                Featured Parts
+              </p>
+              <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
+                <span className="text-electric-blue-400">AVAILABLE NOW</span>
+              </h2>
+            </motion.div>
+
+            <motion.div
+              variants={staggerGrid}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: '-100px' }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto"
+            >
+              {featuredParts.map((part) => (
+                <motion.div
+                  key={part.partNumber}
+                  variants={staggerItem}
+                  whileHover={{ y: -4 }}
+                >
+                  <GlassCard className="h-full p-6">
+                    <div className="mb-4">
+                      <span className="text-electric-blue-400 text-sm font-semibold">{part.partNumber}</span>
+                      <h3 className="text-xl font-extrabold text-white mt-2 mb-2">{part.description}</h3>
+                      <p className="text-slate-400 text-sm mb-4">{part.aircraft}</p>
+                    </div>
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
+                      <span className="text-sm text-slate-300">Condition:</span>
+                      <span className="text-sm font-semibold text-green-400">{part.condition}</span>
+                    </div>
+                    <div className="flex items-center justify-between mb-6">
+                      <span className="text-sm text-slate-300">Location:</span>
+                      <span className="text-sm font-semibold text-white">{part.location}</span>
+                    </div>
+                    <Button variant="outline" size="sm" className="w-full">
+                      Request Quote
+                    </Button>
+                  </GlassCard>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="relative py-28 bg-gradient-to-b from-white to-electric-blue/5">
