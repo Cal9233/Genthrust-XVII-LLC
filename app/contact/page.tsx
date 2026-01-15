@@ -164,8 +164,8 @@ export default function ContactPage() {
                     >
                       <Icon className="w-8 h-8 text-electric-blue-400" />
                     </motion.div>
-                    <h3 className="text-xl font-extrabold text-white mb-3">{method.title}</h3>
-                    <p className="text-slate-300">{method.description}</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{method.title}</h3>
+                    <p className="text-slate-600">{method.description}</p>
                   </GlassCard>
                 </motion.a>
               )
@@ -330,9 +330,9 @@ export default function ContactPage() {
               <GlassCard className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <MessageSquare className="w-6 h-6 text-electric-blue-400" />
-                  <h3 className="text-xl font-extrabold text-white">Need Immediate Assistance?</h3>
+                  <h3 className="text-xl font-extrabold text-slate-900">Need Immediate Assistance?</h3>
                 </div>
-                <p className="text-slate-300 mb-4">
+                <p className="text-slate-600 mb-4">
                   For urgent AOG situations, call our 24/7 emergency line:
                 </p>
                 <a

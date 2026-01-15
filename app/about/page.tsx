@@ -251,8 +251,8 @@ export default function AboutPage() {
                     >
                       <Icon className="w-8 h-8 text-electric-blue-400" />
                     </motion.div>
-                    <h3 className="text-xl font-extrabold text-white mb-3">{cert.title}</h3>
-                    <p className="text-slate-300">{cert.description}</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{cert.title}</h3>
+                    <p className="text-slate-600">{cert.description}</p>
                   </GlassCard>
                 </motion.div>
               )

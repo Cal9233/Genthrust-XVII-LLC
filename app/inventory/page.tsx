@@ -247,8 +247,8 @@ export default function InventoryPage() {
                       </div>
                       <span className="text-2xl font-extrabold text-electric-blue-400">{category.count}</span>
                     </div>
-                    <h3 className="text-xl font-extrabold text-white mb-3">{category.title}</h3>
-                    <p className="text-slate-300 mb-4">{category.description}</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{category.title}</h3>
+                    <p className="text-slate-600 mb-4">{category.description}</p>
                     <Button variant="outline" size="sm" className="w-full">
                       Browse Category
                     </Button>
@@ -342,16 +342,16 @@ export default function InventoryPage() {
                   <GlassCard className="h-full p-6">
                     <div className="mb-4">
                       <span className="text-electric-blue-400 text-sm font-semibold">{part.partNumber}</span>
-                      <h3 className="text-xl font-extrabold text-white mt-2 mb-2">{part.description}</h3>
-                      <p className="text-slate-400 text-sm mb-4">{part.aircraft}</p>
+                      <h3 className="text-xl font-extrabold text-slate-900 mt-2 mb-2">{part.description}</h3>
+                      <p className="text-slate-600 text-sm mb-4">{part.aircraft}</p>
                     </div>
-                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-700">
-                      <span className="text-sm text-slate-300">Condition:</span>
-                      <span className="text-sm font-semibold text-green-400">{part.condition}</span>
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200">
+                      <span className="text-sm text-slate-600">Condition:</span>
+                      <span className="text-sm font-semibold text-green-600">{part.condition}</span>
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                      <span className="text-sm text-slate-300">Location:</span>
-                      <span className="text-sm font-semibold text-white">{part.location}</span>
+                      <span className="text-sm text-slate-600">Location:</span>
+                      <span className="text-sm font-semibold text-slate-900">{part.location}</span>
                     </div>
                     <Button variant="outline" size="sm" className="w-full">
                       Request Quote
