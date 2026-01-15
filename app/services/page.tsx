@@ -225,8 +225,8 @@ export default function ServicesPage() {
                     <div className="w-16 h-16 rounded-xl bg-electric-blue/25 flex items-center justify-center mb-6 mx-auto">
                       <Icon className="w-8 h-8 text-electric-blue-400" />
                     </div>
-                    <h3 className="text-xl font-extrabold text-white mb-3">{benefit.title}</h3>
-                    <p className="text-slate-300">{benefit.description}</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{benefit.title}</h3>
+                    <p className="text-slate-600">{benefit.description}</p>
                   </GlassCard>
                 </motion.div>
               )

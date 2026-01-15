@@ -213,8 +213,8 @@ export default function RepairsPage() {
                     >
                       <Icon className="w-8 h-8 text-electric-blue-400" />
                     </motion.div>
-                    <h3 className="text-xl font-extrabold text-white mb-3">{service.title}</h3>
-                    <p className="text-slate-300">{service.description}</p>
+                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{service.title}</h3>
+                    <p className="text-slate-600">{service.description}</p>
                   </GlassCard>
                 </motion.div>
               )
