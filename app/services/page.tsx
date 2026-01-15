@@ -168,7 +168,7 @@ export default function ServicesPage() {
                       <div className="w-16 h-16 rounded-xl bg-electric-blue/10 flex items-center justify-center">
                         <Icon className="w-8 h-8 text-electric-blue" />
                       </div>
-                      <span className="text-4xl font-extrabold text-slate-200">{step.step}</span>
+                      <span className="text-4xl font-extrabold text-slate-600">{step.step}</span>
                     </div>
                     <h3 className="text-xl font-extrabold text-navy mb-3">{step.title}</h3>
                     <p className="text-slate-600">{step.description}</p>
@@ -221,12 +221,12 @@ export default function ServicesPage() {
                   variants={staggerItem}
                   whileHover={{ y: -4 }}
                 >
-                  <GlassCard className="h-full p-8 text-center">
+                  <GlassCard className="h-full p-8 text-center bg-slate-800/60 backdrop-blur-sm border-slate-700">
                     <div className="w-16 h-16 rounded-xl bg-electric-blue/25 flex items-center justify-center mb-6 mx-auto">
                       <Icon className="w-8 h-8 text-electric-blue-400" />
                     </div>
-                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{benefit.title}</h3>
-                    <p className="text-slate-600">{benefit.description}</p>
+                    <h3 className="text-xl font-extrabold text-white mb-3">{benefit.title}</h3>
+                    <p className="text-slate-300">{benefit.description}</p>
                   </GlassCard>
                 </motion.div>
               )

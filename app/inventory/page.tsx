@@ -339,19 +339,19 @@ export default function InventoryPage() {
                   variants={staggerItem}
                   whileHover={{ y: -4 }}
                 >
-                  <GlassCard className="h-full p-6">
+                  <GlassCard className="h-full p-6 bg-slate-800/60 backdrop-blur-sm border-slate-700">
                     <div className="mb-4">
                       <span className="text-electric-blue-400 text-sm font-semibold">{part.partNumber}</span>
-                      <h3 className="text-xl font-extrabold text-slate-900 mt-2 mb-2">{part.description}</h3>
-                      <p className="text-slate-600 text-sm mb-4">{part.aircraft}</p>
+                      <h3 className="text-xl font-extrabold text-white mt-2 mb-2">{part.description}</h3>
+                      <p className="text-slate-300 text-sm mb-4">{part.aircraft}</p>
                     </div>
-                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200">
-                      <span className="text-sm text-slate-600">Condition:</span>
-                      <span className="text-sm font-semibold text-green-600">{part.condition}</span>
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-600">
+                      <span className="text-sm text-slate-300">Condition:</span>
+                      <span className="text-sm font-semibold text-green-400">{part.condition}</span>
                     </div>
                     <div className="flex items-center justify-between mb-6">
-                      <span className="text-sm text-slate-600">Location:</span>
-                      <span className="text-sm font-semibold text-slate-900">{part.location}</span>
+                      <span className="text-sm text-slate-300">Location:</span>
+                      <span className="text-sm font-semibold text-slate-200">{part.location}</span>
                     </div>
                     <Button variant="outline" size="sm" className="w-full">
                       Request Quote

@@ -263,7 +263,7 @@ export default function RepairsPage() {
                 <div className="h-full p-8 rounded-2xl bg-slate-900/60 backdrop-blur-sm border border-electric-blue/25 hover:border-electric-blue/50 transition-all duration-300">
                   <div className="flex items-start justify-between mb-6">
                     <CheckCircle2 className="w-8 h-8 text-electric-blue-400" />
-                    <span className="text-4xl font-extrabold text-slate-700">{step.step}</span>
+                    <span className="text-4xl font-extrabold text-slate-300">{step.step}</span>
                   </div>
                   <h3 className="text-xl font-extrabold text-white mb-3">{step.title}</h3>
                   <p className="text-slate-300">{step.description}</p>
