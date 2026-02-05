@@ -55,7 +55,7 @@ function Scene() {
         maxPolarAngle={Math.PI / 1.8}
       />
       {/* Dark fog to blend into dark background */}
-      <fog attach="fog" args={['#0f172a', 30, 90]} />
+      <fog attach="fog" args={['#1e293b', 30, 90]} />
     </>
   )
 }
@@ -65,7 +65,7 @@ export default function ParticleVertexAircraft() {
 
   return (
     <div
-      className="relative h-[600px] w-full overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-700 shadow-lg"
+      className="relative h-[600px] w-full overflow-hidden rounded-2xl bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-600 shadow-lg"
       onPointerEnter={() => setIsHovering(true)}
       onPointerLeave={() => setIsHovering(false)}
     >
@@ -74,7 +74,7 @@ export default function ParticleVertexAircraft() {
           <MouseHoverContext.Provider value={isHovering}>
             <Canvas
               camera={{ position: [0, 2, 18], fov: 50 }}
-              onCreated={({ gl }) => gl.setClearColor('#0f172a')}
+              onCreated={({ gl }) => gl.setClearColor('#1e293b')}
               gl={{ antialias: true, alpha: false }}
               dpr={[1, 2]}
             >

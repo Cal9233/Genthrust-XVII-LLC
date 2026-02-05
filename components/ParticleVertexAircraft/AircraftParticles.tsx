@@ -233,12 +233,14 @@ export default function AircraftParticles() {
     <group ref={groupRef} rotation={[0, 0, 0]}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, particles.length]}>
         <sphereGeometry args={[0.028, 6, 6]} />
-        {/* Material that uses per-instance colors from the logo */}
+        {/* Material with emissive glow for visibility on dark background */}
         <meshStandardMaterial
-          roughness={0.3}
-          metalness={0.8}
+          roughness={0.2}
+          metalness={0.6}
+          emissive="#ffffff"
+          emissiveIntensity={0.4}
           transparent={true}
-          opacity={0.9}
+          opacity={0.95}
         />
       </instancedMesh>
     </group>
