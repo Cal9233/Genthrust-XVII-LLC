@@ -19,6 +19,11 @@ function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
 
+interface PixelPoint {
+  position: THREE.Vector3
+  color: THREE.Color
+}
+
 interface ParticleData {
   targetPosition: THREE.Vector3
   startPosition: THREE.Vector3
@@ -26,8 +31,8 @@ interface ParticleData {
 }
 
 // Logo Image Sampling Hook - samples points from non-transparent pixels in PNG
-function useLogoPoints(imagePath: string, totalParticles: number, scale: number): THREE.Vector3[] {
-  const [points, setPoints] = useState<THREE.Vector3[]>([])
+function useLogoPoints(imagePath: string, totalParticles: number, scale: number): PixelPoint[] {
+  const [points, setPoints] = useState<PixelPoint[]>([])
 
   useEffect(() => {
     const img = new Image()
@@ -45,9 +50,9 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
       const data = imageData.data
 
       // Collect positions of non-transparent pixels
-      // Only include upper ~65% of image (diamond area, exclude text)
-      const maxY = Math.floor(canvas.height * 0.65)
-      const validPixels: { x: number; y: number }[] = []
+      // Include full logo (all 8 sections - 4 top colored + 4 bottom grey)
+      const maxY = canvas.height
+      const validPixels: { x: number; y: number; r: number; g: number; b: number }[] = []
 
       for (let y = 0; y < maxY; y++) {
         for (let x = 0; x < canvas.width; x++) {
@@ -60,7 +65,7 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
           // A pixel is part of the logo if any RGB channel is significantly below 255
           const isWhite = r > 240 && g > 240 && b > 240
           if (!isWhite) {
-            validPixels.push({ x, y })
+            validPixels.push({ x, y, r, g, b })
           }
         }
       }
@@ -68,7 +73,7 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
       if (validPixels.length === 0) return
 
       // Randomly sample from valid pixels
-      const sampledPoints: THREE.Vector3[] = []
+      const sampledPoints: PixelPoint[] = []
       for (let i = 0; i < totalParticles; i++) {
         const pixel = validPixels[Math.floor(Math.random() * validPixels.length)]
 
@@ -80,21 +85,26 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
         // Add slight Z randomness for depth
         const pz = (Math.random() - 0.5) * 0.5
 
-        sampledPoints.push(new THREE.Vector3(px, py, pz))
+        // Store color from pixel
+        const color = new THREE.Color(pixel.r / 255, pixel.g / 255, pixel.b / 255)
+        sampledPoints.push({
+          position: new THREE.Vector3(px, py, pz),
+          color
+        })
       }
 
       // Center and normalize the points
       if (sampledPoints.length > 0) {
         const box = new THREE.Box3()
-        sampledPoints.forEach(v => box.expandByPoint(v))
+        sampledPoints.forEach(p => box.expandByPoint(p.position))
         const center = box.getCenter(new THREE.Vector3())
         const size = box.getSize(new THREE.Vector3())
         const maxDim = Math.max(size.x, size.y, size.z)
         const normalizeScale = 13 / maxDim
 
-        sampledPoints.forEach(v => {
-          v.sub(center)
-          v.multiplyScalar(normalizeScale)
+        sampledPoints.forEach(p => {
+          p.position.sub(center)
+          p.position.multiplyScalar(normalizeScale)
         })
 
         setPoints(sampledPoints)
@@ -122,8 +132,8 @@ export default function AircraftParticles() {
 
   const particles = useMemo((): ParticleData[] => {
     if (vertices.length === 0) return []
-    return vertices.map((targetPos) => ({
-      targetPosition: targetPos.clone(),
+    return vertices.map((vertex) => ({
+      targetPosition: vertex.position.clone(),
       startPosition: new THREE.Vector3(
         (Math.random() - 0.5) * DISPERSION_RADIUS * 2,
         (Math.random() - 0.5) * DISPERSION_RADIUS * 1.5,
@@ -132,6 +142,25 @@ export default function AircraftParticles() {
       currentOffset: new THREE.Vector3(0, 0, 0),
     }))
   }, [vertices])
+
+  // Create color buffer for instanceColor
+  const colors = useMemo(() => {
+    if (vertices.length === 0) return null
+    const colorArray = new Float32Array(vertices.length * 3)
+    vertices.forEach((v, i) => {
+      colorArray[i * 3] = v.color.r
+      colorArray[i * 3 + 1] = v.color.g
+      colorArray[i * 3 + 2] = v.color.b
+    })
+    return colorArray
+  }, [vertices])
+
+  // Set instanceColor attribute when colors are ready
+  useEffect(() => {
+    if (meshRef.current && colors) {
+      meshRef.current.instanceColor = new THREE.InstancedBufferAttribute(colors, 3)
+    }
+  }, [colors])
 
   const dummy = useMemo(() => new THREE.Object3D(), [])
   const basePosition = useMemo(() => new THREE.Vector3(), [])
@@ -204,9 +233,8 @@ export default function AircraftParticles() {
     <group ref={groupRef} rotation={[0, 0, 0]}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, particles.length]}>
         <sphereGeometry args={[0.022, 6, 6]} />
-        {/* Metallic blue material for bright daylight environment */}
+        {/* Material that uses per-instance colors from the logo */}
         <meshStandardMaterial
-          color="#0369a1"
           roughness={0.3}
           metalness={0.8}
           transparent={true}
