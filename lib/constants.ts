@@ -141,3 +141,56 @@ export const CONTACT_INFO = {
   address: '9565 NW 40 St Road, Doral, FL 33178',
   mapEmbedUrl: 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3591.8!2d-80.3557!3d25.8085!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x88d9b9c5a5a5a5a5%3A0x0!2s9565%20NW%2040th%20St%20Rd%2C%20Doral%2C%20FL%2033178!5e0!3m2!1sen!2sus!4v1704067200000',
 }
+
+export const STATS = [
+  { value: '25+', label: 'Years Experience' },
+  { value: '500+', label: 'Global Partners' },
+  { value: '10K+', label: 'Parts Delivered' },
+  { value: '99%', label: 'On-Time Delivery' },
+]
+
+export const SERVICES = [
+  {
+    icon: 'Search',
+    title: 'Parts Sourcing',
+    description: 'Global network of certified suppliers to find the parts you need, when you need them.',
+  },
+  {
+    icon: 'Wrench',
+    title: 'Component Repair',
+    description: 'FAA/EASA certified repair services with full traceability and quality assurance.',
+  },
+  {
+    icon: 'ShoppingCart',
+    title: 'Parts Sales',
+    description: 'Competitive pricing on new, overhauled, and serviceable aircraft components.',
+  },
+  {
+    icon: 'Plane',
+    title: 'AOG Support',
+    description: '24/7 emergency support for aircraft on ground situations worldwide.',
+  },
+]
+
+export const ADVANTAGES = [
+  {
+    icon: 'Shield',
+    title: 'Quality Assured',
+    description: 'Every part meets FAA/EASA standards with complete documentation.',
+  },
+  {
+    icon: 'Clock',
+    title: 'Fast Turnaround',
+    description: 'Quick quotes and expedited shipping to minimize downtime.',
+  },
+  {
+    icon: 'Globe',
+    title: 'Global Reach',
+    description: 'Worldwide network of suppliers and logistics partners.',
+  },
+  {
+    icon: 'Award',
+    title: 'Industry Expertise',
+    description: '25+ years of aviation industry experience and knowledge.',
+  },
+]
