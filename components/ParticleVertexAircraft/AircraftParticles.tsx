@@ -2,19 +2,16 @@
 
 import React, { useRef, useMemo, useState, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { MeshSurfaceSampler } from 'three-stdlib'
-// NEW: Import the context
 import { MouseHoverContext } from './index'
 
 // Configuration
-const TOTAL_PARTICLES = 15000
+const TOTAL_PARTICLES = 12000
 const BUILD_DURATION = 2.5
-const DISPERSION_RADIUS = 60
+const DISPERSION_RADIUS = 40
 
 // Mouse Interaction Config
-const INFLUENCE_RADIUS = 8.0
+const INFLUENCE_RADIUS = 6.0
 const REPULSION_STRENGTH = 3.0
 
 // Smooth ease-out function
@@ -28,89 +25,95 @@ interface ParticleData {
   currentOffset: THREE.Vector3
 }
 
-// Helper to calculate surface area of a mesh geometry
-function calculateSurfaceArea(geometry: THREE.BufferGeometry): number {
-  let area = 0
-  const position = geometry.attributes.position
-  const index = geometry.index
-
-  if (index) {
-    for (let i = 0; i < index.count; i += 3) {
-      const a = new THREE.Vector3().fromBufferAttribute(position, index.getX(i))
-      const b = new THREE.Vector3().fromBufferAttribute(position, index.getX(i + 1))
-      const c = new THREE.Vector3().fromBufferAttribute(position, index.getX(i + 2))
-
-      const edge1 = b.sub(a)
-      const edge2 = c.sub(a)
-      const cross = new THREE.Vector3().crossVectors(edge1, edge2)
-      area += cross.length() * 0.5
-    }
-  }
-  return area
-}
-
-// Area-Weighted Surface Sampling Hook
-function useAircraftSurfacePoints(modelPath: string, totalDesiredParticles: number): THREE.Vector3[] {
+// Logo Image Sampling Hook - samples points from non-transparent pixels in PNG
+function useLogoPoints(imagePath: string, totalParticles: number, scale: number): THREE.Vector3[] {
   const [points, setPoints] = useState<THREE.Vector3[]>([])
-  const gltf = useGLTF(modelPath)
 
   useEffect(() => {
-    if (!gltf?.scene) return
-    const meshes: { mesh: THREE.Mesh; area: number }[] = []
-    let totalArea = 0
-    gltf.scene.traverse((child) => {
-      if (child instanceof THREE.Mesh && child.geometry) {
-        child.updateWorldMatrix(true, false)
-        if (!child.geometry.index) child.geometry = child.geometry.toNonIndexed();
-        const area = calculateSurfaceArea(child.geometry)
-        meshes.push({ mesh: child, area })
-        totalArea += area
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+
+      canvas.width = img.width
+      canvas.height = img.height
+      ctx.drawImage(img, 0, 0)
+
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      const data = imageData.data
+
+      // Collect positions of non-transparent pixels
+      // Only include upper ~65% of image (diamond area, exclude text)
+      const maxY = Math.floor(canvas.height * 0.65)
+      const validPixels: { x: number; y: number }[] = []
+
+      for (let y = 0; y < maxY; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const idx = (y * canvas.width + x) * 4
+          const alpha = data[idx + 3]
+          // Only include pixels with sufficient opacity
+          if (alpha > 50) {
+            validPixels.push({ x, y })
+          }
+        }
       }
-    })
-    if (totalArea === 0 || meshes.length === 0) return
-    const finalPoints: THREE.Vector3[] = []
-    meshes.forEach(({ mesh, area }) => {
-      const particleCount = Math.floor((area / totalArea) * totalDesiredParticles)
-      if (particleCount === 0) return;
-      const sampler = new MeshSurfaceSampler(mesh).build()
-      const tempPosition = new THREE.Vector3()
-      const matrixWorld = mesh.matrixWorld
-      for (let i = 0; i < particleCount; i++) {
-        sampler.sample(tempPosition)
-        tempPosition.applyMatrix4(matrixWorld)
-        finalPoints.push(tempPosition.clone())
+
+      if (validPixels.length === 0) return
+
+      // Randomly sample from valid pixels
+      const sampledPoints: THREE.Vector3[] = []
+      for (let i = 0; i < totalParticles; i++) {
+        const pixel = validPixels[Math.floor(Math.random() * validPixels.length)]
+
+        // Convert pixel coords to centered 3D coords
+        // Center the coordinates and flip Y axis
+        const px = (pixel.x - canvas.width / 2) * scale
+        const py = (canvas.height / 2 - pixel.y) * scale // Flip Y
+
+        // Add slight Z randomness for depth
+        const pz = (Math.random() - 0.5) * 0.5
+
+        sampledPoints.push(new THREE.Vector3(px, py, pz))
       }
-    })
-    if (finalPoints.length > 0) {
-      const box = new THREE.Box3()
-      finalPoints.forEach(v => box.expandByPoint(v))
-      const center = box.getCenter(new THREE.Vector3())
-      const size = box.getSize(new THREE.Vector3())
-      const maxDim = Math.max(size.x, size.y, size.z)
-      const scale = 13 / maxDim
-      finalPoints.forEach(v => {
-        v.sub(center)
-        v.multiplyScalar(scale)
-      })
-      setPoints(finalPoints)
+
+      // Center and normalize the points
+      if (sampledPoints.length > 0) {
+        const box = new THREE.Box3()
+        sampledPoints.forEach(v => box.expandByPoint(v))
+        const center = box.getCenter(new THREE.Vector3())
+        const size = box.getSize(new THREE.Vector3())
+        const maxDim = Math.max(size.x, size.y, size.z)
+        const normalizeScale = 13 / maxDim
+
+        sampledPoints.forEach(v => {
+          v.sub(center)
+          v.multiplyScalar(normalizeScale)
+        })
+
+        setPoints(sampledPoints)
+      }
     }
-  }, [gltf, totalDesiredParticles])
+
+    img.src = imagePath
+  }, [imagePath, totalParticles, scale])
+
   return points
 }
-
-useGLTF.preload('/models/aircraft.glb')
 
 export default function AircraftParticles() {
   const meshRef = useRef<THREE.InstancedMesh>(null!)
   const groupRef = useRef<THREE.Group>(null!)
   const startTimeRef = useRef<number | null>(null)
 
-  // NEW: Consume the context state
+  // Consume the context state for mouse hover
   const isHovering = React.useContext(MouseHoverContext)
 
   const { camera, viewport } = useThree()
 
-  const vertices = useAircraftSurfacePoints('/models/aircraft.glb', TOTAL_PARTICLES)
+  // Sample points from logo PNG (diamond icon only)
+  const vertices = useLogoPoints('/GenLogoTab.png', TOTAL_PARTICLES, 0.02)
 
   const particles = useMemo((): ParticleData[] => {
     if (vertices.length === 0) return []
@@ -193,7 +196,7 @@ export default function AircraftParticles() {
   if (particles.length === 0) return null
 
   return (
-    <group ref={groupRef} rotation={[Math.PI / 10, -Math.PI / 5, 0]}>
+    <group ref={groupRef} rotation={[0, 0, 0]}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, particles.length]}>
         <sphereGeometry args={[0.022, 6, 6]} />
         {/* Metallic blue material for bright daylight environment */}
