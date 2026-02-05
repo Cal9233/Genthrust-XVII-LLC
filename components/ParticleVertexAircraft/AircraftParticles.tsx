@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { MouseHoverContext } from './index'
 
 // Configuration
-const TOTAL_PARTICLES = 12000
+const TOTAL_PARTICLES = 18000
 const BUILD_DURATION = 2.5
 const DISPERSION_RADIUS = 40
 
@@ -232,7 +232,7 @@ export default function AircraftParticles() {
   return (
     <group ref={groupRef} rotation={[0, 0, 0]}>
       <instancedMesh ref={meshRef} args={[undefined, undefined, particles.length]}>
-        <sphereGeometry args={[0.022, 6, 6]} />
+        <sphereGeometry args={[0.028, 6, 6]} />
         {/* Material that uses per-instance colors from the logo */}
         <meshStandardMaterial
           roughness={0.3}
