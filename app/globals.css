@@ -8,16 +8,47 @@
   }
 
   body {
-    @apply bg-white text-navy antialiased;
+    @apply bg-white text-slate-900 antialiased;
   }
 
   ::selection {
-    @apply bg-electric-blue/20 text-navy;
+    @apply bg-navy-500/20 text-slate-900;
   }
 
-  /* Dark theme selection colors */
-  .dark-theme-section *::selection {
-    @apply bg-electric-blue/30 text-white;
+  /* Accessible focus states */
+  :focus-visible {
+    @apply outline-none ring-2 ring-navy-500 ring-offset-2 ring-offset-white;
+  }
+
+  /* Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Card base style - light backgrounds */
+  .card {
+    @apply bg-white border border-slate-200 rounded-lg shadow-sm;
+  }
+
+  /* Status badges - adjusted for light background */
+  .badge-available {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 rounded;
+  }
+
+  .badge-limited {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 rounded;
+  }
+
+  .badge-aog {
+    @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded;
   }
 }
 
@@ -26,25 +57,8 @@
     text-wrap: balance;
   }
 
-  /* Glassmorphism utility */
-  .glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-dark {
-    background: rgba(26, 31, 46, 0.7);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .glass-light {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+  /* Skeleton loading animation */
+  .skeleton {
+    @apply animate-pulse bg-slate-200 rounded;
   }
 }

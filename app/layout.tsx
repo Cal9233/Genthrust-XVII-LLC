@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 
@@ -8,29 +8,44 @@ const inter = Inter({
   variable: '--font-inter',
 })
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+}
+
 export const metadata: Metadata = {
-  title: 'GENTHRUST | Powering Global Aviation',
+  title: 'GENTHRUST XVII LLC | Aircraft Parts & Components',
   description:
-    'Your trusted partner for buying, selling, and repairing certified aircraft components. 24/7 AOG support, 500K+ parts available.',
+    'GENTHRUST XVII LLC supplies aircraft parts and components of the highest quality. Over 25 years of experience in the aircraft spares supply chain. Same day delivery from Miami, FL.',
   keywords: [
     'aviation parts',
     'aircraft components',
-    'MRO services',
+    'certified parts',
     'AOG support',
-    'aircraft parts brokerage',
+    'aircraft parts supplier',
     'aviation supply chain',
+    'airframe components',
+    'powerplant parts',
+    'Miami aircraft parts',
+    'same day delivery',
   ],
+  icons: {
+    icon: '/GenLogoTab.png',
+    apple: '/GenLogoTab.png',
+  },
   openGraph: {
-    title: 'GENTHRUST | Powering Global Aviation',
-    description: 'Your trusted partner for certified aircraft components and repair services.',
+    title: 'GENTHRUST XVII LLC | Aircraft Parts & Components',
+    description: 'Supplying aircraft parts and components of the highest quality. 25+ years of experience, same day delivery.',
     type: 'website',
     locale: 'en_US',
-    siteName: 'GENTHRUST',
+    siteName: 'GENTHRUST XVII LLC',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'GENTHRUST | Powering Global Aviation',
-    description: 'Your trusted partner for certified aircraft components and repair services.',
+    title: 'GENTHRUST XVII LLC | Aircraft Parts & Components',
+    description: 'Supplying aircraft parts and components of the highest quality. 25+ years of experience.',
   },
   robots: {
     index: true,
@@ -45,7 +60,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={inter.variable}>
-      <body className={`${inter.className} overflow-x-hidden`}>{children}</body>
+      <body className={`${inter.className} overflow-x-hidden min-h-screen bg-white`}>
+        {children}
+      </body>
     </html>
   )
 }

@@ -1,176 +1,103 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X } from 'lucide-react'
 import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/lib/constants'
-import { Button } from '@/components/ui/Button'
-import { staggerItem } from '@/lib/animations'
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isVisible, setIsVisible] = useState(true)
-  const lastScrollY = useRef(0)
 
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY
-      const scrollingDown = currentScrollY > lastScrollY.current && currentScrollY > 100
-
-      setIsScrolled(currentScrollY > 50)
-      setIsVisible(!scrollingDown || currentScrollY < 100)
-      lastScrollY.current = currentScrollY
+      setIsScrolled(window.scrollY > 50)
     }
 
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
-
-  // Close mobile menu on escape
-  useEffect(() => {
-    if (!isMobileMenuOpen) return
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsMobileMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [isMobileMenuOpen])
 
   return (
     <motion.header
       initial={{ y: -100 }}
-      animate={{ 
-        y: isVisible ? 0 : -100,
-        backgroundColor: isScrolled ? 'rgba(255, 255, 255, 0.95)' : 'rgba(30, 41, 59, 0.8)',
-      }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+      animate={{ y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className={cn(
-        'fixed top-0 left-0 right-0 z-50',
-        'backdrop-blur-xl border-b',
-        isScrolled ? 'border-slate-200/60 shadow-lg' : 'border-transparent'
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        isScrolled
+          ? 'bg-navy-900/95 backdrop-blur-sm border-b border-navy-800 shadow-lg'
+          : 'bg-transparent'
       )}
     >
-      {/* Subtle technical pattern overlay (only when not scrolled) */}
-      <AnimatePresence>
-        {!isScrolled && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.04 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: `linear-gradient(rgba(0,85,184,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,85,184,0.5) 1px, transparent 1px)`,
-              backgroundSize: '40px 40px',
-            }}
-          />
-        )}
-      </AnimatePresence>
-      <nav className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="flex items-center justify-between h-20">
+      <nav className="container mx-auto px-4 md:px-6">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <motion.a 
-            href="/" 
-            className="flex items-center gap-3 group"
-            whileHover={{ scale: 1.05 }}
-            transition={{ duration: 0.2 }}
-          >
-            <motion.div 
-              className="relative w-11 h-11 overflow-hidden"
-              whileHover={{ rotate: [0, -10, 10, 0] }}
-              transition={{ duration: 0.5 }}
-            >
-              <Image
-                src="/GenLogoTab.png"
-                alt="GENTHRUST Logo"
-                fill
-                className="object-contain"
-                priority
-              />
-            </motion.div>
+          <a href="/" className="flex items-center gap-2 group">
+            <Image
+              src="/GenLogoTab.png"
+              alt="GENTHRUST XVII Logo"
+              width={40}
+              height={40}
+              className="h-9 w-auto"
+            />
             <span className={cn(
-              'text-xl font-bold tracking-tight transition-colors',
-              isScrolled ? 'text-navy group-hover:text-electric-blue' : 'text-white group-hover:text-electric-blue-300'
+              "text-lg font-bold tracking-wider transition-colors",
+              isScrolled ? "text-white" : "text-slate-900"
             )}>
               GENTHRUST
             </span>
-          </motion.a>
+            <span className={cn(
+              "text-sm font-medium transition-colors",
+              isScrolled ? "text-burgundy-400" : "text-navy-600"
+            )}>
+              XVII
+            </span>
+          </a>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-10">
-            {NAV_LINKS.map((link, index) => (
-              <motion.a
+          <div className="hidden md:flex items-center gap-8">
+            {NAV_LINKS.map((link) => (
+              <a
                 key={link.label}
                 href={link.href}
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
                 className={cn(
-                  'text-sm font-semibold uppercase tracking-wide transition-colors relative group',
-                  isScrolled ? 'text-slate-700 hover:text-navy' : 'text-white/95 hover:text-white'
+                  "text-sm font-medium transition-colors",
+                  isScrolled
+                    ? "text-slate-300 hover:text-white"
+                    : "text-slate-600 hover:text-slate-900"
                 )}
               >
                 {link.label}
-                <motion.span
-                  className={cn(
-                    'absolute -bottom-1 left-0 h-0.5',
-                    isScrolled ? 'bg-electric-blue' : 'bg-electric-blue-400'
-                  )}
-                  initial={{ width: 0 }}
-                  whileHover={{ width: '100%' }}
-                  transition={{ duration: 0.3 }}
-                />
-              </motion.a>
+              </a>
             ))}
           </div>
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <Button variant="outline" size="sm">
+            <a
+              href="#contact"
+              className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 transition-colors"
+            >
               Client Portal
-            </Button>
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
-          <motion.button
+          <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className={cn(
-              'md:hidden p-2 transition-colors',
-              isScrolled ? 'text-navy hover:text-electric-blue' : 'text-white/90 hover:text-white'
+              "md:hidden p-3 transition-colors",
+              isScrolled
+                ? "text-slate-300 hover:text-white"
+                : "text-slate-600 hover:text-slate-900"
             )}
             aria-label="Toggle menu"
-            whileTap={{ scale: 0.95 }}
           >
-            <AnimatePresence mode="wait">
-              {isMobileMenuOpen ? (
-                <motion.div
-                  key="close"
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <X className="w-6 h-6" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="menu"
-                  initial={{ rotate: 90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Menu className="w-6 h-6" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.button>
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
       </nav>
 
@@ -181,47 +108,29 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="md:hidden bg-white/98 backdrop-blur-xl border-b border-slate-200 shadow-lg overflow-hidden"
+            transition={{ duration: 0.3 }}
+            className="md:hidden bg-navy-900 border-b border-navy-800"
           >
-            <motion.div
-              variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                  opacity: 1,
-                  transition: {
-                    staggerChildren: 0.05,
-                    delayChildren: 0.1,
-                  },
-                },
-              }}
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              className="container mx-auto px-4 py-6 flex flex-col gap-4"
-            >
-              {NAV_LINKS.map((link, index) => (
-                <motion.a
+            <div className="container mx-auto px-4 py-6 flex flex-col gap-4">
+              {NAV_LINKS.map((link) => (
+                <a
                   key={link.label}
                   href={link.href}
-                  variants={staggerItem}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="text-lg font-medium text-slate-600 hover:text-navy transition-colors py-2"
-                  whileHover={{ x: 4 }}
-                  transition={{ duration: 0.2 }}
+                  className="text-lg font-medium text-slate-300 hover:text-white transition-colors py-3"
                 >
                   {link.label}
-                </motion.a>
+                </a>
               ))}
-              <motion.div
-                variants={staggerItem}
-                className="pt-4 border-t border-slate-200"
-              >
-                <Button variant="outline" size="md" className="w-full">
+              <div className="pt-4 border-t border-navy-700">
+                <a
+                  href="#contact"
+                  className="block w-full text-center px-4 py-3 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 transition-colors"
+                >
                   Client Portal
-                </Button>
-              </motion.div>
-            </motion.div>
+                </a>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

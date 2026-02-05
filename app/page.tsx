@@ -1,28 +1,21 @@
-'use client'
-
-import { motion } from 'framer-motion'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { HeroSection } from '@/components/sections/HeroSection'
-import { StatsBar } from '@/components/sections/StatsBar'
-import { ServicesBento } from '@/components/sections/ServicesBento'
-import { WhyGenthrust } from '@/components/sections/WhyGenthrust'
-import { fadeIn } from '@/lib/animations'
+import { SearchSection } from '@/components/sections/SearchSection'
+import { CredentialsSection } from '@/components/sections/CredentialsSection'
+import { FeaturedInventory } from '@/components/sections/FeaturedInventory'
+import { ContactSection } from '@/components/sections/ContactSection'
 
 export default function Home() {
   return (
-    <motion.main
-      variants={fadeIn}
-      initial="hidden"
-      animate="visible"
-      className="bg-white text-navy overflow-x-hidden"
-    >
+    <main className="bg-white text-slate-900">
       <Navbar />
       <HeroSection />
-      <StatsBar />
-      <ServicesBento />
-      <WhyGenthrust />
+      <SearchSection />
+      <CredentialsSection />
+      <FeaturedInventory />
+      <ContactSection />
       <Footer />
-    </motion.main>
+    </main>
   )
 }
