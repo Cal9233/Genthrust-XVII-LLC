@@ -52,9 +52,14 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
       for (let y = 0; y < maxY; y++) {
         for (let x = 0; x < canvas.width; x++) {
           const idx = (y * canvas.width + x) * 4
-          const alpha = data[idx + 3]
-          // Only include pixels with sufficient opacity
-          if (alpha > 50) {
+          const r = data[idx]
+          const g = data[idx + 1]
+          const b = data[idx + 2]
+
+          // Check if pixel is NOT white (logo colors are blue, red, gray)
+          // A pixel is part of the logo if any RGB channel is significantly below 255
+          const isWhite = r > 240 && g > 240 && b > 240
+          if (!isWhite) {
             validPixels.push({ x, y })
           }
         }
