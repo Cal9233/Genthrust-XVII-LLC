@@ -45,13 +45,13 @@ export function Navbar() {
             />
             <span className={cn(
               "text-lg font-bold tracking-wider transition-colors",
-              isScrolled ? "text-white" : "text-slate-900"
+              "text-white"
             )}>
               GENTHRUST
             </span>
             <span className={cn(
               "text-sm font-medium transition-colors",
-              isScrolled ? "text-burgundy-400" : "text-navy-600"
+              isScrolled ? "text-burgundy-400" : "text-aviation-red"
             )}>
               XVII
             </span>
@@ -67,7 +67,7 @@ export function Navbar() {
                   "text-sm font-medium transition-colors",
                   isScrolled
                     ? "text-slate-300 hover:text-white"
-                    : "text-slate-600 hover:text-slate-900"
+                    : "text-silver/80 hover:text-white"
                 )}
               >
                 {link.label}
@@ -78,10 +78,10 @@ export function Navbar() {
           {/* CTA Button */}
           <div className="hidden md:block">
             <a
-              href="#contact"
+              href="/signin"
               className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 transition-colors"
             >
-              Client Portal
+              Portal
             </a>
           </div>
 
@@ -92,7 +92,7 @@ export function Navbar() {
               "md:hidden p-3 transition-colors",
               isScrolled
                 ? "text-slate-300 hover:text-white"
-                : "text-slate-600 hover:text-slate-900"
+                : "text-silver hover:text-white"
             )}
             aria-label="Toggle menu"
           >
@@ -124,10 +124,10 @@ export function Navbar() {
               ))}
               <div className="pt-4 border-t border-navy-700">
                 <a
-                  href="#contact"
+                  href="/signin"
                   className="block w-full text-center px-4 py-3 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 transition-colors"
                 >
-                  Client Portal
+                  Portal
                 </a>
               </div>
             </div>

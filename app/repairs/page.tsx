@@ -6,7 +6,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { Modal } from '@/components/ui/Modal'
 import { fadeIn, fadeInUp, staggerGrid, staggerItem, slideInLeft, slideInRight, timelineAnimation, iconBounce } from '@/lib/animations'
-import { Wrench, Clock, Shield, CheckCircle2, FileCheck, Award as AwardIcon, Send } from 'lucide-react'
+import { Wrench, Clock, Shield, CheckCircle2, FileCheck, Send } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
@@ -55,24 +55,6 @@ const processSteps = [
     step: '04',
     title: 'Quality Assurance',
     description: 'Rigorous testing and certification before return shipment',
-  },
-]
-
-const certifications = [
-  {
-    title: 'FAA Repair Station',
-    description: 'Certified repair station #12345',
-    icon: FileCheck,
-  },
-  {
-    title: 'EASA Part 145',
-    description: 'Approved organization for component maintenance',
-    icon: AwardIcon,
-  },
-  {
-    title: 'ISO 9001:2015',
-    description: 'Quality management system certified',
-    icon: Shield,
   },
 ]
 
@@ -155,7 +137,7 @@ export default function RepairsPage() {
               transition={{ delay: 0.2 }}
               className="text-xl text-slate-300 max-w-2xl mx-auto mb-8"
             >
-              FAA/EASA certified repair services with rapid turnaround times to keep your fleet flying.
+              Professional repair services with rapid turnaround times to keep your fleet flying.
             </motion.p>
             <motion.div
               variants={fadeInUp}
@@ -273,53 +255,6 @@ export default function RepairsPage() {
                 )}
               </motion.div>
             ))}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Certifications Section */}
-      <section className="relative py-28 bg-gradient-to-b from-white to-slate-50">
-        <div className="container mx-auto px-4 md:px-6">
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            className="text-center mb-20"
-          >
-            <p className="text-electric-blue uppercase tracking-[0.3em] text-sm font-medium mb-4">
-              Certifications
-            </p>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-navy mb-4">
-              Fully <span className="text-electric-blue">Certified</span>
-            </h2>
-          </motion.div>
-
-          <motion.div
-            variants={staggerGrid}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
-          >
-            {certifications.map((cert) => {
-              const Icon = cert.icon
-              return (
-                <motion.div
-                  key={cert.title}
-                  variants={staggerItem}
-                  whileHover={{ y: -4 }}
-                >
-                  <div className="h-full p-8 rounded-2xl bg-white border-2 border-slate-200 hover:border-electric-blue/50 transition-all duration-300 shadow-lg hover:shadow-xl text-center">
-                    <div className="w-16 h-16 rounded-xl bg-electric-blue/10 flex items-center justify-center mb-6 mx-auto">
-                      <Icon className="w-8 h-8 text-electric-blue" />
-                    </div>
-                    <h3 className="text-xl font-extrabold text-navy mb-3">{cert.title}</h3>
-                    <p className="text-slate-600">{cert.description}</p>
-                  </div>
-                </motion.div>
-              )
-            })}
           </motion.div>
         </div>
       </section>

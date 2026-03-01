@@ -39,10 +39,19 @@ module.exports = {
           'limited': '#d97706',
           'aog': '#dc2626',
         },
+        // Aviation-Tech Premium Colors
+        'space': {
+          DEFAULT: '#020617',  // Deep space blue/black
+          50: '#0f172a',
+          100: '#1e293b',
+        },
+        'aviation-red': '#EF4444',
+        'horizon-blue': '#38B2AC',
+        'silver': '#F8FAFC',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        mono: ['JetBrains Mono', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       boxShadow: {
         'card': '0 1px 3px rgba(0, 0, 0, 0.1)',
@@ -53,6 +62,10 @@ module.exports = {
         'fade-in': 'fadeIn 0.6s ease-out',
         'fade-in-up': 'fadeInUp 0.6s ease-out',
         'pulse-subtle': 'pulseSubtle 3s ease-in-out infinite',
+        'border-beam': 'borderBeam 4s linear infinite',
+        'scan-sweep': 'scanSweep 0.6s ease-out',
+        'data-ping': 'dataPing 0.3s ease-in-out',
+        'horizon-drift': 'horizonDrift 20s linear infinite',
       },
       keyframes: {
         fadeIn: {
@@ -67,10 +80,29 @@ module.exports = {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.7' },
         },
+        borderBeam: {
+          '0%': { '--beam-angle': '0deg' },
+          '100%': { '--beam-angle': '360deg' },
+        },
+        scanSweep: {
+          '0%': { top: '0%', opacity: '1' },
+          '100%': { top: '100%', opacity: '0' },
+        },
+        dataPing: {
+          '0%': { opacity: '0.4' },
+          '50%': { opacity: '1' },
+          '100%': { opacity: '0.4' },
+        },
+        horizonDrift: {
+          '0%': { backgroundPosition: '0% 0%' },
+          '100%': { backgroundPosition: '100% 100%' },
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'hero-gradient': 'linear-gradient(to bottom, #f0f4f9 0%, #ffffff 50%, #f8fafc 100%)',
+        'chrome-gradient': 'linear-gradient(135deg, #FFFFFF 0%, #94A3B8 25%, #FFFFFF 50%, #64748B 75%, #FFFFFF 100%)',
+        'horizon-lines': 'repeating-linear-gradient(-45deg, transparent, transparent 10px, rgba(56, 178, 172, 0.03) 10px, rgba(56, 178, 172, 0.03) 11px)',
       },
     },
   },

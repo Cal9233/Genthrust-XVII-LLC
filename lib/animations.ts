@@ -389,3 +389,74 @@ export const iconBounce: Variants = {
 export const parallaxConfig = {
   speed: 0.5,
 }
+
+// HUD and Glassmorphism animations
+export const hudFadeIn: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.95,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      duration: 0.4,
+      ease: [0.25, 0.46, 0.45, 0.94],
+    },
+  },
+}
+
+export const glassReveal: Variants = {
+  hidden: {
+    opacity: 0,
+    backdropFilter: 'blur(0px)',
+  },
+  visible: {
+    opacity: 1,
+    backdropFilter: 'blur(20px)',
+    transition: {
+      duration: 0.6,
+      ease: 'easeOut',
+    },
+  },
+}
+
+export const scanPulse: Variants = {
+  rest: {
+    opacity: 0,
+  },
+  scan: {
+    opacity: [0, 1, 0],
+    transition: {
+      duration: 0.6,
+      ease: 'easeInOut',
+    },
+  },
+}
+
+export const spatialParallax = {
+  layer0: { speed: 0.2 },  // Background - slowest
+  layer1: { speed: 0.5 },  // Middle elements
+  layer2: { speed: 1.0 },  // Foreground - fastest
+}
+
+export const borderBeamRotate: Variants = {
+  animate: {
+    rotate: [0, 360],
+    transition: {
+      duration: 4,
+      repeat: Infinity,
+      ease: 'linear',
+    },
+  },
+}
+
+export const dataPingFlicker: Variants = {
+  animate: {
+    opacity: [0.4, 1, 0.4],
+    transition: {
+      duration: 0.3,
+      ease: 'easeInOut',
+    },
+  },
+}

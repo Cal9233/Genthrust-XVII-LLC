@@ -81,17 +81,6 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Certifications */}
-          <div>
-            <h4 className="text-white font-semibold mb-4 text-sm">
-              Certifications
-            </h4>
-            <div className="flex flex-wrap gap-2 text-xs text-slate-400">
-              <span className="px-2 py-1 bg-navy-800 rounded">ASA-100</span>
-              <span className="px-2 py-1 bg-navy-800 rounded">FAA AC 00-56B</span>
-              <span className="px-2 py-1 bg-navy-800 rounded">ISO 9001</span>
-            </div>
-          </div>
         </div>
 
         {/* Bottom Bar */}

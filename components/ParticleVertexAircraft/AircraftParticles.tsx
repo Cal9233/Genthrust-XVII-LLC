@@ -1,36 +1,95 @@
 'use client'
 
 import React, { useRef, useMemo, useState, useEffect } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { MouseHoverContext } from './index'
+import type { IntroStage } from '../Hero/HeroIntro'
 
-// Configuration
-const TOTAL_PARTICLES = 18000
-const BUILD_DURATION = 2.5
-const DISPERSION_RADIUS = 40
+// CONFIGURATION
+const TOTAL_PARTICLES = 35000
+const BUILD_DURATION = 1.8
+const DISPERSION_RADIUS = 35
 
-// Mouse Interaction Config
-const INFLUENCE_RADIUS = 6.0
-const REPULSION_STRENGTH = 3.0
-
-// Smooth ease-out function
 function easeOutCubic(t: number): number {
   return 1 - Math.pow(1 - t, 3)
 }
+
+// Shader for particle animation with velocity streaks
+const vertexShader = `
+  attribute vec3 instancePosition;
+  attribute vec3 targetPosition;
+  attribute vec3 color;
+
+  varying vec3 vColor;
+  varying float vAlpha;
+  varying float vStretch;
+
+  uniform float uProgress;
+  uniform float uTime;
+  uniform float uScrollVelocity;
+
+  void main() {
+    vColor = color;
+
+    float smoothProgress = pow(uProgress, 2.0);
+    vec3 pos = mix(instancePosition, targetPosition, smoothProgress);
+
+    // Floating effect during assembly
+    float floatAmount = (1.0 - smoothProgress) * 0.4;
+    pos.y += sin(uTime * 2.0 + instancePosition.x * 5.0) * floatAmount;
+    pos.x += cos(uTime * 1.5 + instancePosition.y * 3.0) * floatAmount * 0.3;
+
+    // Velocity streaks - particles stretch toward camera on scroll
+    // Clamp velocity to prevent infinite lines on fast scroll
+    float clampedVelocity = clamp(uScrollVelocity, 0.0, 5.0);
+
+    // Direction from particle to camera (simplified as -Z for forward motion effect)
+    vec3 stretchDir = vec3(0.0, -1.0, 0.0);
+    float stretchAmount = clampedVelocity * 0.4 * (1.0 - smoothProgress * 0.5);
+    pos += stretchDir * stretchAmount;
+
+    vAlpha = smoothProgress;
+    vStretch = clampedVelocity;
+
+    vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+
+    // Elongate point size based on velocity (clamped)
+    float baseSize = 2.5 * (300.0 / -mvPosition.z) * (0.3 + smoothProgress * 0.7);
+    gl_PointSize = baseSize * (1.0 + clampedVelocity * 0.6);
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`
+
+const fragmentShader = `
+  varying vec3 vColor;
+  varying float vAlpha;
+  varying float vStretch;
+
+  uniform float uGlow;
+
+  void main() {
+    float dist = length(gl_PointCoord - vec2(0.5));
+    if (dist > 0.5) discard;
+
+    // Soft edge
+    float alpha = smoothstep(0.5, 0.2, dist);
+
+    // Very subtle glow - minimal brightness boost
+    // Add extra brightness when stretching for "light trail" effect
+    float stretchGlow = vStretch * 0.15;
+    vec3 finalColor = vColor * (1.0 + uGlow * 0.12 + stretchGlow);
+
+    // Slightly fade alpha during stretch for trail effect
+    float stretchFade = 1.0 - vStretch * 0.1;
+    gl_FragColor = vec4(finalColor, alpha * vAlpha * (0.9 + uGlow * 0.05) * stretchFade);
+  }
+`
 
 interface PixelPoint {
   position: THREE.Vector3
   color: THREE.Color
 }
 
-interface ParticleData {
-  targetPosition: THREE.Vector3
-  startPosition: THREE.Vector3
-  currentOffset: THREE.Vector3
-}
-
-// Logo Image Sampling Hook - samples points from non-transparent pixels in PNG
 function useLogoPoints(imagePath: string, totalParticles: number, scale: number): PixelPoint[] {
   const [points, setPoints] = useState<PixelPoint[]>([])
 
@@ -48,23 +107,17 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
 
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
       const data = imageData.data
-
-      // Collect positions of non-transparent pixels
-      // Include full logo (all 8 sections - 4 top colored + 4 bottom grey)
-      const maxY = canvas.height
       const validPixels: { x: number; y: number; r: number; g: number; b: number }[] = []
 
-      for (let y = 0; y < maxY; y++) {
+      for (let y = 0; y < canvas.height; y++) {
         for (let x = 0; x < canvas.width; x++) {
           const idx = (y * canvas.width + x) * 4
-          const r = data[idx]
-          const g = data[idx + 1]
-          const b = data[idx + 2]
+          const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3]
 
-          // Check if pixel is NOT white (logo colors are blue, red, gray)
-          // A pixel is part of the logo if any RGB channel is significantly below 255
-          const isWhite = r > 240 && g > 240 && b > 240
-          if (!isWhite) {
+          // Filter out transparent and white background pixels
+          const isBackground = a < 128 || (r > 240 && g > 240 && b > 240)
+
+          if (!isBackground) {
             validPixels.push({ x, y, r, g, b })
           }
         }
@@ -72,177 +125,145 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
 
       if (validPixels.length === 0) return
 
-      // Randomly sample from valid pixels
       const sampledPoints: PixelPoint[] = []
       for (let i = 0; i < totalParticles; i++) {
         const pixel = validPixels[Math.floor(Math.random() * validPixels.length)]
 
-        // Convert pixel coords to centered 3D coords
-        // Center the coordinates and flip Y axis
         const px = (pixel.x - canvas.width / 2) * scale
-        const py = (canvas.height / 2 - pixel.y) * scale // Flip Y
+        const py = (canvas.height / 2 - pixel.y) * scale
+        const pz = 0
 
-        // Add slight Z randomness for depth
-        const pz = (Math.random() - 0.5) * 0.5
-
-        // Store color from pixel
         const color = new THREE.Color(pixel.r / 255, pixel.g / 255, pixel.b / 255)
-        sampledPoints.push({
-          position: new THREE.Vector3(px, py, pz),
-          color
-        })
+        color.multiplyScalar(1.15)
+
+        sampledPoints.push({ position: new THREE.Vector3(px, py, pz), color })
       }
 
-      // Center and normalize the points
-      if (sampledPoints.length > 0) {
-        const box = new THREE.Box3()
-        sampledPoints.forEach(p => box.expandByPoint(p.position))
-        const center = box.getCenter(new THREE.Vector3())
-        const size = box.getSize(new THREE.Vector3())
-        const maxDim = Math.max(size.x, size.y, size.z)
-        const normalizeScale = 13 / maxDim
+      const box = new THREE.Box3()
+      sampledPoints.forEach(p => box.expandByPoint(p.position))
+      const size = box.getSize(new THREE.Vector3())
 
-        sampledPoints.forEach(p => {
-          p.position.sub(center)
-          p.position.multiplyScalar(normalizeScale)
-        })
+      // Match PNG display size (w-96 = 384px on md+)
+      // With camera at z=20 and fov=50, we need ~11.5 units width
+      // Logo aspect ratio is 851:490 (1.74:1)
+      const targetWidth = 11.5
+      const normalizeScale = targetWidth / size.x
 
-        setPoints(sampledPoints)
-      }
+      sampledPoints.forEach(p => p.position.multiplyScalar(normalizeScale))
+
+      // Offset particles to match PNG position
+      const xOffset = 0  // Adjust left (-) or right (+) if needed
+      const yOffset = 3.0
+      sampledPoints.forEach(p => {
+        p.position.x += xOffset
+        p.position.y += yOffset
+      })
+
+      setPoints(sampledPoints)
     }
-
     img.src = imagePath
   }, [imagePath, totalParticles, scale])
 
   return points
 }
 
-export default function AircraftParticles() {
-  const meshRef = useRef<THREE.InstancedMesh>(null!)
-  const groupRef = useRef<THREE.Group>(null!)
+interface AircraftParticlesProps {
+  stage?: IntroStage
+  scrollVelocity?: number
+}
+
+export default function AircraftParticles({ stage = 'assembling', scrollVelocity = 0 }: AircraftParticlesProps) {
+  const pointsRef = useRef<THREE.Points>(null!)
+  const materialRef = useRef<THREE.ShaderMaterial>(null!)
   const startTimeRef = useRef<number | null>(null)
 
-  // Consume the context state for mouse hover
-  const isHovering = React.useContext(MouseHoverContext)
+  // Use the transparent background version
+  const vertices = useLogoPoints('/GenLogoNoBackground.png', TOTAL_PARTICLES, 0.02)
 
-  const { camera, viewport } = useThree()
-
-  // Sample points from logo PNG (diamond icon only)
-  const vertices = useLogoPoints('/GenLogoTab.png', TOTAL_PARTICLES, 0.02)
-
-  const particles = useMemo((): ParticleData[] => {
-    if (vertices.length === 0) return []
-    return vertices.map((vertex) => ({
-      targetPosition: vertex.position.clone(),
-      startPosition: new THREE.Vector3(
-        (Math.random() - 0.5) * DISPERSION_RADIUS * 2,
-        (Math.random() - 0.5) * DISPERSION_RADIUS * 1.5,
-        (Math.random() - 0.5) * DISPERSION_RADIUS * 1.5
-      ),
-      currentOffset: new THREE.Vector3(0, 0, 0),
-    }))
-  }, [vertices])
-
-  // Create color buffer for instanceColor
-  const colors = useMemo(() => {
+  const geometry = useMemo(() => {
     if (vertices.length === 0) return null
-    const colorArray = new Float32Array(vertices.length * 3)
-    vertices.forEach((v, i) => {
-      colorArray[i * 3] = v.color.r
-      colorArray[i * 3 + 1] = v.color.g
-      colorArray[i * 3 + 2] = v.color.b
+
+    const geo = new THREE.BufferGeometry()
+
+    const instancePositions = new Float32Array(vertices.length * 3)
+    const targetPositions = new Float32Array(vertices.length * 3)
+    const colors = new Float32Array(vertices.length * 3)
+
+    vertices.forEach((vertex, i) => {
+      instancePositions[i * 3] = (Math.random() - 0.5) * DISPERSION_RADIUS * 2
+      instancePositions[i * 3 + 1] = (Math.random() - 0.5) * DISPERSION_RADIUS
+      instancePositions[i * 3 + 2] = (Math.random() - 0.5) * DISPERSION_RADIUS
+
+      targetPositions[i * 3] = vertex.position.x
+      targetPositions[i * 3 + 1] = vertex.position.y
+      targetPositions[i * 3 + 2] = vertex.position.z
+
+      colors[i * 3] = vertex.color.r
+      colors[i * 3 + 1] = vertex.color.g
+      colors[i * 3 + 2] = vertex.color.b
     })
-    return colorArray
+
+    geo.setAttribute('instancePosition', new THREE.BufferAttribute(instancePositions, 3))
+    geo.setAttribute('targetPosition', new THREE.BufferAttribute(targetPositions, 3))
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+    geo.setAttribute('position', new THREE.BufferAttribute(targetPositions.slice(), 3))
+
+    return geo
   }, [vertices])
 
-  // Set instanceColor attribute when colors are ready
-  useEffect(() => {
-    if (meshRef.current && colors) {
-      meshRef.current.instanceColor = new THREE.InstancedBufferAttribute(colors, 3)
-    }
-  }, [colors])
-
-  const dummy = useMemo(() => new THREE.Object3D(), [])
-  const basePosition = useMemo(() => new THREE.Vector3(), [])
-  const finalPosition = useMemo(() => new THREE.Vector3(), [])
-  const mousePosition = useMemo(() => new THREE.Vector3(), [])
-  const localMousePosition = useMemo(() => new THREE.Vector3(), [])
-  const repulsionVector = useMemo(() => new THREE.Vector3(), [])
+  const material = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader,
+      fragmentShader,
+      uniforms: {
+        uProgress: { value: 0 },
+        uGlow: { value: 0 },
+        uTime: { value: 0 },
+        uScrollVelocity: { value: 0 }
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    })
+  }, [])
 
   useFrame((state) => {
-    if (!meshRef.current || !groupRef.current || particles.length === 0) return
+    if (!materialRef.current || vertices.length === 0) return
 
-    const elapsed = state.clock.elapsedTime
-    if (startTimeRef.current === null) startTimeRef.current = elapsed + 0.5
+    const mat = materialRef.current
 
-    const timeSinceStart = Math.max(0, elapsed - startTimeRef.current)
-    const buildProgress = Math.min(1, timeSinceStart / BUILD_DURATION)
-    const t = easeOutCubic(buildProgress)
+    if (startTimeRef.current === null) {
+      startTimeRef.current = state.clock.elapsedTime
+    }
 
-    // 1. Calculate World Mouse Position
-    const distance = camera.position.z
-    const perspCamera = camera as THREE.PerspectiveCamera
-    const vFov = (perspCamera.fov * Math.PI) / 180
-    const height = 2 * Math.tan(vFov / 2) * distance
-    const width = height * viewport.aspect
-    mousePosition.set(
-      (state.pointer.x * width) / 2,
-      (state.pointer.y * height) / 2,
-      0
-    )
+    const elapsed = state.clock.elapsedTime - startTimeRef.current
+    mat.uniforms.uTime.value = state.clock.elapsedTime
+    mat.uniforms.uScrollVelocity.value = scrollVelocity
 
-    // 2. Convert World Mouse Pos -> Local Group Space
-    localMousePosition.copy(mousePosition)
-    groupRef.current.worldToLocal(localMousePosition)
-
-    particles.forEach((particle, i) => {
-      basePosition.lerpVectors(particle.startPosition, particle.targetPosition, t)
-
-      if (buildProgress >= 1) {
-        // Reset repulsion vector
-        repulsionVector.set(0, 0, 0)
-
-        // NEW: Only calculate repulsion if hovering
-        if (isHovering) {
-          const dist = basePosition.distanceTo(localMousePosition)
-          if (dist < INFLUENCE_RADIUS) {
-            const force = (1 - dist / INFLUENCE_RADIUS) * REPULSION_STRENGTH
-            repulsionVector.subVectors(basePosition, localMousePosition).normalize().multiplyScalar(force)
-          }
-        }
-
-        // Smoothly lerp towards the repulsion vector (which is 0,0,0 if not hovering)
-        particle.currentOffset.lerp(repulsionVector, 0.02)
-      }
-
-      finalPosition.addVectors(basePosition, particle.currentOffset)
-      dummy.position.copy(finalPosition)
-
-      const scale = t
-      dummy.scale.setScalar(scale)
-      dummy.updateMatrix()
-      meshRef.current.setMatrixAt(i, dummy.matrix)
-    })
-
-    meshRef.current.instanceMatrix.needsUpdate = true
+    if (stage === 'loading') {
+      mat.uniforms.uProgress.value = 0
+      mat.uniforms.uGlow.value = 0
+    } else if (stage === 'assembling') {
+      const progress = Math.min(elapsed / BUILD_DURATION, 1)
+      mat.uniforms.uProgress.value = easeOutCubic(progress)
+      mat.uniforms.uGlow.value = 0
+    } else if (stage === 'glowing') {
+      mat.uniforms.uProgress.value = 1
+      // Quick subtle flash - faster decay, lower intensity
+      const glowTime = elapsed - BUILD_DURATION
+      const flashIntensity = Math.exp(-glowTime * 8) * 0.2
+      mat.uniforms.uGlow.value = Math.max(0.02, flashIntensity)
+    } else if (stage === 'revealing' || stage === 'complete') {
+      mat.uniforms.uProgress.value = 1
+      mat.uniforms.uGlow.value = 0.1
+    }
   })
 
-  if (particles.length === 0) return null
+  if (!geometry) return null
 
   return (
-    <group ref={groupRef} rotation={[0, 0, 0]}>
-      <instancedMesh ref={meshRef} args={[undefined, undefined, particles.length]}>
-        <sphereGeometry args={[0.028, 6, 6]} />
-        {/* Material with emissive glow for visibility on dark background */}
-        <meshStandardMaterial
-          roughness={0.2}
-          metalness={0.6}
-          emissive="#ffffff"
-          emissiveIntensity={0.4}
-          transparent={true}
-          opacity={0.95}
-        />
-      </instancedMesh>
-    </group>
+    <points ref={pointsRef} geometry={geometry}>
+      <primitive object={material} ref={materialRef} attach="material" />
+    </points>
   )
 }

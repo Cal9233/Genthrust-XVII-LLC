@@ -5,6 +5,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Prevent layout shift when scrollbar appears/disappears */
+    overflow-y: scroll;
   }
 
   body {
@@ -50,6 +52,54 @@
   .badge-aog {
     @apply inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 rounded;
   }
+
+  /* Glassmorphism Hero Card */
+  .glass-card {
+    @apply relative overflow-hidden rounded-2xl;
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  /* Safari fallback for glassmorphism */
+  @supports not (backdrop-filter: blur(20px)) {
+    .glass-card {
+      background: rgba(2, 6, 23, 0.95);
+    }
+  }
+
+  /* Chrome Gradient Text Effect */
+  .text-chrome {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      135deg,
+      #FFFFFF 0%,
+      #94A3B8 25%,
+      #FFFFFF 50%,
+      #64748B 75%,
+      #FFFFFF 100%
+    );
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* Moving Horizon Effect */
+  .horizon-lines {
+    @apply absolute inset-0 pointer-events-none;
+    background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 10px,
+      rgba(56, 178, 172, 0.03) 10px,
+      rgba(56, 178, 172, 0.03) 11px
+    );
+    animation: horizonDrift 20s linear infinite;
+  }
 }
 
 @layer utilities {
@@ -60,5 +110,29 @@
   /* Skeleton loading animation */
   .skeleton {
     @apply animate-pulse bg-slate-200 rounded;
+  }
+
+  /* 2% Noise Grain for cinematic texture */
+  .bg-noise {
+    position: relative;
+  }
+  .bg-noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  /* Anamorphic Lens Flare base styles */
+  .anamorphic-flare {
+    @apply fixed inset-0 pointer-events-none z-50;
+    background: radial-gradient(
+      ellipse 80% 20% at var(--flare-x, 50%) var(--flare-y, 50%),
+      rgba(56, 178, 172, 0.08) 0%,
+      rgba(255, 255, 255, 0.04) 30%,
+      transparent 70%
+    );
   }
 }

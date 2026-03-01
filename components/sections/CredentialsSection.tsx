@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Target, Eye, Heart, ShieldCheck, MapPin, Clock } from 'lucide-react'
+import { Target, Eye, Heart, MapPin, Clock } from 'lucide-react'
 import { COMPANY_INFO, MISSION_VISION_VALUES } from '@/lib/constants'
 
 export function CredentialsSection() {
@@ -95,29 +95,6 @@ export function CredentialsSection() {
           </motion.div>
         </div>
 
-        {/* Trust badges */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex flex-wrap items-center justify-center gap-8 text-slate-300"
-        >
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-burgundy-400" />
-            <span className="text-sm font-medium">ASA-100 Accredited</span>
-          </div>
-          <div className="w-px h-4 bg-navy-600 hidden sm:block" />
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-burgundy-400" />
-            <span className="text-sm font-medium">FAA AC 00-56B Compliant</span>
-          </div>
-          <div className="w-px h-4 bg-navy-600 hidden sm:block" />
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-burgundy-400" />
-            <span className="text-sm font-medium">ISO 9001:2015</span>
-          </div>
-        </motion.div>
       </div>
     </section>
   )

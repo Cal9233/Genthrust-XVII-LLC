@@ -5,11 +5,9 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { StatsBar } from '@/components/sections/StatsBar'
 import { fadeIn, fadeInUp, staggerGrid, staggerItem, slideInLeft, slideInRight, iconBounce } from '@/lib/animations'
-import { ADVANTAGES, STATS } from '@/lib/constants'
-import { Shield, Clock, Globe, Award, Building2, Users, Award as AwardIcon, FileCheck } from 'lucide-react'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { ADVANTAGES } from '@/lib/constants'
+import { Shield, Clock, Globe, Award, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { cn } from '@/lib/utils'
 import Link from 'next/link'
 
 const iconMap = {
@@ -18,24 +16,6 @@ const iconMap = {
   Globe,
   Award,
 }
-
-const certifications = [
-  {
-    title: 'FAA Certified',
-    description: 'Federal Aviation Administration certification for all repair operations',
-    icon: FileCheck,
-  },
-  {
-    title: 'EASA Approved',
-    description: 'European Aviation Safety Agency approval for international operations',
-    icon: AwardIcon,
-  },
-  {
-    title: 'ISO 9001:2015',
-    description: 'International quality management system certification',
-    icon: AwardIcon,
-  },
-]
 
 export default function AboutPage() {
   return (
@@ -197,63 +177,6 @@ export default function AboutPage() {
                     {advantage.title}
                   </h3>
                   <p className="text-slate-600">{advantage.description}</p>
-                </motion.div>
-              )
-            })}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Certifications Section */}
-      <section className="relative py-28 bg-gradient-to-b from-dark-charcoal-300 via-dark-charcoal-200 to-dark-charcoal-300 overflow-hidden">
-        <div className="absolute top-1/2 left-0 w-96 h-96 bg-electric-blue/10 rounded-full blur-3xl -translate-y-1/2" />
-        <div className="absolute top-1/2 right-0 w-96 h-96 bg-crimson/10 rounded-full blur-3xl -translate-y-1/2" />
-
-        <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <motion.div
-            variants={fadeInUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            className="text-center mb-20"
-          >
-            <p className="text-electric-blue-300 uppercase tracking-[0.3em] text-sm font-medium mb-4">
-              Certifications
-            </p>
-            <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
-              <span className="text-electric-blue-400">CERTIFIED</span>
-              <br />
-              <span className="text-white">COMPLIANCE</span>
-            </h2>
-          </motion.div>
-
-          <motion.div
-            variants={staggerGrid}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
-          >
-            {certifications.map((cert, index) => {
-              const Icon = cert.icon
-              return (
-                <motion.div
-                  key={cert.title}
-                  variants={staggerItem}
-                  whileHover={{ y: -4 }}
-                >
-                  <GlassCard className="h-full p-8 text-center">
-                    <motion.div
-                      variants={iconBounce}
-                      initial="rest"
-                      whileHover="hover"
-                      className="w-16 h-16 rounded-xl bg-electric-blue/25 flex items-center justify-center mb-6 mx-auto"
-                    >
-                      <Icon className="w-8 h-8 text-electric-blue-400" />
-                    </motion.div>
-                    <h3 className="text-xl font-extrabold text-slate-900 mb-3">{cert.title}</h3>
-                    <p className="text-slate-600">{cert.description}</p>
-                  </GlassCard>
                 </motion.div>
               )
             })}

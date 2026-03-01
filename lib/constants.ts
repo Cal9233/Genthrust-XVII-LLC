@@ -45,9 +45,9 @@ export const CREDENTIALS = [
   {
     icon: 'ShieldCheck',
     title: 'Verified Quality',
-    metric: 'ASA-100',
-    metricLabel: 'accredited',
-    description: 'FAA AC 00-56B compliant. Full traceability on every component.',
+    metric: '100%',
+    metricLabel: 'traceable',
+    description: 'Full traceability on every component.',
   },
   {
     icon: 'Zap',
@@ -158,7 +158,7 @@ export const SERVICES = [
   {
     icon: 'Wrench',
     title: 'Component Repair',
-    description: 'FAA/EASA certified repair services with full traceability and quality assurance.',
+    description: 'Professional repair services with full traceability and quality assurance.',
   },
   {
     icon: 'ShoppingCart',
@@ -176,7 +176,7 @@ export const ADVANTAGES = [
   {
     icon: 'Shield',
     title: 'Quality Assured',
-    description: 'Every part meets FAA/EASA standards with complete documentation.',
+    description: 'Every part ships with complete documentation and traceability.',
   },
   {
     icon: 'Clock',

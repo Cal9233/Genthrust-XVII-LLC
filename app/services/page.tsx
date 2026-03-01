@@ -46,7 +46,7 @@ const benefits = [
   },
   {
     title: 'Certified Quality',
-    description: 'All parts meet FAA/EASA standards with full traceability',
+    description: 'All parts come with full traceability and documentation',
     icon: Shield,
   },
   {
