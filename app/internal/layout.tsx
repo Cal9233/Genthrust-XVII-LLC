@@ -26,11 +26,11 @@ export default async function InternalLayout({ children }: { children: React.Rea
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/internal" className="flex items-center gap-2">
             <Image
-              src="/GenLogoTab.png"
+              src="/GenLogoNoBackground.png"
               alt="GENTHRUST"
               width={32}
               height={32}
-              className="h-8 w-auto brightness-0 invert"
+              className="h-8 w-auto"
             />
             <span className="font-bold tracking-wider hidden sm:inline-block">
               GENTHRUST <span className="text-burgundy-400">INTERNAL</span>
