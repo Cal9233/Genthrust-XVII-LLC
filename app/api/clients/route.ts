@@ -12,11 +12,11 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, password, name, company } = body
+  const { email, password, contact_name, company_id } = body
 
-  if (!email || !password || !name) {
+  if (!email || !password || !contact_name) {
     return NextResponse.json(
-      { error: 'Email, password, and name are required.' },
+      { error: 'Email, password, and contact_name are required.' },
       { status: 400 }
     )
   }
@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     const passwordHash = await hashPassword(password)
 
     await query(
-      'INSERT INTO clients (email, password_hash, name, company) VALUES (?, ?, ?, ?)',
-      [email, passwordHash, name, company || null]
+      'INSERT INTO portal_users (email, password_hash, contact_name, company_id, is_active) VALUES (?, ?, ?, ?, 1)',
+      [email, passwordHash, contact_name, company_id || null]
     )
 
     return NextResponse.json({ message: 'Client account created.' }, { status: 201 })

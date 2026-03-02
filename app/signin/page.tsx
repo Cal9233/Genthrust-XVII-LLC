@@ -1,6 +1,7 @@
 import { signIn } from '@/auth'
 import { Shield } from 'lucide-react'
 import Image from 'next/image'
+import Link from 'next/link'
 
 export default function SignInPage() {
   return (
@@ -36,6 +37,10 @@ export default function SignInPage() {
         <p className="text-xs text-slate-400 mt-6">
           Contact your administrator if you need access.
         </p>
+
+        <Link href="/" className="text-xs text-slate-400 hover:text-slate-300 mt-4 inline-block">
+          &larr; Back to website
+        </Link>
       </div>
     </div>
   )
