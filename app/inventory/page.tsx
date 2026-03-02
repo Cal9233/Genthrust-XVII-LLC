@@ -99,7 +99,7 @@ export default function InventoryPage() {
         throw new Error('Failed to search inventory')
       }
       const data = await response.json()
-      setSearchResults(data)
+      setSearchResults(Array.isArray(data) ? data : [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       setSearchResults([])

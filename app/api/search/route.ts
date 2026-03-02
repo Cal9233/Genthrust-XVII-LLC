@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
-import { InventoryItem } from '@/types/inventory'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,30 +10,38 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    // Escape special characters and prepare search pattern
     const searchPattern = `%${searchQuery.trim()}%`
 
-    // Important: Wrap 'condition' in backticks as it's a reserved word
+    // Query the parts table from the ERP cache
+    // Uses LIKE for flexible matching (FULLTEXT requires 3+ char minimum)
     const sql = `
-      SELECT 
+      SELECT
         id,
-        part_number,
-        serial_number,
+        erp_product_id,
+        product_name AS part_number,
         description,
-        quantity,
-        location,
-        bin,
-        \`condition\`,
-        cost,
-        sell_price,
-        source_file
-      FROM inventory
-      WHERE part_number LIKE ? OR description LIKE ?
-      ORDER BY part_number
+        mfr_part_no,
+        nsn_number,
+        cage_code,
+        serial_no AS serial_number,
+        manufacturer_name,
+        warehouse_title AS location,
+        hazmat,
+        product_category,
+        is_portal_item
+      FROM parts
+      WHERE product_name LIKE ?
+        OR description LIKE ?
+        OR mfr_part_no LIKE ?
+        OR nsn_number LIKE ?
+        OR cage_code LIKE ?
+      ORDER BY product_name
       LIMIT 100
     `
 
-    const results = await query<InventoryItem[]>(sql, [searchPattern, searchPattern])
+    const results = await query(sql, [
+      searchPattern, searchPattern, searchPattern, searchPattern, searchPattern
+    ])
 
     return NextResponse.json(results)
   } catch (error) {

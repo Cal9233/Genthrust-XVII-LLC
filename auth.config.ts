@@ -13,6 +13,7 @@ export const authConfig = {
       const isOnPortal = nextUrl.pathname.startsWith('/portal')
       const isOnSignIn = nextUrl.pathname.startsWith('/signin')
       const isOnLogin = nextUrl.pathname.startsWith('/login')
+      const isOnRegister = nextUrl.pathname.startsWith('/register')
 
       if (isOnInternal) {
         if (isLoggedIn) return true
@@ -28,6 +29,12 @@ export const authConfig = {
       } else if (isOnLogin) {
         if (isLoggedIn) {
           return Response.redirect(new URL('/portal', nextUrl))
+        }
+        return true
+      } else if (isOnRegister) {
+        if (isLoggedIn) {
+          const role = (auth as any)?.user?.role
+          return Response.redirect(new URL(role === 'internal' ? '/internal' : '/portal', nextUrl))
         }
         return true
       }
@@ -51,6 +58,12 @@ export const authConfig = {
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id
+        // Carry company info for portal users
+        if ('companyId' in user) {
+          token.companyId = (user as any).companyId
+          token.companyName = (user as any).companyName
+          token.erpContactId = (user as any).erpContactId
+        }
       }
       if (account) {
         token.role = account.provider === 'credentials' ? 'client' : 'internal'
@@ -63,6 +76,12 @@ export const authConfig = {
           session.user.id = token.id as string
         }
         session.user.role = (token.role as 'internal' | 'client') || 'internal'
+        // Expose company info for portal pages
+        if (token.companyId) {
+          (session.user as any).companyId = token.companyId
+          ;(session.user as any).companyName = token.companyName
+          ;(session.user as any).erpContactId = token.erpContactId
+        }
       }
       return session
     },

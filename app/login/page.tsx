@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Users, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 
@@ -99,9 +100,16 @@ export default function ClientLoginPage() {
           </button>
         </form>
 
-        <p className="text-xs text-slate-400 mt-6">
-          Contact your account representative if you need access.
+        <p className="text-sm text-slate-500 mt-6">
+          Don&apos;t have an account?{' '}
+          <Link href="/register" className="text-burgundy-600 font-semibold hover:underline">
+            Register
+          </Link>
         </p>
+
+        <Link href="/" className="text-xs text-slate-400 hover:text-slate-300 mt-4 inline-block">
+          &larr; Back to website
+        </Link>
       </div>
     </div>
   )
