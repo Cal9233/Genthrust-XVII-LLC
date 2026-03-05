@@ -6,7 +6,15 @@
       "Bash(npm run build:*)",
       "Bash(cat:*)",
       "Bash(ls:*)",
-      "Bash(timeout 5 npm run dev:*)"
+      "Bash(timeout 5 npm run dev:*)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 30 npm run dev:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nReplace aircraft particles with Genthrust diamond logo\n\nSwitch particle animation from 3D aircraft model to PNG-based logo sampling.\nParticles now form the diamond icon by sampling non-transparent pixels from\nGenLogoTab.png \\(upper 65% only, excluding text\\).\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(npm ls next-auth)",
+      "Bash(npm ls next-auth @auth/core)",
+      "WebFetch(domain:login.microsoftonline.com)"
     ]
   }
 }
