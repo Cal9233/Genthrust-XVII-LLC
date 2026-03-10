@@ -3,22 +3,7 @@
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import { Package } from 'lucide-react'
-
-interface PartResult {
-  id: number
-  erp_product_id?: number
-  part_number: string
-  description: string | null
-  mfr_part_no: string | null
-  nsn_number: string | null
-  cage_code: string | null
-  serial_number: string | null
-  manufacturer_name: string | null
-  location: string | null
-  hazmat: boolean | number
-  product_category: string | null
-  is_portal_item: boolean | number
-}
+import { PartResult } from '@/types/inventory'
 
 interface InventoryTableProps {
   items: PartResult[]

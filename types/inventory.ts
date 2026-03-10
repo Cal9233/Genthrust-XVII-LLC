@@ -13,6 +13,23 @@ export interface InventoryItem {
   source_file: string | null
 }
 
+// Type matching /api/search response shape (ERP AERO fields)
+export interface PartResult {
+  id: number
+  erp_product_id?: number
+  part_number: string
+  description: string | null
+  mfr_part_no: string | null
+  nsn_number: string | null
+  cage_code: string | null
+  serial_number: string | null
+  manufacturer_name: string | null
+  location: string | null
+  hazmat: boolean | number
+  product_category: string | null
+  is_portal_item: boolean | number
+}
+
 // New types matching ERP AERO cache schema
 
 export interface Part {

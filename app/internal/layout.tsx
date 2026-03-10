@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { LogOut } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import InternalNav from '@/components/internal/InternalNav'
 
 export default async function InternalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -74,6 +75,7 @@ export default async function InternalLayout({ children }: { children: React.Rea
             </form>
           </div>
         </div>
+        <InternalNav />
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">{children}</main>

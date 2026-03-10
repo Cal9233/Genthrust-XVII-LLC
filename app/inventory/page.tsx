@@ -9,7 +9,7 @@ import { SearchInput } from '@/components/ui/SearchInput'
 import { Button } from '@/components/ui/Button'
 import { GlassCard, CardImage } from '@/components/ui/GlassCard'
 import { InventoryTable } from '@/components/ui/InventoryTable'
-import { InventoryItem } from '@/types/inventory'
+import { PartResult } from '@/types/inventory'
 import { Plane, Package, Wrench, Settings, Search, Filter } from 'lucide-react'
 import Link from 'next/link'
 
@@ -78,7 +78,7 @@ const featuredParts = [
 
 export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<InventoryItem[]>([])
+  const [searchResults, setSearchResults] = useState<PartResult[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
