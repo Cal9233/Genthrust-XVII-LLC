@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getAllBotStatuses, getBotMetrics, getNotificationFeed } from '@/lib/bot-helpers'
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { execSync } from 'child_process'
 import { BOT_REGISTRY } from '@/lib/bot-helpers'
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {

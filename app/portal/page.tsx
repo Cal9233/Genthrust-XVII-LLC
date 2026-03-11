@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 
 interface PortalDashboardData {
-  companyName: string
+  companyName: string | null
   stats: {
     activeSOs: number
     openInvoices: number
@@ -18,6 +18,7 @@ interface PortalDashboardData {
   recentSalesOrders: any[]
   recentInvoices: any[]
   recentRepairOrders: any[]
+  noCompany?: boolean
 }
 
 function formatCurrency(val: number | null) {
@@ -147,12 +148,20 @@ export default function PortalDashboard() {
 
   return (
     <div className="space-y-8">
+      {data?.noCompany && (
+        <div className="rounded-xl border-2 border-yellow-300 bg-yellow-50 px-5 py-4">
+          <p className="text-sm font-semibold text-yellow-800">
+            Your account is not yet linked to a company. Please contact support to complete your account setup.
+          </p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-navy-900">Client Dashboard</h1>
           <p className="text-slate-500 mt-1 text-sm">
-            Welcome, <span className="font-medium text-slate-700">{data?.companyName}</span>
+            Welcome{data?.companyName ? <>, <span className="font-medium text-slate-700">{data.companyName}</span></> : null}
             {' '}&mdash; Last refreshed: {lastRefresh.toLocaleTimeString()}
           </p>
         </div>

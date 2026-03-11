@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { decryptSecret, verifyTotpCode } from '@/lib/mfa'
 import bcrypt from 'bcryptjs'
+export const dynamic = 'force-dynamic'
 
 interface FactorRow {
   secret_encrypted: string

@@ -7,6 +7,8 @@ import {
   generateQrCodeDataUrl,
 } from '@/lib/mfa'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   try {
     const session = await auth()

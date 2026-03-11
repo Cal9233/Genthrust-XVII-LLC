@@ -38,3 +38,11 @@ swagger-ui-init.txt
 
 # Claude worktree env files
 .claude/worktrees/
+
+# Data exports
+repair_orders_export.json
+*_export.json
+__pycache__/
+*.pyc
+mcp-servers/
+export-erp.js

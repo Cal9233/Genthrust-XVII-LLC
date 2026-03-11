@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
+export const dynamic = 'force-dynamic'
 
 async function safeCount(sql: string): Promise<Record<string, any>> {
   try {

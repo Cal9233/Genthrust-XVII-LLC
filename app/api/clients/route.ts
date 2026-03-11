@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   const session = await auth()

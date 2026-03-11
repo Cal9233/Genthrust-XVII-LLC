@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -12,7 +13,14 @@ export async function GET() {
 
     const companyName = (session.user as any).companyName
     if (!companyName) {
-      return NextResponse.json({ error: 'No company associated' }, { status: 403 })
+      return NextResponse.json({
+        companyName: null,
+        stats: { activeSOs: 0, openInvoices: 0, openBalance: 0, activeROs: 0 },
+        recentSalesOrders: [],
+        recentInvoices: [],
+        recentRepairOrders: [],
+        noCompany: true,
+      })
     }
 
     const [

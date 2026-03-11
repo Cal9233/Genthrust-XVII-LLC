@@ -1,19 +1,34 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { RefreshCw, AlertCircle, UserCheck, UserX, Trash2 } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { RefreshCw, AlertCircle, UserCheck, UserX, Trash2, Users, UserPlus, ShieldCheck } from 'lucide-react'
+import { StatCard } from '@/components/internal/StatCard'
+import { DataTable, StatusDot } from '@/components/internal/DataTable'
+import { ChartCard } from '@/components/internal/ChartCard'
 
 function formatDate(val: string | null) {
   if (!val) return '—'
   return new Date(val).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+type FilterTab = 'all' | 'active' | 'pending'
+
+interface Client {
+  id: number
+  contact_name: string
+  email: string
+  company_name: string | null
+  is_active: number
+  created_at: string
+}
+
 export default function ClientsManagementPage() {
-  const [clients, setClients] = useState<any[]>([])
+  const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'pending' | 'all'>('pending')
+  const [filter, setFilter] = useState<FilterTab>('pending')
   const [updating, setUpdating] = useState<number | null>(null)
+  const [visible, setVisible] = useState(false)
 
   async function loadClients() {
     setLoading(true)
@@ -31,6 +46,14 @@ export default function ClientsManagementPage() {
   }
 
   useEffect(() => { loadClients() }, [])
+
+  useEffect(() => {
+    if (!loading) {
+      const timer = setTimeout(() => setVisible(true), 50)
+      return () => clearTimeout(timer)
+    }
+    setVisible(false)
+  }, [loading])
 
   async function toggleActive(userId: number, currentActive: number) {
     setUpdating(userId)
@@ -68,26 +91,123 @@ export default function ClientsManagementPage() {
     }
   }
 
-  const filtered = filter === 'pending' ? clients.filter((c) => !c.is_active) : clients
+  const totalClients = clients.length
+  const activeClients = clients.filter((c) => c.is_active).length
+  const pendingClients = clients.filter((c) => !c.is_active).length
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="flex items-center gap-3 text-slate-500">
-          <RefreshCw className="w-5 h-5 animate-spin" />
-          <span>Loading clients...</span>
+  const filtered = useMemo(() => {
+    if (filter === 'active') return clients.filter((c) => c.is_active)
+    if (filter === 'pending') return clients.filter((c) => !c.is_active)
+    return clients
+  }, [clients, filter])
+
+  const filterTabs: { key: FilterTab; label: string; count: number }[] = [
+    { key: 'pending', label: 'Pending', count: pendingClients },
+    { key: 'active', label: 'Active', count: activeClients },
+    { key: 'all', label: 'All', count: totalClients },
+  ]
+
+  const columns = [
+    {
+      key: 'contact_name',
+      label: 'Contact Name',
+      sortable: true,
+      render: (row: Client) => (
+        <span className="font-semibold text-slate-900">{row.contact_name}</span>
+      ),
+    },
+    {
+      key: 'email',
+      label: 'Email',
+      sortable: true,
+      render: (row: Client) => (
+        <span className="text-slate-600">{row.email}</span>
+      ),
+    },
+    {
+      key: 'company_name',
+      label: 'Company',
+      sortable: true,
+      render: (row: Client) => (
+        <span className="text-slate-600">{row.company_name || '—'}</span>
+      ),
+    },
+    {
+      key: 'is_active',
+      label: 'Status',
+      sortable: true,
+      render: (row: Client) => (
+        <StatusDot
+          status={row.is_active ? 'Active' : 'Pending'}
+          label={row.is_active ? 'Active' : 'Pending'}
+        />
+      ),
+    },
+    {
+      key: 'created_at',
+      label: 'Registered',
+      sortable: true,
+      render: (row: Client) => (
+        <span className="text-slate-500 text-xs">{formatDate(row.created_at)}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      align: 'right' as const,
+      render: (row: Client) => (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleActive(row.id, row.is_active) }}
+            disabled={updating === row.id}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 disabled:opacity-50 ${
+              row.is_active
+                ? 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300'
+                : 'text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-300'
+            }`}
+          >
+            {updating === row.id ? (
+              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            ) : row.is_active ? (
+              <UserX className="w-3.5 h-3.5" />
+            ) : (
+              <UserCheck className="w-3.5 h-3.5" />
+            )}
+            {row.is_active ? 'Deactivate' : 'Activate'}
+          </button>
+          {!row.is_active && (
+            <button
+              onClick={(e) => { e.stopPropagation(); rejectUser(row.id) }}
+              disabled={updating === row.id}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 disabled:opacity-50 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300"
+            >
+              {updating === row.id ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="w-3.5 h-3.5" />
+              )}
+              Reject
+            </button>
+          )}
         </div>
-      </div>
-    )
-  }
+      ),
+    },
+  ]
 
-  if (error && !clients.length) {
+  if (error && !clients.length && !loading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-          <p className="text-red-600 font-medium">{error}</p>
-          <button onClick={loadClients} className="mt-3 text-sm text-blue-600 hover:underline">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-red-500" />
+          </div>
+          <p className="text-red-700 font-semibold text-lg mb-1">Unable to load clients</p>
+          <p className="text-slate-500 text-sm mb-4">{error}</p>
+          <button
+            onClick={loadClients}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
             Try again
           </button>
         </div>
@@ -97,131 +217,127 @@ export default function ClientsManagementPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div
+        className={`flex items-center justify-between transition-all duration-500 ${
+          visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
         <div>
-          <h1 className="text-3xl font-extrabold text-navy-900">Client Management</h1>
+          <h1 className="text-3xl font-extrabold text-slate-900">Client Management</h1>
           <p className="text-slate-500 mt-1 text-sm">Manage portal user registrations and access.</p>
         </div>
         <button
           onClick={loadClients}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 disabled:opacity-50 shadow-sm"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </button>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setFilter('pending')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'pending'
-              ? 'bg-navy-900 text-white'
-              : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          Pending ({clients.filter((c) => !c.is_active).length})
-        </button>
-        <button
+      {/* Stat Cards */}
+      <div
+        className={`grid grid-cols-1 sm:grid-cols-3 gap-4 transition-all duration-500 delay-100 ${
+          visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
+        <StatCard
+          icon={Users}
+          label="Total Clients"
+          value={totalClients}
+          color="blue"
+          subtitle="All registered users"
+          loading={loading}
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-            filter === 'all'
-              ? 'bg-navy-900 text-white'
-              : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
-          }`}
-        >
-          All ({clients.length})
-        </button>
+        />
+        <StatCard
+          icon={ShieldCheck}
+          label="Active"
+          value={activeClients}
+          color="green"
+          subtitle="Approved accounts"
+          loading={loading}
+          onClick={() => setFilter('active')}
+        />
+        <StatCard
+          icon={UserPlus}
+          label="Pending Approval"
+          value={pendingClients}
+          color="orange"
+          subtitle="Awaiting review"
+          loading={loading}
+          onClick={() => setFilter('pending')}
+        />
       </div>
 
-      {error && (
-        <div className="p-3 rounded-lg bg-red-50 border border-red-200">
-          <p className="text-sm font-semibold text-red-800">{error}</p>
+      {/* Error banner */}
+      {error && clients.length > 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+          <p className="text-sm font-medium text-red-800 flex-1">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="text-xs text-red-600 hover:text-red-800 font-medium"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* Clients Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left">
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Contact Name</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Email</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Company</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Status</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Created</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filtered.map((client) => (
-                <tr key={client.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-navy-900">{client.contact_name}</td>
-                  <td className="px-4 py-3 text-slate-600">{client.email}</td>
-                  <td className="px-4 py-3 text-slate-600">{client.company_name || '—'}</td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                        client.is_active
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-yellow-100 text-yellow-700'
-                      }`}
-                    >
-                      {client.is_active ? 'Active' : 'Pending'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{formatDate(client.created_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggleActive(client.id, client.is_active)}
-                        disabled={updating === client.id}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 ${
-                          client.is_active
-                            ? 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200'
-                            : 'text-green-700 bg-green-50 hover:bg-green-100 border border-green-200'
-                        }`}
-                      >
-                        {updating === client.id ? (
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        ) : client.is_active ? (
-                          <UserX className="w-3.5 h-3.5" />
-                        ) : (
-                          <UserCheck className="w-3.5 h-3.5" />
-                        )}
-                        {client.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
-                      {!client.is_active && (
-                        <button
-                          onClick={() => rejectUser(client.id)}
-                          disabled={updating === client.id}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200"
-                        >
-                          {updating === client.id ? (
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-3.5 h-3.5" />
-                          )}
-                          Reject
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+      {/* Table section */}
+      <div
+        className={`transition-all duration-500 delay-200 ${
+          visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
+        <ChartCard
+          title="Client Registry"
+          icon={Users}
+          iconColor="text-blue-500"
+          subtitle={`${filtered.length} ${filter === 'all' ? 'total' : filter} client${filtered.length !== 1 ? 's' : ''}`}
+          loading={loading}
+          action={
+            <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5">
+              {filterTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setFilter(tab.key)}
+                  className={`relative px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${
+                    filter === tab.key
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {tab.label}
+                  <span
+                    className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
+                      filter === tab.key
+                        ? 'bg-slate-900 text-white'
+                        : 'bg-slate-200/80 text-slate-500'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
               ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-6 text-center text-slate-400">
-                    {filter === 'pending' ? 'No pending registrations' : 'No clients'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          }
+        >
+          <DataTable<Client>
+            columns={columns}
+            data={filtered}
+            loading={loading}
+            emptyMessage={
+              filter === 'pending'
+                ? 'No pending registrations'
+                : filter === 'active'
+                ? 'No active clients'
+                : 'No clients registered yet'
+            }
+          />
+        </ChartCard>
       </div>
     </div>
   )

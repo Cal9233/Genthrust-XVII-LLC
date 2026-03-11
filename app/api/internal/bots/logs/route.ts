@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { getLogTail, BOT_REGISTRY } from '@/lib/bot-helpers'
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {

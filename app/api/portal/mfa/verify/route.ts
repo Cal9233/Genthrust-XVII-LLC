@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { decryptSecret, verifyTotpCode, generateRecoveryCodes } from '@/lib/mfa'
 import bcrypt from 'bcryptjs'
+export const dynamic = 'force-dynamic'
 
 interface PendingFactorRow {
   id: number

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { inventoryQuery } from '@/lib/inventory-db'
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {

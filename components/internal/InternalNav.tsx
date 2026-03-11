@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Bot, BarChart3, Zap, Users } from 'lucide-react'
+import { LayoutDashboard, Bot, BarChart3, Zap, Users, Bell } from 'lucide-react'
 
 const navItems = [
   { href: '/internal', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/internal/bots', label: 'Bots', icon: Bot },
   { href: '/internal/inventory-intelligence', label: 'Inventory Intel', icon: BarChart3 },
+  { href: '/internal/inventory-alarms', label: 'Alarms', icon: Bell },
   { href: '/internal/automation', label: 'Automation', icon: Zap },
   { href: '/internal/clients', label: 'Clients', icon: Users },
 ]

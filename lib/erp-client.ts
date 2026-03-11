@@ -6,10 +6,10 @@
  * Token cached in module-level variable with 30-min TTL.
  */
 
-const ERP_BASE_URL = process.env.ERP_BASE_URL || 'https://wapi.erp.aero'
-const ERP_CID = process.env.ERP_CID || ''
-const ERP_EMAIL = process.env.ERP_EMAIL || ''
-const ERP_PASSWORD = process.env.ERP_PASSWORD || ''
+const ERP_BASE_URL = process.env.ERP_AERO_BASE_URL || process.env.ERP_BASE_URL || 'https://wapi.erp.aero'
+const ERP_CID = process.env.ERP_AERO_CID || process.env.ERP_CID || ''
+const ERP_EMAIL = process.env.ERP_AERO_EMAIL || process.env.ERP_EMAIL || ''
+const ERP_PASSWORD = process.env.ERP_AERO_PASSWORD || process.env.ERP_PASSWORD || ''
 
 let cachedToken: string | null = null
 let tokenExpiresAt: number = 0
@@ -354,14 +354,49 @@ export async function searchErpParts(query: string, page: number = 1): Promise<{
   const parts = items.map((item: any) => {
     const b = item.body || item
     return {
-      part_number: b.pn || b.part_number || '',
-      description: b.description || '',
-      condition: b.condition || '',
-      quantity: b.qty || b.quantity || 0,
-      unit_price: b.unit_price || '',
-      warehouse: b.warehouse || '',
+      part_number: b.pn || b.part_number || b.productname || '',
+      description: b.description || b.full_description || '',
+      condition: b.condition || b.condition_code || '',
+      quantity: parseInt(String(b.qty ?? b.quantity ?? 0), 10) || 0,
+      unit_price: parseFloat(String(b.unit_price || 0)) || 0,
+      warehouse: typeof b.warehouse === 'object' ? (b.warehouse?.title || '') : (b.warehouse || ''),
+      serial_number: b.serial_no || b.serial_number || null,
     }
   })
 
   return { query, count: parts.length, parts }
+}
+
+/**
+ * Fetch live ERP data for a specific part, optionally filtered by condition.
+ * Used by the watchlist alarm system to check current quantity.
+ */
+export async function getPartLiveData(
+  partNumber: string,
+  conditionFilter?: string
+): Promise<{ part_number: string; condition: string; quantity: number }[]> {
+  const raw = await erpGet('v1/part/list', {
+    search: partNumber,
+    page: '1',
+    page_size: '50',
+  })
+  const items = unwrapList(raw)
+
+  const results: { part_number: string; condition: string; quantity: number }[] = []
+
+  for (const item of items) {
+    const b = item.body || item
+    const pn = b.pn || b.part_number || b.productname || ''
+    const cond = b.condition || b.condition_code || ''
+    const qty = parseInt(String(b.qty ?? b.quantity ?? 0), 10) || 0
+
+    // Exact part number match
+    if (pn.toUpperCase() !== partNumber.toUpperCase()) continue
+    // Condition filter if specified
+    if (conditionFilter && cond.toUpperCase() !== conditionFilter.toUpperCase()) continue
+
+    results.push({ part_number: pn, condition: cond, quantity: qty })
+  }
+
+  return results
 }

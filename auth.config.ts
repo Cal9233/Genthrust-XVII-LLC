@@ -4,6 +4,7 @@ import type { NextAuthConfig } from 'next-auth'
 export const authConfig = {
   pages: {
     signIn: '/signin',
+    error: '/signin',
   },
   providers: [],
   callbacks: {
@@ -89,12 +90,10 @@ export const authConfig = {
         }
         session.user.role = (token.role as 'internal' | 'client') || 'internal'
         session.user.mfaEnabled = token.mfaEnabled ?? undefined
-        // Expose company info for portal pages
-        if (token.companyId) {
-          (session.user as any).companyId = token.companyId
-          ;(session.user as any).companyName = token.companyName
-          ;(session.user as any).erpContactId = token.erpContactId
-        }
+        // Expose company info for portal pages (always set so portal can show appropriate UI)
+        ;(session.user as any).companyId = token.companyId ?? null
+        ;(session.user as any).companyName = token.companyName ?? null
+        ;(session.user as any).erpContactId = token.erpContactId ?? null
       }
       return session
     },

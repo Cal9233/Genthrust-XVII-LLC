@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { inventoryQuery } from '@/lib/inventory-db'
 import fs from 'fs'
+export const dynamic = 'force-dynamic'
 
 async function safeCount(sql: string): Promise<Record<string, any>> {
   try {

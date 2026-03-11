@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { execSync } from 'child_process'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth()
@@ -41,7 +43,7 @@ print(json.dumps({"stats": stats}, default=str))
     }
 
     try {
-      const output = execSync(`python -c "${script.replace(/"/g, '\\"').replace(/\n/g, '; ')}"`, {
+      const output = execSync(`"C:\\GenThrust\\automation\\.venv\\Scripts\\python.exe" -c "${script.replace(/"/g, '\\"').replace(/\n/g, '; ')}"`, {
         encoding: 'utf-8',
         timeout: 60000,
         cwd: 'C:\\GenThrust\\automation',

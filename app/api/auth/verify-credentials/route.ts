@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { verifyPassword } from '@/lib/password'
 import { createMfaChallengeToken } from '@/lib/mfa'
+export const dynamic = 'force-dynamic'
 
 interface PortalUserRow {
   id: number

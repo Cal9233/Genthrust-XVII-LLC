@@ -7,6 +7,8 @@ import {
   getActiveRepairOrders,
 } from '@/lib/erp-client'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const session = await auth()
