@@ -10,7 +10,7 @@ export async function GET() {
     }
 
     const clients = await query<any[]>(
-      `SELECT pu.id, pu.email, pu.contact_name, pu.is_active, pu.created_at, pu.last_login,
+      `SELECT pu.id, pu.email, pu.contact_name, pu.is_active, pu.mfa_enabled, pu.created_at, pu.last_login,
               c.company_name
        FROM portal_users pu
        LEFT JOIN companies c ON pu.company_id = c.id

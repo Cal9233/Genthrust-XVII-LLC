@@ -1,6 +1,6 @@
 import { auth, signOut } from '@/auth'
 import { redirect } from 'next/navigation'
-import { LogOut } from 'lucide-react'
+import { LogOut, Settings } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -53,6 +53,14 @@ export default async function PortalLayout({ children }: { children: React.React
             </div>
 
             <div className="w-px h-6 bg-navy-700 mx-2" />
+
+            <Link
+              href="/portal/settings"
+              className="p-2 text-slate-300 hover:text-white hover:bg-navy-800 rounded-lg transition-colors"
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </Link>
 
             <form
               action={async () => {

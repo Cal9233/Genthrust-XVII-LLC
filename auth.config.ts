@@ -19,7 +19,15 @@ export const authConfig = {
         if (isLoggedIn) return true
         return false
       } else if (isOnPortal) {
-        if (isLoggedIn) return true
+        if (isLoggedIn) {
+          // Enforce mandatory MFA enrollment for clients
+          const role = (auth as any)?.user?.role
+          const mfaEnabled = (auth as any)?.user?.mfaEnabled
+          if (role === 'client' && mfaEnabled === false && !nextUrl.pathname.startsWith('/portal/mfa-setup')) {
+            return Response.redirect(new URL('/portal/mfa-setup', nextUrl))
+          }
+          return true
+        }
         return Response.redirect(new URL('/login', nextUrl))
       } else if (isOnSignIn) {
         if (isLoggedIn) {
@@ -64,6 +72,10 @@ export const authConfig = {
           token.companyName = (user as any).companyName
           token.erpContactId = (user as any).erpContactId
         }
+        // Carry MFA status
+        if ('mfaEnabled' in user) {
+          token.mfaEnabled = (user as any).mfaEnabled
+        }
       }
       if (account) {
         token.role = account.provider === 'credentials' ? 'client' : 'internal'
@@ -76,6 +88,7 @@ export const authConfig = {
           session.user.id = token.id as string
         }
         session.user.role = (token.role as 'internal' | 'client') || 'internal'
+        session.user.mfaEnabled = token.mfaEnabled ?? undefined
         // Expose company info for portal pages
         if (token.companyId) {
           (session.user as any).companyId = token.companyId

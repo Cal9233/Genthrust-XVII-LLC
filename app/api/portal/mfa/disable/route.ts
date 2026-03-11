@@ -1,0 +1,77 @@
+import { NextResponse } from 'next/server'
+import { auth } from '@/auth'
+import { query } from '@/lib/db'
+import { decryptSecret, verifyTotpCode } from '@/lib/mfa'
+import bcrypt from 'bcryptjs'
+
+interface FactorRow {
+  secret_encrypted: string
+  secret_iv: string
+  secret_auth_tag: string
+}
+
+interface RecoveryCodeRow {
+  id: number
+  code_hash: string
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth()
+    if (!session?.user || session.user.role !== 'client') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { code } = await request.json()
+    if (!code || typeof code !== 'string') {
+      return NextResponse.json({ error: 'Code is required' }, { status: 400 })
+    }
+
+    const userId = parseInt(session.user.id)
+
+    // Get verified factor
+    const factors = await query<FactorRow[]>(
+      `SELECT secret_encrypted, secret_iv, secret_auth_tag
+       FROM mfa_factors WHERE user_id = ? AND factor_type = 'totp' AND status = 'verified'`,
+      [userId]
+    )
+
+    if (!factors.length) {
+      return NextResponse.json({ error: 'No MFA factor found' }, { status: 400 })
+    }
+
+    const factor = factors[0]
+    const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
+
+    // Verify with TOTP code first
+    let codeValid = verifyTotpCode(secret, code)
+
+    // Try as recovery code
+    if (!codeValid) {
+      const recoveryCodes = await query<RecoveryCodeRow[]>(
+        `SELECT id, code_hash FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL`,
+        [userId]
+      )
+      for (const rc of recoveryCodes) {
+        if (await bcrypt.compare(code.toUpperCase(), rc.code_hash)) {
+          codeValid = true
+          break
+        }
+      }
+    }
+
+    if (!codeValid) {
+      return NextResponse.json({ error: 'Invalid code' }, { status: 400 })
+    }
+
+    // Delete factor and recovery codes, reset flag
+    await query(`DELETE FROM mfa_factors WHERE user_id = ?`, [userId])
+    await query(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`, [userId])
+    await query(`UPDATE portal_users SET mfa_enabled = 0 WHERE id = ?`, [userId])
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('MFA disable error:', error)
+    return NextResponse.json({ error: 'Failed to disable MFA' }, { status: 500 })
+  }
+}

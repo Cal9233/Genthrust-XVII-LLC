@@ -32,3 +32,9 @@ next-env.d.ts
 
 # MCP config (contains credentials)
 .mcp.json
+
+# Swagger generated output
+swagger-ui-init.txt
+
+# Claude worktree env files
+.claude/worktrees/
