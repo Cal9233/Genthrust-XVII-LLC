@@ -170,15 +170,16 @@ function useLogoPoints(imagePath: string, totalParticles: number, scale: number)
 interface AircraftParticlesProps {
   stage?: IntroStage
   scrollVelocity?: number
+  particleCount?: number
 }
 
-export default function AircraftParticles({ stage = 'assembling', scrollVelocity = 0 }: AircraftParticlesProps) {
+export default function AircraftParticles({ stage = 'assembling', scrollVelocity = 0, particleCount = TOTAL_PARTICLES }: AircraftParticlesProps) {
   const pointsRef = useRef<THREE.Points>(null!)
   const materialRef = useRef<THREE.ShaderMaterial>(null!)
   const startTimeRef = useRef<number | null>(null)
 
   // Use the transparent background version
-  const vertices = useLogoPoints('/GenLogoNoBackground.png', TOTAL_PARTICLES, 0.02)
+  const vertices = useLogoPoints('/GenLogoNoBackground.png', particleCount, 0.02)
 
   const geometry = useMemo(() => {
     if (vertices.length === 0) return null

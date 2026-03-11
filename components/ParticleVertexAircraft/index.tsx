@@ -1,12 +1,12 @@
 'use client'
 
-import React, { Suspense, useRef } from 'react'
+import React, { Suspense, useRef, useState, useCallback } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
+import { PerformanceMonitor } from '@react-three/drei'
 import { motion } from 'framer-motion'
 import * as THREE from 'three'
 import AircraftParticles from './AircraftParticles'
 import type { IntroStage } from '../Hero/HeroIntro'
-import { a } from 'framer-motion/client'
 
 function LoadingFallback() {
   return (
@@ -20,7 +20,7 @@ function LoadingFallback() {
   )
 }
 
-function Scene({ stage, scrollVelocity }: { stage: IntroStage; scrollVelocity: number }) {
+function Scene({ stage, scrollVelocity, particleCount }: { stage: IntroStage; scrollVelocity: number; particleCount: number }) {
   const movingLight = useRef<THREE.PointLight>(null!)
 
   useFrame((state) => {
@@ -46,7 +46,7 @@ function Scene({ stage, scrollVelocity }: { stage: IntroStage; scrollVelocity: n
       <pointLight position={[20, 0, 10]} intensity={0.4} color="#38B2AC" distance={50} />
 
       <Suspense fallback={null}>
-        <AircraftParticles stage={stage} scrollVelocity={scrollVelocity} />
+        <AircraftParticles stage={stage} scrollVelocity={scrollVelocity} particleCount={particleCount} />
       </Suspense>
 
       {/* Fog to blend edges into deep space background */}
@@ -58,9 +58,34 @@ function Scene({ stage, scrollVelocity }: { stage: IntroStage; scrollVelocity: n
 interface ParticleVertexAircraftProps {
   stage?: IntroStage
   scrollVelocity?: number
+  initialParticleCount?: number
+  initialDpr?: number
+  maxDpr?: number
 }
 
-export default function ParticleVertexAircraft({ stage = 'assembling', scrollVelocity = 0 }: ParticleVertexAircraftProps) {
+export default function ParticleVertexAircraft({
+  stage = 'assembling',
+  scrollVelocity = 0,
+  initialParticleCount = 35000,
+  initialDpr = 1.5,
+  maxDpr = 2,
+}: ParticleVertexAircraftProps) {
+  const [dpr, setDpr] = useState(initialDpr)
+  const [particleCount] = useState(initialParticleCount)
+
+  const handleIncline = useCallback(() => {
+    setDpr((prev) => Math.min(prev + 0.5, maxDpr))
+  }, [maxDpr])
+
+  const handleDecline = useCallback(() => {
+    setDpr((prev) => Math.max(prev - 0.5, 1))
+  }, [])
+
+  const handleFallback = useCallback(() => {
+    // Lock to minimum quality after too many oscillations
+    setDpr(1)
+  }, [])
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="absolute inset-0">
@@ -69,9 +94,16 @@ export default function ParticleVertexAircraft({ stage = 'assembling', scrollVel
             camera={{ position: [0, 0, 20], fov: 50 }}
             onCreated={({ gl }) => gl.setClearColor('#020617')}
             gl={{ antialias: true, alpha: false }}
-            dpr={[1, 2]}
+            dpr={dpr}
           >
-            <Scene stage={stage} scrollVelocity={scrollVelocity} />
+            <PerformanceMonitor
+              onIncline={handleIncline}
+              onDecline={handleDecline}
+              flipflops={3}
+              onFallback={handleFallback}
+            >
+              <Scene stage={stage} scrollVelocity={scrollVelocity} particleCount={particleCount} />
+            </PerformanceMonitor>
           </Canvas>
         </Suspense>
       </div>

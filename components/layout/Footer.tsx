@@ -58,7 +58,7 @@ export function Footer() {
             <ul className="space-y-1 text-sm">
               <li className="flex items-center gap-2 text-slate-400 py-2">
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                <span>{FOOTER_LINKS.contact.address}</span>
+                <span className="min-w-0">{FOOTER_LINKS.contact.address}</span>
               </li>
               <li>
                 <a
@@ -66,7 +66,7 @@ export function Footer() {
                   className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors py-2"
                 >
                   <Phone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span>{FOOTER_LINKS.contact.phone}</span>
+                  <span className="min-w-0">{FOOTER_LINKS.contact.phone}</span>
                 </a>
               </li>
               <li>
@@ -75,7 +75,7 @@ export function Footer() {
                   className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors py-2"
                 >
                   <Mail className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-                  <span>{FOOTER_LINKS.contact.email}</span>
+                  <span className="min-w-0">{FOOTER_LINKS.contact.email}</span>
                 </a>
               </li>
             </ul>

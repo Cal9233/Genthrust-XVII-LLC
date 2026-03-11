@@ -1,13 +1,22 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
+import { motion, AnimatePresence, useScroll } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import LogoReveal from './LogoReveal'
 import { AnamorphicFlare } from '@/components/ui/AnamorphicFlare'
+import { useWebGLCapabilities } from '@/hooks/useWebGLCapabilities'
 
 const ParticleVertexAircraft = dynamic(
   () => import('@/components/ParticleVertexAircraft'),
+  {
+    ssr: false,
+    loading: () => null
+  }
+)
+
+const Canvas2DFallback = dynamic(
+  () => import('@/components/ParticleVertexAircraft/Canvas2DFallback'),
   {
     ssr: false,
     loading: () => null
@@ -22,36 +31,35 @@ interface HeroIntroProps {
 
 export default function HeroIntro({ onComplete }: HeroIntroProps) {
   const [stage, setStage] = useState<IntroStage>('loading')
-  const [isMobile, setIsMobile] = useState(false)
   const [scrollVelocity, setScrollVelocity] = useState(0)
   const lastScrollY = useRef(0)
   const { scrollY } = useScroll()
+  const capabilities = useWebGLCapabilities()
 
   const finishIntro = useCallback(() => {
     setStage('complete')
     if (typeof document !== 'undefined') {
-      document.body.style.overflow = 'auto'
+      document.documentElement.classList.remove('scroll-locked')
     }
     onComplete?.()
   }, [onComplete])
 
+  // Cleanup scroll lock on unmount
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024)
+    return () => {
+      document.documentElement.classList.remove('scroll-locked')
     }
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  // Stage progression — only for WebGL tiers (1-3)
   useEffect(() => {
-    if (isMobile) {
-      finishIntro()
+    if (capabilities.tier === 0) {
+      // Tier 0: Canvas2D handles its own assembly, or CSS fallback
       return
     }
 
     if (stage !== 'complete' && typeof document !== 'undefined') {
-      document.body.style.overflow = 'hidden'
+      document.documentElement.classList.add('scroll-locked')
     }
 
     let timer: NodeJS.Timeout
@@ -72,10 +80,11 @@ export default function HeroIntro({ onComplete }: HeroIntroProps) {
     }
 
     return () => clearTimeout(timer)
-  }, [stage, isMobile, finishIntro])
+  }, [stage, capabilities.tier, finishIntro])
 
+  // Scroll-to-skip — skip animation on any scroll/touch
   useEffect(() => {
-    if (isMobile || stage === 'complete') return
+    if (stage === 'complete') return
 
     const handleScroll = () => {
       finishIntro()
@@ -88,10 +97,12 @@ export default function HeroIntro({ onComplete }: HeroIntroProps) {
       window.removeEventListener('wheel', handleScroll)
       window.removeEventListener('touchmove', handleScroll)
     }
-  }, [stage, isMobile, finishIntro])
+  }, [stage, finishIntro])
 
-  // Track scroll velocity for particle streaks
+  // Track scroll velocity for particle streaks (only for tiers 2+)
   useEffect(() => {
+    if (capabilities.tier < 2) return
+
     let rafId: number
     let lastTime = performance.now()
 
@@ -101,10 +112,7 @@ export default function HeroIntro({ onComplete }: HeroIntroProps) {
       const deltaTime = currentTime - lastTime
       const deltaScroll = Math.abs(currentScrollY - lastScrollY.current)
 
-      // Calculate velocity (pixels per second, normalized to 0-5 range)
       const velocity = deltaTime > 0 ? Math.min((deltaScroll / deltaTime) * 10, 5) : 0
-
-      // Smooth the velocity with lerp
       setScrollVelocity((prev) => prev + (velocity - prev) * 0.1)
 
       lastScrollY.current = currentScrollY
@@ -114,9 +122,37 @@ export default function HeroIntro({ onComplete }: HeroIntroProps) {
 
     rafId = requestAnimationFrame(updateVelocity)
     return () => cancelAnimationFrame(rafId)
-  }, [])
+  }, [capabilities.tier])
 
-  if (isMobile) {
+  // Tier 0: Canvas 2D fallback or CSS-only fallback
+  if (capabilities.tier === 0) {
+    if (capabilities.supportsWebGL) {
+      // Canvas 2D assembling animation
+      return (
+        <div className="relative w-full h-screen bg-space overflow-hidden bg-noise">
+          <Canvas2DFallback
+            onAssembled={() => {
+              setTimeout(() => finishIntro(), 300)
+            }}
+          />
+          <AnimatePresence>
+            {stage === 'complete' && (
+              <motion.div
+                key="reveal"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="absolute inset-0 z-20"
+              >
+                <LogoReveal isComplete={true} scrollY={scrollY} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )
+    }
+
+    // No WebGL at all: CSS-only fade with static logo
     return (
       <div className="relative w-full h-screen bg-space overflow-hidden bg-noise">
         <LogoReveal isComplete={true} />
@@ -124,10 +160,11 @@ export default function HeroIntro({ onComplete }: HeroIntroProps) {
     )
   }
 
+  // Tiers 1-3: Full R3F particle system with adaptive quality
   return (
     <div className="relative w-full h-screen bg-space overflow-hidden bg-noise">
-      {/* Anamorphic Lens Flare */}
-      <AnamorphicFlare />
+      {/* Anamorphic Lens Flare — disabled on Tier 1 */}
+      <AnamorphicFlare disabled={capabilities.tier < 2} />
 
       {/* Stage 1-2: 3D Particle Canvas */}
       <AnimatePresence mode="wait">
@@ -140,7 +177,13 @@ export default function HeroIntro({ onComplete }: HeroIntroProps) {
             transition={{ duration: 0.4 }}
             className="absolute inset-0 z-10"
           >
-            <ParticleVertexAircraft stage={stage} scrollVelocity={scrollVelocity} />
+            <ParticleVertexAircraft
+              stage={stage}
+              scrollVelocity={scrollVelocity}
+              initialParticleCount={capabilities.particleCount}
+              initialDpr={capabilities.maxDpr > 1.5 ? 1.5 : capabilities.maxDpr}
+              maxDpr={capabilities.maxDpr}
+            />
           </motion.div>
         )}
       </AnimatePresence>

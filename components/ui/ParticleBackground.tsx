@@ -21,7 +21,7 @@ interface ParticleBackgroundProps {
 }
 
 export function ParticleBackground({
-  particleCount = 50,
+  particleCount = 25,
   className,
   color = 'rgba(0, 85, 184, 0.3)',
   speed = 'medium',
@@ -29,6 +29,9 @@ export function ParticleBackground({
   const [particles, setParticles] = useState<Particle[]>([])
 
   useEffect(() => {
+    // Respect reduced motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
     const speedMultiplier = {
       slow: 20,
       medium: 15,

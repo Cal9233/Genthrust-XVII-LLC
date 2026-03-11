@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useState, useEffect, useCallback } from 'react'
 import { HUDOverlay } from './HUDOverlay'
 import { MagneticButton } from '@/components/ui/MagneticButton'
+import { STATS } from '@/lib/constants'
 
 interface LogoRevealProps {
   isComplete: boolean
@@ -62,10 +63,10 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
         />
       </div>
 
-      {/* LAYER 1: Logo with glassmorphism - positioned at top (Z-index 10) */}
+      {/* LAYER 1: Logo with glassmorphism - centered with upward bias */}
       <motion.div
         style={{ y: layer1Y }}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none -mt-[22rem] z-10"
+        className="absolute inset-0 flex items-center justify-center pointer-events-none pb-[14vh] z-10"
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -87,7 +88,7 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
             width={720}
             height={414}
             priority
-            className="w-[40rem] sm:w-[44rem] md:w-[48.67rem] h-auto object-contain relative z-10"
+            className="w-full max-w-[min(48rem,85vw)] h-auto object-contain relative z-10"
             style={{
               filter: `drop-shadow(0 0 ${isComplete ? '16px' : '24px'} rgba(56, 178, 172, ${isComplete ? 0.3 : 0.5}))`,
               transition: 'filter 0.4s ease-out'
@@ -99,7 +100,7 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
       {/* LAYER 2: Typography - positioned at bottom (Z-index 20, moves fastest) */}
       <motion.div
         style={{ y: layer2Y }}
-        className="absolute bottom-0 left-0 right-0 pb-16 z-20"
+        className="absolute bottom-0 left-0 right-0 pb-20 z-20"
       >
         <motion.div
           initial={{ opacity: 0, y: 25 }}
@@ -107,11 +108,11 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
           transition={{ delay: 0.15, duration: 0.5, ease: 'easeOut' }}
           className="text-center pointer-events-auto px-4"
         >
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight mb-2">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-3">
             <span className="text-chrome">Precision Aviation</span>
-            <span className="text-silver/70 font-normal"> Sourcing</span>
+            <span className="text-silver/70 font-light"> Sourcing</span>
           </h1>
-          <p className="text-sm text-silver/60 max-w-md mx-auto mb-5">
+          <p className="text-base sm:text-lg text-silver/60 max-w-lg mx-auto mb-6">
             Same day delivery, competitive pricing, and 25+ years of experience.
           </p>
 
@@ -120,11 +121,11 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
             initial={{ y: 10, opacity: 0 }}
             animate={isComplete ? { y: 0, opacity: 1 } : { y: 10, opacity: 0 }}
             transition={{ delay: 0.3, duration: 0.4 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center"
+            className="flex flex-col sm:flex-row gap-3 justify-center mb-8"
           >
             <MagneticButton
               variant="primary"
-              size="md"
+              size="lg"
               onClick={() => {
                 document.getElementById('search')?.scrollIntoView({ behavior: 'smooth' })
               }}
@@ -133,13 +134,33 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
             </MagneticButton>
             <MagneticButton
               variant="outline-horizon"
-              size="md"
+              size="lg"
               onClick={() => {
                 document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' })
               }}
             >
               Request Quote
             </MagneticButton>
+          </motion.div>
+
+          {/* Trust bar */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={isComplete ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ delay: 0.5, duration: 0.4 }}
+            className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1"
+          >
+            {STATS.map((stat, i) => (
+              <span key={stat.label} className="flex items-center gap-x-6">
+                <span className="font-mono text-xs text-silver/40 tracking-wider">
+                  <span className="text-silver/60 font-semibold">{stat.value}</span>{' '}
+                  {stat.label}
+                </span>
+                {i < STATS.length - 1 && (
+                  <span className="hidden sm:inline text-silver/20">|</span>
+                )}
+              </span>
+            ))}
           </motion.div>
         </motion.div>
       </motion.div>
@@ -148,7 +169,7 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={isComplete ? { opacity: 1 } : { opacity: 0 }}
-        transition={{ delay: 0.5, duration: 0.3 }}
+        transition={{ delay: 0.7, duration: 0.3 }}
         className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30"
       >
         <a
@@ -157,8 +178,8 @@ export default function LogoReveal({ isComplete, scrollY }: LogoRevealProps) {
         >
           <motion.svg
             xmlns="http://www.w3.org/2000/svg"
-            width="12"
-            height="12"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"

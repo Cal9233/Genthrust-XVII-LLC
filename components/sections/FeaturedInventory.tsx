@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Package, ArrowRight } from 'lucide-react'
+import { Package, ArrowRight, Phone } from 'lucide-react'
 import { FEATURED_PARTS } from '@/lib/constants'
 
 function StatusBadge({ status }: { status: string }) {
@@ -31,7 +31,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function FeaturedInventory() {
   return (
-    <section id="inventory" className="relative py-20 bg-white">
+    <section id="inventory" className="relative py-24 md:py-32 bg-white">
       <div className="container mx-auto px-4 md:px-6">
         {/* Section header */}
         <motion.div
@@ -42,10 +42,10 @@ export function FeaturedInventory() {
           className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-12"
         >
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-2">
               Featured Components
             </h2>
-            <p className="text-slate-600">
+            <p className="text-slate-600 text-lg">
               Recently added and high-demand parts from our verified inventory.
             </p>
           </div>
@@ -67,11 +67,12 @@ export function FeaturedInventory() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 hover:shadow-md transition-all group"
+              whileHover={{ y: -4 }}
+              className="bg-white border border-slate-200 rounded-lg overflow-hidden hover:border-slate-300 hover:shadow-card-hover transition-all group"
             >
               {/* Image placeholder */}
-              <div className="aspect-[4/3] bg-slate-100 relative flex items-center justify-center">
-                <Package className="w-12 h-12 text-slate-300" />
+              <div className="aspect-[4/3] bg-gradient-to-br from-slate-50 to-slate-100 relative flex items-center justify-center">
+                <Package className="w-12 h-12 text-slate-300 group-hover:text-slate-400 transition-colors" />
                 {/* Status badge overlay */}
                 <div className="absolute top-3 right-3">
                   <StatusBadge status={part.status} />
@@ -80,8 +81,8 @@ export function FeaturedInventory() {
 
               {/* Content */}
               <div className="p-4">
-                {/* Part number */}
-                <p className="font-mono text-sm text-navy-600 mb-1">
+                {/* Part number — prominent */}
+                <p className="font-mono text-base font-semibold text-navy-600 mb-1">
                   {part.partNumber}
                 </p>
 
@@ -91,13 +92,13 @@ export function FeaturedInventory() {
                 </h3>
 
                 {/* Meta info */}
-                <div className="flex items-center justify-between text-sm text-slate-500">
+                <div className="flex items-center justify-between text-sm text-slate-500 mb-4">
                   <span>{part.condition}</span>
                   <span>{part.aircraft}</span>
                 </div>
 
                 {/* CTA */}
-                <button className="w-full mt-4 py-2.5 sm:py-3 border border-slate-300 hover:border-burgundy-500 hover:text-burgundy-600 text-slate-600 text-sm font-medium rounded transition-colors">
+                <button className="w-full py-2.5 sm:py-3 border border-slate-300 hover:border-burgundy-500 hover:bg-burgundy-50 hover:text-burgundy-600 text-slate-600 text-sm font-medium rounded transition-colors">
                   Request Quote
                 </button>
               </div>
@@ -105,7 +106,7 @@ export function FeaturedInventory() {
           ))}
         </div>
 
-        {/* CTA banner */}
+        {/* CTA banner with AOG phone */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -119,13 +120,22 @@ export function FeaturedInventory() {
           <p className="text-slate-600 mb-6 max-w-xl mx-auto">
             Our sourcing team can locate hard-to-find components from our global network of 500+ certified suppliers.
           </p>
-          <a
-            href="#contact"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-burgundy-600 hover:bg-burgundy-700 text-white font-semibold rounded transition-colors"
-          >
-            Submit Sourcing Request
-            <ArrowRight className="w-4 h-4" />
-          </a>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <a
+              href="#contact"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-burgundy-600 hover:bg-burgundy-700 text-white font-semibold rounded transition-colors"
+            >
+              Submit Sourcing Request
+              <ArrowRight className="w-4 h-4" />
+            </a>
+            <a
+              href="tel:+13054500191"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-burgundy-300 hover:bg-burgundy-100 text-burgundy-700 font-semibold rounded transition-colors"
+            >
+              <Phone className="w-4 h-4" />
+              AOG? Call (305) 450-0191
+            </a>
+          </div>
         </motion.div>
       </div>
     </section>

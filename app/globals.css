@@ -13,6 +13,12 @@
     @apply bg-white text-slate-900 antialiased;
   }
 
+  /* Scroll lock for hero animation — toggled via JS classList */
+  html.scroll-locked,
+  html.scroll-locked body {
+    overflow: hidden !important;
+  }
+
   ::selection {
     @apply bg-navy-500/20 text-slate-900;
   }

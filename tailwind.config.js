@@ -9,6 +9,7 @@ module.exports = {
       colors: {
         // Primary brand color - Navy Blue from logo
         'navy': {
+          DEFAULT: '#1e4a8d',
           50: '#f0f4f9',
           100: '#dae3f0',
           200: '#b8cae3',
@@ -48,15 +49,44 @@ module.exports = {
         'aviation-red': '#EF4444',
         'horizon-blue': '#38B2AC',
         'silver': '#F8FAFC',
+        // Accent colors - bright accents for CTAs and interactive elements
+        'electric-blue': {
+          DEFAULT: '#2563EB',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563EB',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        'crimson': {
+          DEFAULT: '#DC2626',
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#ef4444',
+          600: '#DC2626',
+          700: '#b91c1c',
+          800: '#991b1b',
+          900: '#7f1d1d',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-jetbrains-mono)', 'JetBrains Mono', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       boxShadow: {
         'card': '0 1px 3px rgba(0, 0, 0, 0.1)',
         'card-hover': '0 4px 12px rgba(0, 0, 0, 0.15)',
         'navy-focus': '0 0 0 3px rgba(30, 74, 141, 0.2)',
+        'glow-blue': '0 0 15px rgba(37, 99, 235, 0.3)',
+        'glow-crimson': '0 0 15px rgba(220, 38, 38, 0.3)',
       },
       animation: {
         'fade-in': 'fadeIn 0.6s ease-out',

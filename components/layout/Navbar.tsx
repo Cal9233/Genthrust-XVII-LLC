@@ -67,7 +67,7 @@ export function Navbar() {
                 key={link.label}
                 href={link.href}
                 className={cn(
-                  "text-sm font-medium transition-colors",
+                  "text-sm font-medium transition-colors py-2 px-1",
                   isScrolled
                     ? "text-slate-300 hover:text-white"
                     : "text-silver/80 hover:text-white"

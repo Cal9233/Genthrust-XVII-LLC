@@ -1,7 +1,8 @@
 'use client'
 
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Phone, Mail, Clock, MapPin, Send } from 'lucide-react'
+import { Phone, Mail, Clock, MapPin, Send, Loader2, CheckCircle } from 'lucide-react'
 import { CONTACT_INFO } from '@/lib/constants'
 
 const contactCards = [
@@ -32,7 +33,7 @@ const contactCards = [
           <li key={person.email}>
             <a
               href={`mailto:${person.email}`}
-              className="hover:text-white transition-colors py-1.5 block"
+              className="hover:text-white transition-colors py-1.5 block break-all"
             >
               {person.email}
             </a>
@@ -68,8 +69,47 @@ const contactCards = [
 ]
 
 export function ContactSection() {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    company: '',
+    email: '',
+    phone: '',
+    partNumber: '',
+    message: '',
+  })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsSubmitting(true)
+    setSubmitStatus('idle')
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      })
+      if (!res.ok) throw new Error('Failed')
+      setSubmitStatus('success')
+      setFormData({ firstName: '', lastName: '', company: '', email: '', phone: '', partNumber: '', message: '' })
+    } catch {
+      setSubmitStatus('error')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const inputClass = 'w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded-lg text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors'
+
   return (
-    <section id="contact" className="relative py-20 bg-navy-900">
+    <section id="contact" className="relative py-24 md:py-32 bg-navy-900">
       <div className="container mx-auto px-4 md:px-6">
         {/* Section Header */}
         <motion.div
@@ -79,10 +119,10 @@ export function ContactSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
             Contact Us
           </h2>
-          <p className="text-slate-300 max-w-2xl mx-auto">
+          <p className="text-slate-300 max-w-2xl mx-auto text-lg">
             Ready to source your next component? Our team is here to help with quotes,
             sourcing requests, and AOG support.
           </p>
@@ -99,13 +139,11 @@ export function ContactSection() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               className="bg-navy-800 border border-navy-700 rounded-lg p-4 md:p-6 hover:border-navy-600 hover:bg-navy-800/80 transition-all text-center"
             >
-              <div className="w-12 h-12 bg-burgundy-600/20 rounded-lg flex items-center justify-center mb-4 mx-auto">
-                <card.icon className="w-6 h-6 text-burgundy-400" />
-              </div>
+              <card.icon className="w-8 h-8 text-burgundy-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-3">
                 {card.title}
               </h3>
-              <div className="text-slate-300 text-sm">
+              <div className="text-slate-300 text-sm min-w-0">
                 {card.content}
               </div>
             </motion.div>
@@ -125,56 +163,139 @@ export function ContactSection() {
               Request a Quote
             </h3>
 
-            <form className="space-y-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="First Name"
-                  className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors"
-                />
-                <input
-                  type="text"
-                  placeholder="Last Name"
-                  className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors"
-                />
-              </div>
-              <input
-                type="text"
-                placeholder="Company Name"
-                className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors"
-              />
-              <div className="grid sm:grid-cols-2 gap-4">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors"
-                />
-                <input
-                  type="tel"
-                  placeholder="Phone Number"
-                  className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors"
-                />
-              </div>
-              <input
-                type="text"
-                placeholder="Part Name or Number"
-                className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors"
-              />
-              <textarea
-                placeholder="Message"
-                rows={4}
-                className="w-full px-4 py-3 bg-navy-700 border border-navy-600 rounded text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:border-transparent transition-colors resize-none"
-              />
-              <div className="text-center">
+            {submitStatus === 'success' ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+                <p className="text-white font-medium mb-2">Request submitted!</p>
+                <p className="text-slate-400 text-sm">We'll get back to you within 2 hours.</p>
                 <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 px-8 py-3 bg-burgundy-600 hover:bg-burgundy-700 text-white font-semibold rounded transition-colors"
+                  onClick={() => setSubmitStatus('idle')}
+                  className="mt-4 text-sm text-burgundy-400 hover:text-burgundy-300 transition-colors"
                 >
-                  <Send className="w-4 h-4" />
-                  Submit Request
+                  Submit another request
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="firstName" className="sr-only">First Name</label>
+                    <input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      placeholder="First Name"
+                      value={formData.firstName}
+                      onChange={handleChange}
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="lastName" className="sr-only">Last Name</label>
+                    <input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      placeholder="Last Name"
+                      value={formData.lastName}
+                      onChange={handleChange}
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="company" className="sr-only">Company Name</label>
+                  <input
+                    id="company"
+                    name="company"
+                    type="text"
+                    placeholder="Company Name"
+                    value={formData.company}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="email" className="sr-only">Email</label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      placeholder="Email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="phone" className="sr-only">Phone Number</label>
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      placeholder="Phone Number"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className={inputClass}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="partNumber" className="sr-only">Part Name or Number</label>
+                  <input
+                    id="partNumber"
+                    name="partNumber"
+                    type="text"
+                    placeholder="Part Name or Number"
+                    value={formData.partNumber}
+                    onChange={handleChange}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="message" className="sr-only">Message</label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    placeholder="Message"
+                    rows={4}
+                    value={formData.message}
+                    onChange={handleChange}
+                    className={`${inputClass} resize-y`}
+                  />
+                </div>
+
+                {submitStatus === 'error' && (
+                  <p className="text-sm text-red-400 text-center">
+                    Something went wrong. Please try again or call us directly.
+                  </p>
+                )}
+
+                <div className="text-center">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 px-8 py-3 bg-burgundy-600 hover:bg-burgundy-700 disabled:bg-burgundy-400 text-white font-semibold rounded-lg transition-colors"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" />
+                        Submit Request
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </motion.div>
 
