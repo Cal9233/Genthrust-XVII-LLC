@@ -65,35 +65,43 @@ export const authConfig = {
       return true
     },
     async jwt({ token, user, account }) {
-      if (user) {
-        token.id = user.id
-        // Carry company info for portal users
-        if ('companyId' in user) {
-          token.companyId = (user as any).companyId
-          token.companyName = (user as any).companyName
-          token.erpContactId = (user as any).erpContactId
+      try {
+        if (user) {
+          token.id = user.id
+          // Carry company info for portal users
+          if ('companyId' in user) {
+            token.companyId = (user as any).companyId
+            token.companyName = (user as any).companyName
+            token.erpContactId = (user as any).erpContactId
+          }
+          // Carry MFA status
+          if ('mfaEnabled' in user) {
+            token.mfaEnabled = (user as any).mfaEnabled
+          }
         }
-        // Carry MFA status
-        if ('mfaEnabled' in user) {
-          token.mfaEnabled = (user as any).mfaEnabled
+        if (account) {
+          token.role = account.provider === 'credentials' ? 'client' : 'internal'
         }
-      }
-      if (account) {
-        token.role = account.provider === 'credentials' ? 'client' : 'internal'
+      } catch (error) {
+        console.error('[auth] JWT callback error:', error)
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
-        if (token.id) {
-          session.user.id = token.id as string
+      try {
+        if (session.user) {
+          if (token.id) {
+            session.user.id = token.id as string
+          }
+          session.user.role = (token.role as 'internal' | 'client') || 'internal'
+          session.user.mfaEnabled = token.mfaEnabled ?? undefined
+          // Expose company info for portal pages (always set so portal can show appropriate UI)
+          ;(session.user as any).companyId = token.companyId ?? null
+          ;(session.user as any).companyName = token.companyName ?? null
+          ;(session.user as any).erpContactId = token.erpContactId ?? null
         }
-        session.user.role = (token.role as 'internal' | 'client') || 'internal'
-        session.user.mfaEnabled = token.mfaEnabled ?? undefined
-        // Expose company info for portal pages (always set so portal can show appropriate UI)
-        ;(session.user as any).companyId = token.companyId ?? null
-        ;(session.user as any).companyName = token.companyName ?? null
-        ;(session.user as any).erpContactId = token.erpContactId ?? null
+      } catch (error) {
+        console.error('[auth] Session callback error:', error)
       }
       return session
     },

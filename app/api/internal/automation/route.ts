@@ -37,7 +37,7 @@ export async function GET() {
 
     return NextResponse.json({ net30, followups, purchaseOrders, repairOrders })
   } catch (error) {
-    console.error('Automation API error:', error)
+    console.error('Automation API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load automation data' }, { status: 500 })
   }
 }

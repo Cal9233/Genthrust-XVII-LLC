@@ -4,11 +4,15 @@ import { inventoryQuery } from '@/lib/inventory-db'
 import fs from 'fs'
 export const dynamic = 'force-dynamic'
 
+let dbConnected = true
+
 async function safeCount(sql: string): Promise<Record<string, any>> {
   try {
     const rows = await inventoryQuery<any[]>(sql)
     return rows[0] || {}
-  } catch {
+  } catch (error) {
+    dbConnected = false
+    console.error('[inventory-intelligence] safeCount failed:', sql, error)
     return {}
   }
 }
@@ -16,7 +20,9 @@ async function safeCount(sql: string): Promise<Record<string, any>> {
 async function safeQuery(sql: string, params?: any[]): Promise<any[]> {
   try {
     return await inventoryQuery<any[]>(sql, params)
-  } catch {
+  } catch (error) {
+    dbConnected = false
+    console.error('[inventory-intelligence] safeQuery failed:', sql, error)
     return []
   }
 }
@@ -27,6 +33,8 @@ export async function GET() {
     if (!session?.user || (session.user as any).role !== 'internal') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    dbConnected = true // reset per request
 
     const [
       pendingRow,
@@ -71,6 +79,7 @@ export async function GET() {
       salesVelocity,
       alerts,
       syncStatus,
+      dbConnected,
     })
   } catch (error) {
     console.error('Inventory Intelligence API error:', error)

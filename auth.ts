@@ -59,6 +59,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const challenge = verifyMfaChallengeToken(mfaToken)
           if (!challenge) return null
 
+          // Pre-check: block internal users from MFA client flow too
+          const preCheck = await query<{ email: string }[]>(
+            'SELECT email FROM portal_users WHERE id = ? AND is_active = 1',
+            [challenge.userId]
+          )
+          if (preCheck.length && preCheck[0].email.toLowerCase().endsWith('@genthrust.net')) {
+            return null
+          }
+
           const rows = await query<PortalUserRow[]>(
             `SELECT pu.id, pu.email, pu.password_hash, pu.contact_name, pu.company_id,
                     pu.erp_contact_id, pu.mfa_enabled, c.company_name
@@ -123,6 +132,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // --- Mode A: email + password ---
         if (!email || !password) return null
+
+        // Block internal (@genthrust.net) users from client login flow —
+        // they must use /signin (Microsoft Entra) instead
+        if (email.toLowerCase().endsWith('@genthrust.net')) return null
 
         const rows = await query<PortalUserRow[]>(
           `SELECT pu.id, pu.email, pu.password_hash, pu.contact_name, pu.company_id,

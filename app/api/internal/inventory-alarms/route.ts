@@ -7,7 +7,8 @@ async function safeCount(sql: string, params?: any[]): Promise<Record<string, an
   try {
     const rows = await inventoryQuery<any[]>(sql, params)
     return rows[0] || {}
-  } catch {
+  } catch (error) {
+    console.error('[inventory-alarms] safeCount failed:', sql, error)
     return {}
   }
 }
@@ -15,7 +16,8 @@ async function safeCount(sql: string, params?: any[]): Promise<Record<string, an
 async function safeQuery(sql: string, params?: any[]): Promise<any[]> {
   try {
     return await inventoryQuery<any[]>(sql, params)
-  } catch {
+  } catch (error) {
+    console.error('[inventory-alarms] safeQuery failed:', sql, error)
     return []
   }
 }

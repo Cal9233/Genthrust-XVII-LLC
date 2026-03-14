@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   RefreshCw, AlertCircle, BarChart3, Package, Search,
-  AlertTriangle, TrendingUp, Clock, PieChart as PieChartIcon
+  AlertTriangle, TrendingUp, Clock, PieChart as PieChartIcon,
+  FileText
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend,
@@ -12,6 +13,10 @@ import {
 import { StatCard } from '@/components/internal/StatCard'
 import { DataTable } from '@/components/internal/DataTable'
 import { ChartCard, SectionDivider } from '@/components/internal/ChartCard'
+import { PdfDropZone } from '@/components/internal/PdfDropZone'
+import { PdfReviewTable } from '@/components/internal/PdfReviewTable'
+import { InventoryMatchResults } from '@/components/internal/InventoryMatchResults'
+import type { ParsedPdfRow, ParsePdfResponse, BatchSearchResponse } from '@/types/pdf'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,6 +237,13 @@ export default function InventoryIntelligencePage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
   const [searchLoading, setSearchLoading] = useState(false)
 
+  // C Check PDF state
+  const [pdfRows, setPdfRows] = useState<ParsedPdfRow[] | null>(null)
+  const [pdfFileName, setPdfFileName] = useState<string | null>(null)
+  const [pdfPageCount, setPdfPageCount] = useState(0)
+  const [batchResults, setBatchResults] = useState<BatchSearchResponse | null>(null)
+  const [batchSearchLoading, setBatchSearchLoading] = useState(false)
+
   // -------------------------------------------------------------------------
   // Data fetching
   // -------------------------------------------------------------------------
@@ -267,6 +279,49 @@ export default function InventoryIntelligencePage() {
     } finally {
       setSearchLoading(false)
     }
+  }, [])
+
+  const handlePdfParsed = useCallback((response: ParsePdfResponse) => {
+    setPdfRows(response.rows)
+    setPdfFileName(response.fileName)
+    setPdfPageCount(response.pageCount)
+    setBatchResults(null)
+  }, [])
+
+  const handleBatchSearch = useCallback(async (selectedRows: ParsedPdfRow[]) => {
+    setBatchSearchLoading(true)
+    try {
+      const partNumbers = selectedRows.map(r => r.partNumber)
+      const includeAlts: Record<string, string[]> = {}
+      for (const row of selectedRows) {
+        if (row.altPartNumbers.length > 0) {
+          includeAlts[row.partNumber] = row.altPartNumbers
+        }
+      }
+
+      const res = await fetch('/api/internal/inventory-intelligence/batch-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partNumbers, includeAlts }),
+      })
+
+      if (res.ok) {
+        const data: BatchSearchResponse = await res.json()
+        setBatchResults(data)
+      }
+    } catch {
+      // Batch search failed silently
+    } finally {
+      setBatchSearchLoading(false)
+    }
+  }, [])
+
+  const resetCCheckState = useCallback(() => {
+    setPdfRows(null)
+    setPdfFileName(null)
+    setPdfPageCount(0)
+    setBatchResults(null)
+    setBatchSearchLoading(false)
   }, [])
 
   useEffect(() => { loadData() }, [])
@@ -531,12 +586,46 @@ export default function InventoryIntelligencePage() {
         </ChartCard>
       </FadeIn>
 
-      {/* ── Inventory Search ────────────────────────────────────────────── */}
+      {/* ── C Check Part Lookup ──────────────────────────────────────── */}
+      <FadeIn delay={560}>
+        <SectionDivider label="C Check Part Lookup" icon={FileText} />
+      </FadeIn>
+
       <FadeIn delay={600}>
+        <ChartCard
+          title="C Check Part Lookup"
+          icon={FileText}
+          iconColor="text-indigo-500"
+          subtitle="Upload a C Check pre-draw PDF to bulk-check part availability"
+        >
+          {batchSearchLoading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4" />
+              <p className="text-sm font-medium text-slate-600">Searching inventory...</p>
+              <p className="text-xs text-slate-400 mt-1">Checking local database and ERP AERO</p>
+            </div>
+          ) : batchResults ? (
+            <InventoryMatchResults results={batchResults} onReset={resetCCheckState} />
+          ) : pdfRows ? (
+            <PdfReviewTable
+              rows={pdfRows}
+              fileName={pdfFileName || ''}
+              pageCount={pdfPageCount}
+              onSearch={handleBatchSearch}
+              onReset={resetCCheckState}
+            />
+          ) : (
+            <PdfDropZone onParsed={handlePdfParsed} />
+          )}
+        </ChartCard>
+      </FadeIn>
+
+      {/* ── Inventory Search ────────────────────────────────────────────── */}
+      <FadeIn delay={680}>
         <SectionDivider label="Inventory Search" icon={Search} />
       </FadeIn>
 
-      <FadeIn delay={640}>
+      <FadeIn delay={720}>
         <ChartCard title="Inventory Search" icon={Search} iconColor="text-blue-500">
           {/* Search inputs */}
           <div className="flex gap-3 mb-4">

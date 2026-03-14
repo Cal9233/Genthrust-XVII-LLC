@@ -25,7 +25,7 @@ export async function GET() {
 
     return NextResponse.json({ statuses, metrics, notifications })
   } catch (error) {
-    console.error('Bots API error:', error)
+    console.error('Bots API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load bot data' }, { status: 500 })
   }
 }
