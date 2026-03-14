@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/auth'
 import { query } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth()
+    if (!session?.user || (session.user as any).role !== 'internal') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const params = request.nextUrl.searchParams
     const search = params.get('search') || ''
     const status = params.get('status') || ''
@@ -42,7 +48,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ data: rows, total, page, limit })
   } catch (error) {
-    console.error('Invoices API error:', error)
+    console.error('Invoices API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load invoices' }, { status: 500 })
   }
 }

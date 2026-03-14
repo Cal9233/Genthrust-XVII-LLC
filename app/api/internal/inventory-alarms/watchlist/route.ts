@@ -17,7 +17,7 @@ export async function GET() {
 
     return NextResponse.json({ watchlist: rows })
   } catch (error) {
-    console.error('Watchlist GET error:', error)
+    console.error('Watchlist GET error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load watchlist' }, { status: 500 })
   }
 }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       last_known_qty: currentQty,
     })
   } catch (error) {
-    console.error('Watchlist POST error:', error)
+    console.error('Watchlist POST error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to add to watchlist' }, { status: 500 })
   }
 }
@@ -99,7 +99,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, id })
   } catch (error) {
-    console.error('Watchlist DELETE error:', error)
+    console.error('Watchlist DELETE error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to remove from watchlist' }, { status: 500 })
   }
 }

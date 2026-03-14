@@ -17,7 +17,14 @@ export const authConfig = {
       const isOnRegister = nextUrl.pathname.startsWith('/register')
 
       if (isOnInternal) {
-        if (isLoggedIn) return true
+        if (isLoggedIn) {
+          const role = (auth as any)?.user?.role
+          if (role !== 'internal') {
+            // Client users must not access internal — bounce to their portal
+            return Response.redirect(new URL('/portal', nextUrl))
+          }
+          return true
+        }
         return false
       } else if (isOnPortal) {
         if (isLoggedIn) {
@@ -32,7 +39,10 @@ export const authConfig = {
         return Response.redirect(new URL('/login', nextUrl))
       } else if (isOnSignIn) {
         if (isLoggedIn) {
-          return Response.redirect(new URL('/internal', nextUrl))
+          const role = (auth as any)?.user?.role
+          // Only internal users should be redirected to /internal from /signin
+          // Client users who somehow land here go to /portal
+          return Response.redirect(new URL(role === 'internal' ? '/internal' : '/portal', nextUrl))
         }
         return true
       } else if (isOnLogin) {
@@ -70,13 +80,13 @@ export const authConfig = {
           token.id = user.id
           // Carry company info for portal users
           if ('companyId' in user) {
-            token.companyId = (user as any).companyId
-            token.companyName = (user as any).companyName
-            token.erpContactId = (user as any).erpContactId
+            token.companyId = (user as { companyId?: number | null }).companyId ?? null
+            token.companyName = (user as { companyName?: string | null }).companyName ?? null
+            token.erpContactId = (user as { erpContactId?: number | null }).erpContactId ?? null
           }
           // Carry MFA status
           if ('mfaEnabled' in user) {
-            token.mfaEnabled = (user as any).mfaEnabled
+            token.mfaEnabled = (user as { mfaEnabled?: boolean }).mfaEnabled
           }
         }
         if (account) {
@@ -93,12 +103,13 @@ export const authConfig = {
           if (token.id) {
             session.user.id = token.id as string
           }
-          session.user.role = (token.role as 'internal' | 'client') || 'internal'
+          // Never default to 'internal' — missing/unknown role is always 'client'
+          session.user.role = (token.role === 'internal' ? 'internal' : 'client')
           session.user.mfaEnabled = token.mfaEnabled ?? undefined
           // Expose company info for portal pages (always set so portal can show appropriate UI)
-          ;(session.user as any).companyId = token.companyId ?? null
-          ;(session.user as any).companyName = token.companyName ?? null
-          ;(session.user as any).erpContactId = token.erpContactId ?? null
+          session.user.companyId = token.companyId ?? null
+          session.user.companyName = token.companyName ?? null
+          session.user.erpContactId = token.erpContactId ?? null
         }
       } catch (error) {
         console.error('[auth] Session callback error:', error)

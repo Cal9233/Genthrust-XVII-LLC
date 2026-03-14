@@ -76,7 +76,7 @@ export async function POST() {
       alarms,
     })
   } catch (error) {
-    console.error('Alarm check error:', error)
+    console.error('Alarm check error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to run alarm check' }, { status: 500 })
   }
 }

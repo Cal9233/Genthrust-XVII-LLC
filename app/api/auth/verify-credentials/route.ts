@@ -4,6 +4,36 @@ import { verifyPassword } from '@/lib/password'
 import { createMfaChallengeToken } from '@/lib/mfa'
 export const dynamic = 'force-dynamic'
 
+// ---------------------------------------------------------------------------
+// In-memory rate limiter: 5 attempts per 60 seconds per IP
+// ---------------------------------------------------------------------------
+
+interface RateLimitEntry {
+  count: number
+  resetAt: number
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>()
+const RATE_LIMIT_MAX = 5
+const RATE_LIMIT_WINDOW_MS = 60_000
+
+function isRateLimited(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateLimitMap.get(ip)
+
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return false
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) {
+    return true
+  }
+
+  entry.count++
+  return false
+}
+
 interface PortalUserRow {
   id: number
   email: string
@@ -13,6 +43,18 @@ interface PortalUserRow {
 
 export async function POST(request: Request) {
   try {
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown'
+
+    if (isRateLimited(ip)) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
     const { email, password } = await request.json()
 
     if (!email || !password) {

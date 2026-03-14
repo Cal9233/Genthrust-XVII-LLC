@@ -20,7 +20,7 @@ export async function GET() {
 
     return NextResponse.json({ clients })
   } catch (error) {
-    console.error('Internal clients API error:', error)
+    console.error('Internal clients API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load clients' }, { status: 500 })
   }
 }
@@ -45,7 +45,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Internal clients PATCH error:', error)
+    console.error('Internal clients PATCH error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to update client' }, { status: 500 })
   }
 }
@@ -70,7 +70,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Internal clients DELETE error:', error)
+    console.error('Internal clients DELETE error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to reject client' }, { status: 500 })
   }
 }

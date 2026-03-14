@@ -12,6 +12,11 @@ export default async function InternalLayout({ children }: { children: React.Rea
     redirect('/signin')
   }
 
+  if ((session.user as any).role !== 'internal') {
+    // Client users must not access the internal dashboard
+    redirect('/portal')
+  }
+
   const initials = session.user.name
     ? session.user.name
         .split(' ')

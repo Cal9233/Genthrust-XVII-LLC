@@ -31,7 +31,7 @@ export async function GET(
 
     return NextResponse.json({ invoice: rows[0], lines })
   } catch (error) {
-    console.error('Internal invoice detail API error:', error)
+    console.error('Internal invoice detail API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load invoice' }, { status: 500 })
   }
 }

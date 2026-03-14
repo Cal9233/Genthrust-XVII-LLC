@@ -6,13 +6,18 @@
  * Token cached in module-level variable with 30-min TTL.
  */
 
-const ERP_BASE_URL = process.env.ERP_AERO_BASE_URL || process.env.ERP_BASE_URL || 'https://wapi.erp.aero'
-const ERP_CID = process.env.ERP_AERO_CID || process.env.ERP_CID || ''
-const ERP_EMAIL = process.env.ERP_AERO_EMAIL || process.env.ERP_EMAIL || ''
-const ERP_PASSWORD = process.env.ERP_AERO_PASSWORD || process.env.ERP_PASSWORD || ''
+function getConfig() {
+  return {
+    baseUrl: process.env.ERP_AERO_BASE_URL || process.env.ERP_BASE_URL || 'https://wapi.erp.aero',
+    cid: process.env.ERP_AERO_CID || process.env.ERP_CID || '',
+    email: process.env.ERP_AERO_EMAIL || process.env.ERP_EMAIL || '',
+    password: process.env.ERP_AERO_PASSWORD || process.env.ERP_PASSWORD || '',
+  }
+}
 
 let cachedToken: string | null = null
 let tokenExpiresAt: number = 0
+let authPromise: Promise<string> | null = null
 
 const TOKEN_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
@@ -20,12 +25,13 @@ const TOKEN_TTL_MS = 30 * 60 * 1000 // 30 minutes
  * Authenticate with ERP AERO and cache JWT token.
  */
 async function signin(): Promise<string> {
-  const url = `${ERP_BASE_URL.replace(/\/+$/, '')}/v1/auth/signin`
+  const config = getConfig()
+  const url = `${config.baseUrl.replace(/\/+$/, '')}/v1/auth/signin`
 
   const body = new URLSearchParams({
-    cid: ERP_CID,
-    email: ERP_EMAIL,
-    password: ERP_PASSWORD,
+    cid: config.cid,
+    email: config.email,
+    password: config.password,
     type: 'user',
     source: 'automation',
   })
@@ -57,7 +63,12 @@ async function signin(): Promise<string> {
  */
 async function getHeaders(): Promise<Record<string, string>> {
   if (!cachedToken || Date.now() >= tokenExpiresAt) {
-    await signin()
+    if (authPromise) {
+      await authPromise
+    } else {
+      authPromise = signin().finally(() => { authPromise = null })
+      await authPromise
+    }
   }
   return {
     Authorization: `Bearer ${cachedToken}`,
@@ -69,7 +80,7 @@ async function getHeaders(): Promise<Record<string, string>> {
  * Generic GET against ERP AERO API. Auto-retries signin on 401.
  */
 async function erpGet(endpoint: string, params?: Record<string, string>): Promise<any> {
-  const base = ERP_BASE_URL.replace(/\/+$/, '')
+  const base = getConfig().baseUrl.replace(/\/+$/, '')
   const url = new URL(`${base}/${endpoint.replace(/^\/+/, '')}`)
   if (params) {
     for (const [key, val] of Object.entries(params)) {

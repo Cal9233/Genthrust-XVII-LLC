@@ -12,42 +12,39 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json()
-  const { email, password, name, company } = body as {
+  const { email, password, contact_name, company_id } = body as {
     email?: string
     password?: string
-    name?: string
-    company?: string
+    contact_name?: string
+    company_id?: number
   }
 
-  if (!email || !password || !name) {
+  if (!email || !password || !contact_name) {
     return NextResponse.json(
-      { error: 'Missing required fields: email, password, name' },
+      { error: 'Missing required fields: email, password, contact_name' },
       { status: 400 }
-    )
-  }
-
-  // Check for duplicate email
-  const existing = await query<any[]>(
-    'SELECT id FROM clients WHERE email = ?',
-    [email]
-  )
-
-  if (existing.length > 0) {
-    return NextResponse.json(
-      { error: 'A client with this email already exists' },
-      { status: 409 }
     )
   }
 
   const passwordHash = await hashPassword(password)
 
-  const result = await query<any>(
-    'INSERT INTO clients (email, password_hash, name, company) VALUES (?, ?, ?, ?)',
-    [email, passwordHash, name, company || null]
-  )
+  try {
+    const result = await query<any>(
+      'INSERT INTO portal_users (email, password_hash, contact_name, company_id, is_active) VALUES (?, ?, ?, ?, 1)',
+      [email, passwordHash, contact_name, company_id || null]
+    )
 
-  return NextResponse.json(
-    { id: result.insertId, email },
-    { status: 201 }
-  )
+    return NextResponse.json(
+      { id: result.insertId, email },
+      { status: 201 }
+    )
+  } catch (error: any) {
+    if (error?.code === 'ER_DUP_ENTRY') {
+      return NextResponse.json(
+        { error: 'A client with this email already exists' },
+        { status: 409 }
+      )
+    }
+    throw error
+  }
 }

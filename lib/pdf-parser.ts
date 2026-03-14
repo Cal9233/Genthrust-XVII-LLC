@@ -1,9 +1,8 @@
+import { randomUUID } from 'crypto'
 import { ParsedPdfRow } from '@/types/pdf'
 
-let idCounter = 0
 function nextId(): string {
-  idCounter++
-  return `pdf-row-${Date.now()}-${idCounter}`
+  return `pdf-row-${randomUUID()}`
 }
 
 /**

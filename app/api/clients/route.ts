@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   const session = await auth()
 
   // Only internal team can create client accounts
-  if (!session?.user?.email?.toLowerCase().endsWith('@genthrust.net')) {
+  if (!session?.user || (session.user as any).role !== 'internal') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

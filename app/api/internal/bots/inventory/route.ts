@@ -41,7 +41,7 @@ export async function GET() {
       conditionBreakdown: conditionRows,
     })
   } catch (error) {
-    console.error('Bot inventory API error:', error)
+    console.error('Bot inventory API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load inventory data' }, { status: 500 })
   }
 }

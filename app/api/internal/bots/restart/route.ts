@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { execSync } from 'child_process'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
 import { BOT_REGISTRY } from '@/lib/bot-helpers'
 export const dynamic = 'force-dynamic'
+
+const execFileAsync = promisify(execFile)
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +33,7 @@ export async function POST(request: NextRequest) {
     const serviceName = BOT_REGISTRY[botName].serviceName
 
     try {
-      execSync(`nssm restart "${serviceName}"`, { encoding: 'utf-8', timeout: 30000 })
+      await execFileAsync('nssm', ['restart', serviceName], { timeout: 30000 })
       return NextResponse.json({
         action: 'restart_executed',
         bot: botName,
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
   } catch (error) {
-    console.error('Bot restart API error:', error)
+    console.error('Bot restart API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to restart bot' }, { status: 500 })
   }
 }

@@ -95,7 +95,7 @@ export async function GET() {
       recentInvoices: recentInvoices,
     })
   } catch (error) {
-    console.error('Dashboard API error:', error)
+    console.error('Dashboard API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
       { error: 'Failed to load dashboard data' },
       { status: 500 }

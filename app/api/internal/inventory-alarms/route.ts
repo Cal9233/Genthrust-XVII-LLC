@@ -67,7 +67,7 @@ export async function GET() {
       watchlist,
     })
   } catch (error) {
-    console.error('Inventory Alarms API error:', error)
+    console.error('Inventory Alarms API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load alarm data' }, { status: 500 })
   }
 }

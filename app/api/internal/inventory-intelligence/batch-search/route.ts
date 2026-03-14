@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error('Batch search error:', error)
+    console.error('Batch search error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
       { error: 'Batch search failed', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

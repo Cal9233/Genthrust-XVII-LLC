@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(result)
   } catch (error) {
-    console.error('ERP search proxy error:', error)
+    console.error('ERP search proxy error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to search ERP parts' }, { status: 500 })
   }
 }

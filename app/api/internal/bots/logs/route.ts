@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       logSizeBytes: sizeBytes,
     })
   } catch (error) {
-    console.error('Bot logs API error:', error)
+    console.error('Bot logs API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load bot logs' }, { status: 500 })
   }
 }

@@ -8,6 +8,7 @@ function getConfig() {
 }
 
 let cachedToken: string | null = null
+let authPromise: Promise<string> | null = null
 
 async function authenticate(): Promise<string> {
   const config = getConfig()
@@ -41,7 +42,9 @@ async function authenticate(): Promise<string> {
 
 async function getToken(): Promise<string> {
   if (cachedToken) return cachedToken
-  return authenticate()
+  if (authPromise) return authPromise
+  authPromise = authenticate().finally(() => { authPromise = null })
+  return authPromise
 }
 
 async function erpFetch(path: string, retried = false): Promise<any> {

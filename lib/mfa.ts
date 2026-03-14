@@ -131,7 +131,13 @@ export function verifyMfaChallengeToken(token: string): { userId: number; email:
       .update(`${header}.${body}`)
       .digest('base64url')
 
-    if (signature !== expectedSig) return null
+    if (
+      signature.length !== expectedSig.length ||
+      !crypto.timingSafeEqual(
+        Buffer.from(signature, 'base64url'),
+        Buffer.from(expectedSig, 'base64url')
+      )
+    ) return null
 
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString())
 

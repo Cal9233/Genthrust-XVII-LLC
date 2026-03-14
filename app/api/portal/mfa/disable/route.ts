@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     let codeValid = verifyTotpCode(secret, code)
 
     // Try as recovery code
+    let usedRecoveryCodeId: number | null = null
     if (!codeValid) {
       const recoveryCodes = await query<RecoveryCodeRow[]>(
         `SELECT id, code_hash FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL`,
@@ -56,6 +57,7 @@ export async function POST(request: Request) {
       for (const rc of recoveryCodes) {
         if (await bcrypt.compare(code.toUpperCase(), rc.code_hash)) {
           codeValid = true
+          usedRecoveryCodeId = rc.id
           break
         }
       }
@@ -63,6 +65,14 @@ export async function POST(request: Request) {
 
     if (!codeValid) {
       return NextResponse.json({ error: 'Invalid code' }, { status: 400 })
+    }
+
+    // Mark the used recovery code before bulk delete
+    if (usedRecoveryCodeId !== null) {
+      await query(
+        `UPDATE mfa_recovery_codes SET used_at = NOW() WHERE id = ?`,
+        [usedRecoveryCodeId]
+      )
     }
 
     // Delete factor and recovery codes, reset flag

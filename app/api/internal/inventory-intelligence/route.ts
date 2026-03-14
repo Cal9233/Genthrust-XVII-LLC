@@ -4,37 +4,36 @@ import { inventoryQuery } from '@/lib/inventory-db'
 import fs from 'fs'
 export const dynamic = 'force-dynamic'
 
-let dbConnected = true
-
-async function safeCount(sql: string): Promise<Record<string, any>> {
-  try {
-    const rows = await inventoryQuery<any[]>(sql)
-    return rows[0] || {}
-  } catch (error) {
-    dbConnected = false
-    console.error('[inventory-intelligence] safeCount failed:', sql, error)
-    return {}
-  }
-}
-
-async function safeQuery(sql: string, params?: any[]): Promise<any[]> {
-  try {
-    return await inventoryQuery<any[]>(sql, params)
-  } catch (error) {
-    dbConnected = false
-    console.error('[inventory-intelligence] safeQuery failed:', sql, error)
-    return []
-  }
-}
-
 export async function GET() {
+  // dbConnected is local to each request invocation to avoid shared mutable state across concurrent requests
+  let dbConnected = true
+
+  async function safeCount(sql: string): Promise<Record<string, any>> {
+    try {
+      const rows = await inventoryQuery<any[]>(sql)
+      return rows[0] || {}
+    } catch (error) {
+      dbConnected = false
+      console.error('[inventory-intelligence] safeCount failed:', sql, error)
+      return {}
+    }
+  }
+
+  async function safeQuery(sql: string, params?: any[]): Promise<any[]> {
+    try {
+      return await inventoryQuery<any[]>(sql, params)
+    } catch (error) {
+      dbConnected = false
+      console.error('[inventory-intelligence] safeQuery failed:', sql, error)
+      return []
+    }
+  }
+
   try {
     const session = await auth()
     if (!session?.user || (session.user as any).role !== 'internal') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-
-    dbConnected = true // reset per request
 
     const [
       pendingRow,
@@ -57,7 +56,7 @@ export async function GET() {
     // Check sync cache freshness
     let syncStatus = { lastSync: 'Unknown', isStale: true }
     try {
-      const stat = fs.statSync('C:\\GenthrustBot\\.sync_cache')
+      const stat = fs.statSync(process.env.SYNC_CACHE_PATH || 'C:\\GenthrustBot\\.sync_cache')
       const mtime = stat.mtime
       const hoursAgo = (Date.now() - mtime.getTime()) / (1000 * 60 * 60)
       syncStatus = {
@@ -82,7 +81,7 @@ export async function GET() {
       dbConnected,
     })
   } catch (error) {
-    console.error('Inventory Intelligence API error:', error)
+    console.error('Inventory Intelligence API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json({ error: 'Failed to load inventory intelligence data' }, { status: 500 })
   }
 }

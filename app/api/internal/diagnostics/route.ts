@@ -25,7 +25,8 @@ export async function GET() {
       const rows = await query<any[]>('SELECT 1 as test')
       results.mainDb = { connected: true, result: rows[0] }
     } catch (error) {
-      results.mainDb = { connected: false, error: error instanceof Error ? error.message : String(error) }
+      console.error('Main DB connection error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
+      results.mainDb = { connected: false }
     }
 
     // Test inventory DB (genthrust_inventory on port 3306)
@@ -33,7 +34,8 @@ export async function GET() {
       const rows = await inventoryQuery<any[]>('SELECT 1 as test')
       results.inventoryDb = { connected: true, result: rows[0] }
     } catch (error) {
-      results.inventoryDb = { connected: false, error: error instanceof Error ? error.message : String(error) }
+      console.error('Inventory DB connection error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
+      results.inventoryDb = { connected: false }
     }
 
     // Check inventory tables exist
@@ -41,12 +43,13 @@ export async function GET() {
       const tables = await inventoryQuery<any[]>('SHOW TABLES')
       results.inventoryTables = tables.map((t: any) => Object.values(t)[0])
     } catch (error) {
-      results.inventoryTables = { error: error instanceof Error ? error.message : String(error) }
+      console.error('Inventory tables error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
+      results.inventoryTables = { connected: false }
     }
 
     return NextResponse.json(results)
   } catch (error) {
-    console.error('Diagnostics API error:', error)
+    console.error('Diagnostics API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
       { error: 'Diagnostics failed', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

@@ -11,6 +11,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    if ((session.user as any).role !== 'client') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const companyName = (session.user as any).companyName
     if (!companyName) {
       return NextResponse.json({

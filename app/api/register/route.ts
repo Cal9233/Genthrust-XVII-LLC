@@ -1,9 +1,30 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
 export const dynamic = 'force-dynamic'
 
-export async function POST(request: Request) {
+// In-memory rate limiter: 3 registrations per hour per IP
+const registerAttempts = new Map<string, { count: number; resetAt: number }>()
+const REGISTER_LIMIT = 3
+const REGISTER_WINDOW_MS = 60 * 60 * 1000 // 1 hour
+
+function checkRegisterRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = registerAttempts.get(ip)
+  if (!entry || now >= entry.resetAt) {
+    registerAttempts.set(ip, { count: 1, resetAt: now + REGISTER_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= REGISTER_LIMIT) return false
+  entry.count++
+  return true
+}
+
+export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? request.headers.get('x-real-ip') ?? 'unknown'
+  if (!checkRegisterRateLimit(ip)) {
+    return NextResponse.json({ error: 'Too many registration attempts. Please try again later.' }, { status: 429 })
+  }
   try {
     const body = await request.json()
     const { email, password, contact_name, company_name } = body

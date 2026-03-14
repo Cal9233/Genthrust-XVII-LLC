@@ -2,7 +2,28 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
+// In-memory rate limiter: 30 requests per minute per IP
+const searchAttempts = new Map<string, { count: number; resetAt: number }>()
+const SEARCH_LIMIT = 30
+const SEARCH_WINDOW_MS = 60 * 1000 // 1 minute
+
+function checkSearchRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = searchAttempts.get(ip)
+  if (!entry || now >= entry.resetAt) {
+    searchAttempts.set(ip, { count: 1, resetAt: now + SEARCH_WINDOW_MS })
+    return true
+  }
+  if (entry.count >= SEARCH_LIMIT) return false
+  entry.count++
+  return true
+}
+
 export async function GET(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? request.headers.get('x-real-ip') ?? 'unknown'
+  if (!checkSearchRateLimit(ip)) {
+    return NextResponse.json({ error: 'Too many requests. Please slow down.' }, { status: 429 })
+  }
   try {
     const searchParams = request.nextUrl.searchParams
     const searchQuery = searchParams.get('q')

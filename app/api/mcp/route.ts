@@ -32,7 +32,10 @@ export const dynamic = 'force-dynamic'
 
 function checkAuth(request: Request): boolean {
   const apiKey = process.env.MCP_API_KEY;
-  if (!apiKey) return true; // No key configured = open (dev mode)
+  if (!apiKey) {
+    // No key configured — deny by default unless explicitly opted in
+    return process.env.MCP_ALLOW_UNAUTHENTICATED === 'true';
+  }
 
   const authHeader = request.headers.get("authorization");
   if (!authHeader) return false;

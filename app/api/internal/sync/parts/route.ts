@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
       mode: fullSync ? 'full' : 'incremental',
     })
   } catch (error) {
-    console.error('Parts sync API error:', error)
+    console.error('Parts sync API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
-      { error: 'Parts sync failed', details: String(error) },
+      { error: 'Parts sync failed', details: 'Internal sync error' },
       { status: 500 }
     )
   }

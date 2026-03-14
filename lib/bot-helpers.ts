@@ -1,4 +1,4 @@
-import { execSync } from 'child_process'
+import { execSync, execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 
@@ -94,9 +94,7 @@ export function getLogTail(botKey: string, lines: number = 100): { content: stri
 
   try {
     const stat = fs.statSync(logPath)
-    const content = fs.readFileSync(logPath, 'utf-8')
-    const allLines = content.split('\n')
-    const tail = allLines.slice(-lines).join('\n')
+    const tail = execFileSync('tail', ['-n', String(lines), logPath], { encoding: 'utf-8', timeout: 5000 })
     return { content: tail, sizeBytes: stat.size }
   } catch (err) {
     return { content: `Log file not found: ${logPath}`, sizeBytes: 0 }
