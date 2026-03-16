@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { RefreshCw, AlertCircle, UserCheck, UserX, Trash2, Users, UserPlus, ShieldCheck, Building2, Search, ChevronUp, ChevronDown } from 'lucide-react'
 import { StatCard } from '@/components/internal/StatCard'
-import { DataTable, StatusDot } from '@/components/internal/DataTable'
+import { DataTable } from '@/components/internal/DataTable'
+import { StatusBadge, StatusDot } from '@/components/internal/StatusBadge'
 import { ChartCard } from '@/components/internal/ChartCard'
 
 function formatDate(val: string | null) {
@@ -74,50 +75,50 @@ function CompanyDirectory({ clients }: { clients: Client[] }) {
   }
 
   function SortIcon({ col }: { col: CompanySortKey }) {
-    if (sortKey !== col) return <ChevronUp className="w-3 h-3 text-slate-300" />
+    if (sortKey !== col) return <ChevronUp className="w-3 h-3 text-[#484f58]" />
     return sortDir === 'asc'
-      ? <ChevronUp className="w-3 h-3 text-[#1B3A6B]" />
-      : <ChevronDown className="w-3 h-3 text-[#1B3A6B]" />
+      ? <ChevronUp className="w-3 h-3 text-[#58a6ff]" />
+      : <ChevronDown className="w-3 h-3 text-[#58a6ff]" />
   }
 
   return (
     <div>
       {/* Search bar */}
       <div className="relative mb-4 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58] pointer-events-none" />
         <input
           type="text"
           placeholder="Search companies…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#1B3A6B]/20 focus:border-[#1B3A6B]/50 placeholder:text-slate-400 text-slate-800"
+          className="w-full pl-9 pr-4 py-2 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] focus:outline-none focus:border-[#1f6feb] placeholder:text-[#484f58] text-[#f0f6fc] transition-colors"
         />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 text-slate-400 text-sm">
+        <div className="text-center py-12 text-[#484f58] text-sm">
           {search ? `No companies match "${search}"` : 'No companies found'}
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-slate-100">
+              <tr className="border-b border-white/[0.06]">
                 <th className="text-left pb-3 pr-4">
                   <button
                     onClick={() => toggleSort('company_name')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#8b949e] uppercase tracking-wider hover:text-[#f0f6fc] transition-colors"
                   >
                     Company <SortIcon col="company_name" />
                   </button>
                 </th>
                 <th className="text-left pb-3 pr-4">
-                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Contacts</span>
+                  <span className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Contacts</span>
                 </th>
                 <th className="text-left pb-3 pr-4">
                   <button
                     onClick={() => toggleSort('user_count')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#8b949e] uppercase tracking-wider hover:text-[#f0f6fc] transition-colors"
                   >
                     Portal Users <SortIcon col="user_count" />
                   </button>
@@ -125,26 +126,26 @@ function CompanyDirectory({ clients }: { clients: Client[] }) {
                 <th className="text-left pb-3">
                   <button
                     onClick={() => toggleSort('active_count')}
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-800 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#8b949e] uppercase tracking-wider hover:text-[#f0f6fc] transition-colors"
                   >
                     Status <SortIcon col="active_count" />
                   </button>
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-white/[0.04]">
               {filtered.map((co) => (
-                <tr key={co.company_name} className="group hover:bg-slate-50/70 transition-colors duration-100">
+                <tr key={co.company_name} className="group hover:bg-white/[0.03] transition-colors duration-100">
                   {/* Company name */}
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-2.5">
                       <div
                         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
-                        style={{ background: 'linear-gradient(135deg, #1B3A6B 0%, #5B8DB8 100%)' }}
+                        style={{ background: 'linear-gradient(135deg, #1e4a8d 0%, #1f6feb 100%)' }}
                       >
                         {co.company_name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-semibold text-slate-900">{co.company_name}</span>
+                      <span className="font-semibold text-[#f0f6fc]">{co.company_name}</span>
                     </div>
                   </td>
 
@@ -152,10 +153,10 @@ function CompanyDirectory({ clients }: { clients: Client[] }) {
                   <td className="py-3 pr-4">
                     <div className="flex flex-col gap-0.5">
                       {co.contacts.map((name) => (
-                        <span key={name} className="text-xs text-slate-500">{name}</span>
+                        <span key={name} className="text-xs text-[#8b949e]">{name}</span>
                       ))}
                       {co.user_count > co.contacts.length && (
-                        <span className="text-xs text-slate-400">+{co.user_count - co.contacts.length} more</span>
+                        <span className="text-xs text-[#484f58]">+{co.user_count - co.contacts.length} more</span>
                       )}
                     </div>
                   </td>
@@ -163,8 +164,8 @@ function CompanyDirectory({ clients }: { clients: Client[] }) {
                   {/* User count */}
                   <td className="py-3 pr-4">
                     <div className="flex items-center gap-1.5">
-                      <Users className="w-3.5 h-3.5 text-slate-400" />
-                      <span className="font-semibold text-slate-700">{co.user_count}</span>
+                      <Users className="w-3.5 h-3.5 text-[#484f58]" />
+                      <span className="font-semibold text-[#f0f6fc]">{co.user_count}</span>
                     </div>
                   </td>
 
@@ -172,19 +173,19 @@ function CompanyDirectory({ clients }: { clients: Client[] }) {
                   <td className="py-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       {co.active_count > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[#3fb950]/10 text-[#3fb950] border border-[#3fb950]/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#3fb950] inline-block" />
                           {co.active_count} active
                         </span>
                       )}
                       {co.pending_count > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-[#d29922]/10 text-[#d29922] border border-[#d29922]/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#d29922] inline-block" />
                           {co.pending_count} pending
                         </span>
                       )}
                       {co.active_count === 0 && co.pending_count === 0 && (
-                        <span className="text-xs text-slate-400">—</span>
+                        <span className="text-xs text-[#484f58]">—</span>
                       )}
                     </div>
                   </td>
@@ -195,7 +196,7 @@ function CompanyDirectory({ clients }: { clients: Client[] }) {
         </div>
       )}
 
-      <p className="mt-3 text-xs text-slate-400">
+      <p className="mt-3 text-xs text-[#484f58]">
         {filtered.length} {filtered.length === 1 ? 'company' : 'companies'}
         {search ? ` matching "${search}"` : ' in directory'}
       </p>
@@ -300,7 +301,7 @@ export default function ClientsManagementPage() {
       label: 'Contact Name',
       sortable: true,
       render: (row: Client) => (
-        <span className="font-semibold text-slate-900">{row.contact_name}</span>
+        <span className="font-semibold text-[#f0f6fc]">{row.contact_name}</span>
       ),
     },
     {
@@ -308,7 +309,7 @@ export default function ClientsManagementPage() {
       label: 'Email',
       sortable: true,
       render: (row: Client) => (
-        <span className="text-slate-600">{row.email}</span>
+        <span className="text-[#8b949e] text-xs">{row.email}</span>
       ),
     },
     {
@@ -316,7 +317,7 @@ export default function ClientsManagementPage() {
       label: 'Company',
       sortable: true,
       render: (row: Client) => (
-        <span className="text-slate-600">{row.company_name || '—'}</span>
+        <span className="text-[#8b949e]">{row.company_name || '—'}</span>
       ),
     },
     {
@@ -335,7 +336,7 @@ export default function ClientsManagementPage() {
       label: 'Registered',
       sortable: true,
       render: (row: Client) => (
-        <span className="text-slate-500 text-xs">{formatDate(row.created_at)}</span>
+        <span className="text-[#8b949e] text-xs">{formatDate(row.created_at)}</span>
       ),
     },
     {
@@ -347,10 +348,10 @@ export default function ClientsManagementPage() {
           <button
             onClick={(e) => { e.stopPropagation(); toggleActive(row.id, row.is_active) }}
             disabled={updating === row.id}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 disabled:opacity-50 ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 disabled:opacity-50 ${
               row.is_active
-                ? 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300'
-                : 'text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-300'
+                ? 'text-[#f85149] bg-[#f85149]/10 hover:bg-[#f85149]/20 border border-[#f85149]/20'
+                : 'text-[#3fb950] bg-[#3fb950]/10 hover:bg-[#3fb950]/20 border border-[#3fb950]/20'
             }`}
           >
             {updating === row.id ? (
@@ -366,7 +367,7 @@ export default function ClientsManagementPage() {
             <button
               onClick={(e) => { e.stopPropagation(); rejectUser(row.id) }}
               disabled={updating === row.id}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all duration-150 disabled:opacity-50 text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 hover:border-red-300"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-150 disabled:opacity-50 text-[#f85149] bg-[#f85149]/10 hover:bg-[#f85149]/20 border border-[#f85149]/20"
             >
               {updating === row.id ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
@@ -385,14 +386,14 @@ export default function ClientsManagementPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f85149]/10 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-[#f85149]" />
           </div>
-          <p className="text-red-700 font-semibold text-lg mb-1">Unable to load clients</p>
-          <p className="text-slate-500 text-sm mb-4">{error}</p>
+          <p className="text-[#f85149] font-semibold text-lg mb-1">Unable to load clients</p>
+          <p className="text-[#8b949e] text-sm mb-4">{error}</p>
           <button
             onClick={loadClients}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1f6feb] rounded-lg hover:bg-[#388bfd] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try again
@@ -403,24 +404,24 @@ export default function ClientsManagementPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ animation: 'fadeInUp 0.2s ease-out both' }}>
       {/* Header */}
       <div
-        className={`flex items-center justify-between transition-all duration-500 ${
+        className={`flex items-center justify-between transition-all duration-300 ${
           visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}
       >
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900">Client Management</h1>
-          <p className="text-slate-500 mt-1 text-sm">Manage portal user registrations and access.</p>
+          <h1 className="text-2xl font-bold text-[#f0f6fc]">Client Management</h1>
+          <p className="text-[#8b949e] mt-0.5 text-sm">Manage portal user registrations and access.</p>
         </div>
         <button
           onClick={loadClients}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 disabled:opacity-50 shadow-sm"
+          aria-label="Refresh clients"
+          className="p-2 rounded-lg text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.06] border border-white/[0.06] transition-all duration-150 disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
         </button>
       </div>
 
@@ -469,12 +470,12 @@ export default function ClientsManagementPage() {
 
       {/* Error banner */}
       {error && clients.length > 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
-          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-          <p className="text-sm font-medium text-red-800 flex-1">{error}</p>
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-[#f85149]/10 border border-[#f85149]/20">
+          <AlertCircle className="w-4 h-4 text-[#f85149] flex-shrink-0" />
+          <p className="text-sm font-medium text-[#f85149] flex-1">{error}</p>
           <button
             onClick={() => setError(null)}
-            className="text-xs text-red-600 hover:text-red-800 font-medium"
+            className="text-xs text-[#f85149] hover:text-[#ff7b72] font-medium"
           >
             Dismiss
           </button>
@@ -494,23 +495,23 @@ export default function ClientsManagementPage() {
           subtitle={`${filtered.length} ${filter === 'all' ? 'total' : filter} client${filtered.length !== 1 ? 's' : ''}`}
           loading={loading}
           action={
-            <div className="inline-flex items-center bg-slate-100 rounded-lg p-0.5">
+            <div className="inline-flex items-center bg-white/[0.05] rounded-lg p-0.5 border border-white/[0.06]">
               {filterTabs.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setFilter(tab.key)}
-                  className={`relative px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all duration-200 ${
+                  className={`relative px-3.5 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
                     filter === tab.key
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
+                      ? 'bg-[#1f6feb] text-white shadow-sm'
+                      : 'text-[#8b949e] hover:text-[#f0f6fc]'
                   }`}
                 >
                   {tab.label}
                   <span
                     className={`ml-1.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold ${
                       filter === tab.key
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-slate-200/80 text-slate-500'
+                        ? 'bg-white/20 text-white'
+                        : 'bg-white/[0.06] text-[#484f58]'
                     }`}
                   >
                     {tab.count}

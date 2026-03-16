@@ -76,10 +76,31 @@ module.exports = {
           800: '#991b1b',
           900: '#7f1d1d',
         },
+        // Internal dashboard dark theme tokens
+        'int': {
+          // Background layers
+          'void':     'var(--bg-void)',
+          'surface':  'var(--bg-surface)',
+          'elevated': 'var(--bg-elevated)',
+          'overlay':  'var(--bg-overlay)',
+          // Text
+          'text-primary':   'var(--text-primary)',
+          'text-secondary': 'var(--text-secondary)',
+          'text-tertiary':  'var(--text-tertiary)',
+          'text-link':      'var(--text-link)',
+          // Status
+          'ok':   'var(--status-ok)',
+          'warn': 'var(--status-warn)',
+          'err':  'var(--status-err)',
+          'info': 'var(--status-info)',
+          // Accent
+          'accent':     'var(--accent-blue)',
+          'accent-dim': 'var(--accent-blue-dim)',
+        },
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
-        mono: ['var(--font-jetbrains-mono)', 'JetBrains Mono', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+        sans: ['var(--font-sans)', 'IBM Plex Sans', 'system-ui', 'sans-serif'],
+        mono: ['var(--font-mono)', 'IBM Plex Mono', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       boxShadow: {
         'card': '0 1px 3px rgba(0, 0, 0, 0.1)',

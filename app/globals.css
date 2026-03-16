@@ -2,6 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Internal Dashboard Keyframes ─── */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes botGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.4); }
+  50%       { box-shadow: 0 0 0 4px rgba(63, 185, 80, 0); }
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.4); }
+  50%       { opacity: 0.7; transform: scale(0.9); box-shadow: 0 0 0 4px rgba(63, 185, 80, 0); }
+}
+
+/* ─── Internal Dashboard Dark Theme CSS Variables ─── */
+:root {
+  /* Background layers */
+  --bg-void: #0b0f14;
+  --bg-surface: #111827;
+  --bg-elevated: #1a2233;
+  --bg-overlay: #1f2d42;
+
+  /* Content */
+  --text-primary: #f0f6fc;
+  --text-secondary: #8b949e;
+  --text-tertiary: #484f58;
+  --text-link: #58a6ff;
+
+  /* Status */
+  --status-ok: #3fb950;
+  --status-warn: #d29922;
+  --status-err: #f85149;
+  --status-info: #58a6ff;
+
+  /* Accent */
+  --accent-blue: #1f6feb;
+  --accent-blue-dim: #0d3060;
+
+  /* Brand */
+  --brand-navy: #1e4a8d;
+  --brand-burgundy: #9c2a3e;
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;
@@ -113,9 +174,14 @@
     text-wrap: balance;
   }
 
-  /* Skeleton loading animation */
+  /* Skeleton loading animation — dark by default for internal dashboard */
   .skeleton {
-    @apply animate-pulse bg-slate-200 rounded;
+    @apply animate-pulse bg-[#1a2233] rounded;
+  }
+
+  /* Dark skeleton for internal dashboard */
+  .skeleton-dark {
+    @apply animate-pulse bg-[#1a2233] rounded;
   }
 
   /* 2% Noise Grain for cinematic texture */
@@ -141,4 +207,69 @@
       transparent 70%
     );
   }
+}
+
+/* ─── Internal Dashboard Dark Theme ─── */
+/* Scoped to .internal-theme to avoid polluting public/portal pages */
+
+.internal-theme {
+  background-color: var(--bg-void);
+  color: var(--text-primary);
+}
+
+/* Dark text selection */
+.internal-theme ::selection {
+  background-color: rgba(31, 111, 235, 0.25);
+  color: var(--text-primary);
+}
+
+/* Dark scrollbar — Webkit */
+.internal-theme ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.internal-theme ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.internal-theme ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 3px;
+}
+
+.internal-theme ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Dark scrollbar — Firefox */
+.internal-theme * {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.10) transparent;
+}
+
+/* Dark focus ring for internal dashboard */
+.internal-theme :focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-blue), 0 0 0 4px rgba(31, 111, 235, 0.20);
+}
+
+/* ─── Bot status glow — RUNNING indicator ─── */
+.bot-running-dot {
+  animation: botGlow 2.5s ease-in-out infinite;
+}
+
+/* ─── Live status pulse dot ─── */
+.status-dot-live {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+/* ─── Page content fade-in utility ─── */
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+/* ─── fadeInUp utility ─── */
+.animate-fadeInUp {
+  animation: fadeInUp 0.3s ease-out both;
 }

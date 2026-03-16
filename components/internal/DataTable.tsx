@@ -3,6 +3,10 @@
 import { useState, useMemo } from 'react'
 import { ChevronUp, ChevronDown, ChevronsUpDown, Inbox } from 'lucide-react'
 
+// Re-export StatusBadge and StatusDot from the canonical file so callers can
+// import either from DataTable (backwards-compat) or StatusBadge directly.
+export { StatusBadge, StatusDot } from './StatusBadge'
+
 interface Column<T> {
   key: string
   label: string
@@ -58,17 +62,19 @@ export function DataTable<T extends Record<string, any>>({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      <div className="overflow-hidden">
         <div className="animate-pulse">
-          <div className="bg-slate-50 px-4 py-3 flex gap-8">
+          {/* Skeleton header */}
+          <div className="bg-[#161b22] px-4 py-2.5 flex gap-8 border-b border-white/[0.06]">
             {columns.map((_, i) => (
-              <div key={i} className="h-4 bg-slate-200 rounded flex-1" />
+              <div key={i} className="h-3 bg-white/[0.06] rounded flex-1" />
             ))}
           </div>
+          {/* Skeleton rows */}
           {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="px-4 py-3 flex gap-8 border-t border-slate-100">
+            <div key={i} className="px-4 py-3 flex gap-8 border-b border-white/[0.04]">
               {columns.map((_, j) => (
-                <div key={j} className="h-4 bg-slate-100 rounded flex-1" />
+                <div key={j} className="h-4 bg-white/[0.04] rounded flex-1" />
               ))}
             </div>
           ))}
@@ -81,13 +87,15 @@ export function DataTable<T extends Record<string, any>>({
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-slate-50/80 text-left">
+          <tr className="bg-[#161b22] text-left border-b border-white/[0.06]">
             {columns.map(col => (
               <th
                 key={col.key}
-                className={`px-4 ${compact ? 'py-2' : 'py-2.5'} font-semibold text-slate-600 ${
-                  col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''
-                } ${col.sortable ? 'cursor-pointer select-none hover:text-slate-900 transition-colors' : ''} ${col.className || ''}`}
+                className={`px-4 ${compact ? 'py-2' : 'py-2.5'}
+                  text-[10px] font-medium text-[#8b949e] uppercase tracking-wider
+                  ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''}
+                  ${col.sortable ? 'cursor-pointer select-none hover:text-[#f0f6fc] transition-colors' : ''}
+                  ${col.className || ''}`}
                 onClick={col.sortable ? () => toggleSort(col.key) : undefined}
               >
                 <span className="inline-flex items-center gap-1">
@@ -97,28 +105,28 @@ export function DataTable<T extends Record<string, any>>({
                       ? sortDir === 'asc'
                         ? <ChevronUp className="w-3 h-3" />
                         : <ChevronDown className="w-3 h-3" />
-                      : <ChevronsUpDown className="w-3 h-3 text-slate-300" />
+                      : <ChevronsUpDown className="w-3 h-3 text-[#484f58]" />
                   )}
                 </span>
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-white/[0.04]">
           {sorted.map((row, i) => (
             <tr
               key={i}
-              className={`hover:bg-slate-50/50 transition-colors ${
-                onRowClick ? 'cursor-pointer' : ''
-              }`}
+              className={`hover:bg-white/[0.03] transition-colors duration-100
+                ${onRowClick ? 'cursor-pointer' : ''}`}
               onClick={onRowClick ? () => onRowClick(row) : undefined}
             >
               {columns.map(col => (
                 <td
                   key={col.key}
-                  className={`px-4 ${compact ? 'py-2' : 'py-3'} ${
-                    col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''
-                  } ${col.className || ''}`}
+                  className={`px-4 ${compact ? 'py-2' : 'py-3'}
+                    text-sm text-[#f0f6fc]
+                    ${col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : ''}
+                    ${col.className || ''}`}
                 >
                   {col.render ? col.render(row) : row[col.key] ?? '—'}
                 </td>
@@ -127,10 +135,10 @@ export function DataTable<T extends Record<string, any>>({
           ))}
           {sorted.length === 0 && (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center">
+              <td colSpan={columns.length} className="px-4 py-16 text-center">
                 <div className="flex flex-col items-center gap-2">
-                  {emptyIcon || <Inbox className="w-8 h-8 text-slate-300" />}
-                  <p className="text-sm text-slate-400">{emptyMessage}</p>
+                  {emptyIcon || <Inbox className="w-10 h-10 text-[#484f58]" />}
+                  <p className="text-sm text-[#484f58]">{emptyMessage}</p>
                 </div>
               </td>
             </tr>
@@ -138,75 +146,5 @@ export function DataTable<T extends Record<string, any>>({
         </tbody>
       </table>
     </div>
-  )
-}
-
-export function StatusDot({ status, label }: { status: string; label?: string }) {
-  const colorMap: Record<string, string> = {
-    'Open': 'bg-blue-500',
-    'Active': 'bg-blue-500',
-    'In Progress': 'bg-yellow-500',
-    'Pending': 'bg-yellow-500',
-    'Shipped': 'bg-purple-500',
-    'Completed': 'bg-green-500',
-    'Closed': 'bg-slate-400',
-    'Paid': 'bg-green-500',
-    'Overdue': 'bg-red-500',
-    'Cancelled': 'bg-red-400',
-    'Approved': 'bg-green-500',
-    'Delivered': 'bg-purple-500',
-    'Received': 'bg-teal-500',
-    'PAST_DUE': 'bg-red-500',
-    'DUE_SOON': 'bg-yellow-500',
-    'UPCOMING': 'bg-blue-500',
-    'RUNNING': 'bg-green-500',
-    'STOPPED': 'bg-red-500',
-    'UNKNOWN': 'bg-yellow-500',
-  }
-  const dot = colorMap[status] || 'bg-slate-400'
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <span className={`w-2 h-2 rounded-full ${dot}`} />
-      <span className="text-xs font-medium text-slate-700">{label || status.replace(/_/g, ' ')}</span>
-    </span>
-  )
-}
-
-export function StatusBadge({ status }: { status: string | null }) {
-  if (!status) return <span className="text-xs text-slate-400">—</span>
-
-  const colors: Record<string, string> = {
-    'Open': 'bg-blue-50 text-blue-700 border-blue-200',
-    'Active': 'bg-blue-50 text-blue-700 border-blue-200',
-    'In Progress': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    'Pending': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    'Shipped': 'bg-purple-50 text-purple-700 border-purple-200',
-    'Completed': 'bg-green-50 text-green-700 border-green-200',
-    'Closed': 'bg-slate-50 text-slate-600 border-slate-200',
-    'Paid': 'bg-green-50 text-green-700 border-green-200',
-    'Overdue': 'bg-red-50 text-red-700 border-red-200',
-    'Cancelled': 'bg-red-50 text-red-600 border-red-200',
-    'Approved': 'bg-green-50 text-green-700 border-green-200',
-    'Delivered': 'bg-purple-50 text-purple-700 border-purple-200',
-    'Received': 'bg-teal-50 text-teal-700 border-teal-200',
-    'PAST_DUE': 'bg-red-50 text-red-700 border-red-200',
-    'DUE_SOON': 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    'UPCOMING': 'bg-blue-50 text-blue-700 border-blue-200',
-  }
-
-  const colorClass = colors[status] || 'bg-slate-50 text-slate-600 border-slate-200'
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${
-        colorClass.includes('red') ? 'bg-red-500' :
-        colorClass.includes('yellow') ? 'bg-yellow-500' :
-        colorClass.includes('green') ? 'bg-green-500' :
-        colorClass.includes('blue') ? 'bg-blue-500' :
-        colorClass.includes('purple') ? 'bg-purple-500' :
-        colorClass.includes('teal') ? 'bg-teal-500' :
-        'bg-slate-400'
-      }`} />
-      {status.replace(/_/g, ' ')}
-    </span>
   )
 }

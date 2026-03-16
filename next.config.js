@@ -2,6 +2,8 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['mysql2'],
+    // OPT-023: tree-shake large icon/chart libraries at compile time
+    optimizePackageImports: ['recharts', 'lucide-react'],
   },
   images: {
     remotePatterns: [],
@@ -19,6 +21,32 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
+          // OPT-016: Content-Security-Policy
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              // Next.js requires unsafe-eval for HMR in dev; unsafe-inline for inline scripts
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              // Tailwind injects inline styles
+              "style-src 'self' 'unsafe-inline'",
+              // QR codes may be data: URIs; blob: for canvas-generated images
+              "img-src 'self' data: blob:",
+              // Google Fonts (if used)
+              "font-src 'self' https://fonts.gstatic.com",
+              // ERP API and Microsoft Graph API calls
+              "connect-src 'self' https://wapi.erp.aero https://graph.microsoft.com",
+              // Prevent this page from being embedded in iframes
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+            ].join('; '),
+          },
+          // OPT-017: HTTP Strict Transport Security
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
+          },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

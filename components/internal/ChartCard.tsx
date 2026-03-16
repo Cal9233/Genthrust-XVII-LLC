@@ -11,35 +11,51 @@ interface ChartCardProps {
   action?: React.ReactNode
   loading?: boolean
   className?: string
+  /** Add p-5 padding to the body — use when content is NOT a table */
+  padded?: boolean
 }
 
-export function ChartCard({ title, icon: Icon, iconColor, subtitle, children, action, loading, className }: ChartCardProps) {
+export function ChartCard({
+  title,
+  icon: Icon,
+  subtitle,
+  children,
+  action,
+  loading,
+  className,
+  padded,
+}: ChartCardProps) {
   if (loading) {
     return (
-      <div className={`bg-white rounded-xl border border-slate-200 overflow-hidden ${className || ''}`}>
-        <div className="px-5 py-4 border-b border-slate-100 animate-pulse">
-          <div className="h-5 w-40 bg-slate-200 rounded" />
+      <div className={`bg-[#161b22] border border-white/[0.06] rounded-lg overflow-hidden ${className || ''}`}>
+        <div className="px-5 py-3.5 border-b border-white/[0.06] animate-pulse">
+          <div className="h-4 w-36 bg-white/[0.06] rounded" />
         </div>
         <div className="p-5 animate-pulse">
-          <div className="h-48 bg-slate-100 rounded-lg" />
+          <div className="h-48 bg-white/[0.04] rounded-lg" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className={`bg-white rounded-xl border border-slate-200 overflow-hidden ${className || ''}`}>
-      <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {Icon && <Icon className={`w-4 h-4 ${iconColor || 'text-slate-500'}`} />}
-          <div>
-            <h2 className="font-bold text-slate-900">{title}</h2>
-            {subtitle && <p className="text-xs text-slate-400 mt-0.5">{subtitle}</p>}
+    <div className={`bg-[#161b22] border border-white/[0.06] rounded-lg overflow-hidden ${className || ''}`}>
+      {/* Header */}
+      <div className="px-5 py-3.5 border-b border-white/[0.06] flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          {Icon && <Icon className="w-4 h-4 text-[#8b949e] flex-shrink-0" />}
+          <div className="min-w-0">
+            <h2 className="text-sm font-medium text-[#f0f6fc] truncate">{title}</h2>
+            {subtitle && (
+              <p className="text-xs text-[#8b949e] mt-0.5">{subtitle}</p>
+            )}
           </div>
         </div>
-        {action}
+        {action && <div className="flex-shrink-0 ml-3">{action}</div>}
       </div>
-      <div className="p-5">
+
+      {/* Body */}
+      <div className={padded ? 'p-5' : undefined}>
         {children}
       </div>
     </div>
@@ -48,10 +64,12 @@ export function ChartCard({ title, icon: Icon, iconColor, subtitle, children, ac
 
 export function SectionDivider({ label, icon: Icon }: { label: string; icon?: LucideIcon }) {
   return (
-    <div className="flex items-center gap-3 pt-2">
-      {Icon && <Icon className="w-4 h-4 text-slate-400" />}
-      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{label}</span>
-      <div className="flex-1 h-px bg-slate-200" />
+    <div className="flex items-center gap-3 py-1">
+      {Icon && <Icon className="w-3.5 h-3.5 text-[#484f58]" />}
+      <span className="text-[10px] font-semibold text-[#484f58] uppercase tracking-wider">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-white/[0.05]" />
     </div>
   )
 }

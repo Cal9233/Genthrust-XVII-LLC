@@ -1,62 +1,16 @@
-function getConfig() {
-  return {
-    baseUrl: process.env.ERP_AERO_BASE_URL || 'https://wapi.erp.aero',
-    cid: process.env.ERP_AERO_CID || '',
-    email: process.env.ERP_AERO_EMAIL || '',
-    password: process.env.ERP_AERO_PASSWORD || '',
-  }
-}
-
-let cachedToken: string | null = null
-let authPromise: Promise<string> | null = null
-
-async function authenticate(): Promise<string> {
-  const config = getConfig()
-  const params = new URLSearchParams({
-    cid: config.cid,
-    email: config.email,
-    password: config.password,
-    type: 'user',
-    source: 'genthrust-website',
-  })
-
-  const res = await fetch(`${config.baseUrl}/v1/auth/signin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  })
-
-  if (!res.ok) {
-    throw new Error(`ERP AERO auth failed: ${res.status} ${res.statusText}`)
-  }
-
-  const json = await res.json()
-
-  if (!json.data?.status || !json.data?.token) {
-    throw new Error(`ERP AERO auth failed: ${json.data?.message || 'Unknown error'}`)
-  }
-
-  cachedToken = json.data.token as string
-  return cachedToken!
-}
-
-async function getToken(): Promise<string> {
-  if (cachedToken) return cachedToken
-  if (authPromise) return authPromise
-  authPromise = authenticate().finally(() => { authPromise = null })
-  return authPromise
-}
+// Use consolidated token manager from erp-client.ts to prevent dual-token race conditions
+import { getConfig, getHeaders, clearErpTokenCache } from './erp-client'
 
 async function erpFetch(path: string, retried = false): Promise<any> {
-  const token = await getToken()
-
+  const headers = await getHeaders()
   const { baseUrl } = getConfig()
-  const res = await fetch(`${baseUrl}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
+
+  const res = await fetch(`${baseUrl.replace(/\/+$/, '')}${path}`, {
+    headers,
   })
 
   if (res.status === 401 && !retried) {
-    cachedToken = null
+    clearErpTokenCache()
     return erpFetch(path, true)
   }
 
@@ -112,5 +66,5 @@ export async function getPartDetails(productId: number): Promise<any> {
 }
 
 export function clearTokenCache() {
-  cachedToken = null
+  clearErpTokenCache()
 }

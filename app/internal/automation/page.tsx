@@ -77,17 +77,17 @@ function PaymentTimelineBar({ order }: { order: Net30Order }) {
 
   const barColor =
     order.status_flag === 'PAST_DUE'
-      ? 'bg-red-500'
+      ? 'bg-[#f85149]'
       : order.status_flag === 'DUE_SOON'
-        ? 'bg-yellow-500'
-        : 'bg-blue-500'
+        ? 'bg-[#d29922]'
+        : 'bg-[#1f6feb]'
 
   const bgTrack =
     order.status_flag === 'PAST_DUE'
-      ? 'bg-red-100'
+      ? 'bg-[#f85149]/20'
       : order.status_flag === 'DUE_SOON'
-        ? 'bg-yellow-100'
-        : 'bg-blue-100'
+        ? 'bg-[#d29922]/20'
+        : 'bg-[#1f6feb]/20'
 
   return (
     <div className="flex items-center gap-2 min-w-[140px]">
@@ -98,16 +98,16 @@ function PaymentTimelineBar({ order }: { order: Net30Order }) {
         />
         {overflow > 0 && (
           <div
-            className="absolute top-0 h-full bg-red-600/60 rounded-r-full"
+            className="absolute top-0 h-full bg-[#f85149]/60 rounded-r-full"
             style={{ left: '100%', width: `${overflow}%`, marginLeft: '-1px' }}
           />
         )}
       </div>
-      <span className="text-[10px] font-mono text-slate-400 w-8 text-right shrink-0">
+      <span className="text-[10px] font-mono text-[#484f58] w-8 text-right shrink-0">
         {order.days_overdue !== undefined
-          ? <span className="text-red-600">+{order.days_overdue}</span>
+          ? <span className="text-[#f85149]">+{order.days_overdue}</span>
           : order.days_until_due !== undefined
-            ? <span className={order.days_until_due <= 7 ? 'text-yellow-600' : 'text-slate-500'}>{order.days_until_due}d</span>
+            ? <span className={order.days_until_due <= 7 ? 'text-[#d29922]' : 'text-[#484f58]'}>{order.days_until_due}d</span>
             : '\u2014'}
       </span>
     </div>
@@ -123,15 +123,15 @@ function ProgressSummaryBar({ pastDue, dueSoon, upcoming }: { pastDue: number; d
   if (total === 0) return null
 
   const segments = [
-    { count: pastDue, color: 'bg-red-500', label: 'Past Due', textColor: 'text-red-700', dotColor: 'bg-red-500' },
-    { count: dueSoon, color: 'bg-yellow-400', label: 'Due Soon', textColor: 'text-yellow-700', dotColor: 'bg-yellow-500' },
-    { count: upcoming, color: 'bg-blue-500', label: 'Upcoming', textColor: 'text-blue-700', dotColor: 'bg-blue-500' },
+    { count: pastDue, color: 'bg-[#f85149]', label: 'Past Due', textColor: 'text-[#f85149]', dotColor: 'bg-[#f85149]' },
+    { count: dueSoon, color: 'bg-[#d29922]', label: 'Due Soon', textColor: 'text-[#d29922]', dotColor: 'bg-[#d29922]' },
+    { count: upcoming, color: 'bg-[#1f6feb]', label: 'Upcoming', textColor: 'text-[#58a6ff]', dotColor: 'bg-[#1f6feb]' },
   ]
 
   return (
     <div className="space-y-2">
       {/* Bar */}
-      <div className="h-3 rounded-full bg-slate-100 overflow-hidden flex">
+      <div className="h-3 rounded-full bg-white/[0.06] overflow-hidden flex">
         {segments.map((seg, i) =>
           seg.count > 0 ? (
             <div
@@ -150,7 +150,7 @@ function ProgressSummaryBar({ pastDue, dueSoon, upcoming }: { pastDue: number; d
           <span key={i} className={`inline-flex items-center gap-1.5 ${seg.textColor}`}>
             <span className={`w-2 h-2 rounded-full ${seg.dotColor}`} />
             <span className="font-semibold">{seg.count}</span>
-            <span className="text-slate-500">{seg.label}</span>
+            <span className="text-[#8b949e]">{seg.label}</span>
           </span>
         ))}
       </div>
@@ -178,7 +178,7 @@ function JsonHighlighted({ data }: { data: any }) {
         <span key={idx}>
           {indent}
           <span className="text-purple-400">&quot;{key}&quot;</span>
-          <span className="text-slate-500">{colon}</span>
+          <span className="text-[#484f58]">{colon}</span>
           {renderValue(rest)}
           {'\n'}
         </span>
@@ -192,25 +192,25 @@ function JsonHighlighted({ data }: { data: any }) {
     const strMatch = fragment.match(/^(\s*)"([^"]*)"(.*)$/)
     if (strMatch) {
       const [, ws, val, trail] = strMatch
-      return <>{ws}<span className="text-green-400">&quot;{val}&quot;</span><span className="text-slate-500">{trail}</span></>
+      return <>{ws}<span className="text-green-400">&quot;{val}&quot;</span><span className="text-[#484f58]">{trail}</span></>
     }
     // number value
     const numMatch = fragment.match(/^(\s*)(-?\d+\.?\d*)(,?)(.*)$/)
     if (numMatch) {
       const [, ws, num, comma, rest] = numMatch
-      return <>{ws}<span className="text-amber-400">{num}</span><span className="text-slate-500">{comma}</span>{rest}</>
+      return <>{ws}<span className="text-amber-400">{num}</span><span className="text-[#484f58]">{comma}</span>{rest}</>
     }
     // boolean / null
     const boolMatch = fragment.match(/^(\s*)(true|false|null)(,?)(.*)$/)
     if (boolMatch) {
       const [, ws, val, comma, rest] = boolMatch
-      return <>{ws}<span className="text-cyan-400">{val}</span><span className="text-slate-500">{comma}</span>{rest}</>
+      return <>{ws}<span className="text-cyan-400">{val}</span><span className="text-[#484f58]">{comma}</span>{rest}</>
     }
-    return <span className="text-slate-400">{fragment}</span>
+    return <span className="text-[#8b949e]">{fragment}</span>
   }
 
   return (
-    <div className="bg-slate-900 rounded-lg p-4 max-h-[400px] overflow-y-auto scrollbar-thin">
+    <div className="bg-[#0b0f14] rounded-lg p-4 max-h-[400px] overflow-y-auto scrollbar-thin">
       <pre className="text-xs font-mono leading-relaxed">
         {lines.map((line, i) => renderLine(line, i))}
       </pre>
@@ -226,12 +226,12 @@ function StatCardSkeletonRow({ count }: { count: number }) {
   return (
     <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}>
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-xl border border-slate-200/60 p-4 animate-pulse">
+        <div key={i} className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4 animate-pulse">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-slate-200" />
+            <div className="w-10 h-10 rounded-lg bg-white/[0.06]" />
             <div className="flex-1">
-              <div className="h-3 w-16 bg-slate-200 rounded mb-2" />
-              <div className="h-6 w-20 bg-slate-200 rounded" />
+              <div className="h-3 w-16 bg-white/[0.06] rounded mb-2" />
+              <div className="h-6 w-20 bg-white/[0.06] rounded" />
             </div>
           </div>
         </div>
@@ -400,40 +400,40 @@ export default function AutomationPage() {
   // -- Column definitions --------------------------------------------------
 
   const net30Columns = useMemo(() => [
-    { key: 'ro_number', label: 'RO #', sortable: true, render: (r: Net30Order) => <span className="font-semibold text-slate-900">{r.ro_number}</span> },
-    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: Net30Order) => <span className="text-slate-600 truncate block max-w-[180px]">{r.vendor}</span> },
-    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: Net30Order) => <span className="font-medium">{formatCurrency(r.total)}</span> },
+    { key: 'ro_number', label: 'RO #', sortable: true, render: (r: Net30Order) => <span className="font-semibold text-[#f0f6fc]">{r.ro_number}</span> },
+    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: Net30Order) => <span className="text-[#8b949e] truncate block max-w-[180px]">{r.vendor}</span> },
+    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: Net30Order) => <span className="font-medium text-[#f0f6fc]">{formatCurrency(r.total)}</span> },
     { key: 'payment_terms', label: 'Terms', sortable: true },
-    { key: 'received_date', label: 'Received', sortable: true, render: (r: Net30Order) => formatDate(r.received_date) },
-    { key: 'payment_due_date', label: 'Due Date', sortable: true, render: (r: Net30Order) => formatDate(r.payment_due_date) },
+    { key: 'received_date', label: 'Received', sortable: true, render: (r: Net30Order) => <span className="text-[#8b949e]">{formatDate(r.received_date)}</span> },
+    { key: 'payment_due_date', label: 'Due Date', sortable: true, render: (r: Net30Order) => <span className="text-[#8b949e]">{formatDate(r.payment_due_date)}</span> },
     { key: 'status_flag', label: 'Status', sortable: true, render: (r: Net30Order) => <StatusBadge status={r.status_flag} /> },
     { key: 'timeline', label: 'Timeline', render: (r: Net30Order) => <PaymentTimelineBar order={r} /> },
   ], [])
 
   const followupColumns = useMemo(() => [
-    { key: 'ro_number', label: 'RO #', sortable: true, render: (r: FollowupRO) => <span className="font-semibold text-slate-900">{r.ro_number}</span> },
-    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: FollowupRO) => <span className="text-slate-600 truncate block max-w-[200px]">{r.vendor}</span> },
+    { key: 'ro_number', label: 'RO #', sortable: true, render: (r: FollowupRO) => <span className="font-semibold text-[#f0f6fc]">{r.ro_number}</span> },
+    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: FollowupRO) => <span className="text-[#8b949e] truncate block max-w-[200px]">{r.vendor}</span> },
     { key: 'status', label: 'Status', sortable: true, render: (r: FollowupRO) => <StatusBadge status={r.status} /> },
-    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: FollowupRO) => <span className="font-medium">{formatCurrency(r.total)}</span> },
-    { key: 'payment_terms', label: 'Terms', sortable: true, render: (r: FollowupRO) => r.payment_terms || '\u2014' },
+    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: FollowupRO) => <span className="font-medium text-[#f0f6fc]">{formatCurrency(r.total)}</span> },
+    { key: 'payment_terms', label: 'Terms', sortable: true, render: (r: FollowupRO) => <span className="text-[#8b949e]">{r.payment_terms || '\u2014'}</span> },
   ], [])
 
   const poColumns = useMemo(() => [
-    { key: 'po_number', label: 'PO #', sortable: true, render: (r: PurchaseOrder) => <span className="font-semibold text-slate-900">{r.po_number}</span> },
-    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: PurchaseOrder) => <span className="text-slate-600 truncate block max-w-[200px]">{r.vendor}</span> },
-    { key: 'po_date', label: 'Date', sortable: true, render: (r: PurchaseOrder) => formatDate(r.po_date) },
-    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: PurchaseOrder) => <span className="font-medium">{formatCurrency(r.total)}</span> },
+    { key: 'po_number', label: 'PO #', sortable: true, render: (r: PurchaseOrder) => <span className="font-semibold text-[#f0f6fc]">{r.po_number}</span> },
+    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: PurchaseOrder) => <span className="text-[#8b949e] truncate block max-w-[200px]">{r.vendor}</span> },
+    { key: 'po_date', label: 'Date', sortable: true, render: (r: PurchaseOrder) => <span className="text-[#8b949e]">{formatDate(r.po_date)}</span> },
+    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: PurchaseOrder) => <span className="font-medium text-[#f0f6fc]">{formatCurrency(r.total)}</span> },
     { key: 'status', label: 'Status', sortable: true, render: (r: PurchaseOrder) => <StatusBadge status={r.status} /> },
-    { key: 'payment_terms', label: 'Terms', sortable: true, render: (r: PurchaseOrder) => r.payment_terms || '\u2014' },
-    { key: 'due_date', label: 'Due Date', sortable: true, render: (r: PurchaseOrder) => formatDate(r.due_date) },
+    { key: 'payment_terms', label: 'Terms', sortable: true, render: (r: PurchaseOrder) => <span className="text-[#8b949e]">{r.payment_terms || '\u2014'}</span> },
+    { key: 'due_date', label: 'Due Date', sortable: true, render: (r: PurchaseOrder) => <span className="text-[#8b949e]">{formatDate(r.due_date)}</span> },
   ], [])
 
   const roColumns = useMemo(() => [
-    { key: 'ro_number', label: 'RO #', sortable: true, render: (r: RepairOrderERP) => <span className="font-semibold text-slate-900">{r.ro_number}</span> },
-    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: RepairOrderERP) => <span className="text-slate-600 truncate block max-w-[200px]">{r.vendor}</span> },
+    { key: 'ro_number', label: 'RO #', sortable: true, render: (r: RepairOrderERP) => <span className="font-semibold text-[#f0f6fc]">{r.ro_number}</span> },
+    { key: 'vendor', label: 'Vendor', sortable: true, render: (r: RepairOrderERP) => <span className="text-[#8b949e] truncate block max-w-[200px]">{r.vendor}</span> },
     { key: 'status', label: 'Status', sortable: true, render: (r: RepairOrderERP) => <StatusBadge status={r.status} /> },
-    { key: 'due_date', label: 'Due Date', sortable: true, render: (r: RepairOrderERP) => formatDate(r.due_date) },
-    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: RepairOrderERP) => <span className="font-medium">{formatCurrency(r.total)}</span> },
+    { key: 'due_date', label: 'Due Date', sortable: true, render: (r: RepairOrderERP) => <span className="text-[#8b949e]">{formatDate(r.due_date)}</span> },
+    { key: 'total', label: 'Total', align: 'right' as const, sortable: true, render: (r: RepairOrderERP) => <span className="font-medium text-[#f0f6fc]">{formatCurrency(r.total)}</span> },
   ], [])
 
   // -- Derived values -------------------------------------------------------
@@ -450,24 +450,24 @@ export default function AutomationPage() {
         {/* Header skeleton */}
         <div className="flex items-center justify-between animate-pulse">
           <div>
-            <div className="h-8 w-72 bg-slate-200 rounded mb-2" />
-            <div className="h-4 w-48 bg-slate-100 rounded" />
+            <div className="h-8 w-72 bg-white/[0.06] rounded mb-2" />
+            <div className="h-4 w-48 bg-white/[0.04] rounded" />
           </div>
-          <div className="h-10 w-24 bg-slate-200 rounded-lg" />
+          <div className="h-10 w-10 bg-white/[0.06] rounded-lg" />
         </div>
 
         <StatCardSkeletonRow count={4} />
 
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse">
-          <div className="px-5 py-4 border-b border-slate-100">
-            <div className="h-5 w-52 bg-slate-200 rounded" />
+        <div className="bg-[#161b22] rounded-xl border border-white/[0.06] overflow-hidden animate-pulse">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <div className="h-5 w-52 bg-white/[0.06] rounded" />
           </div>
           <div className="p-5 space-y-3">
-            <div className="h-3 w-full bg-slate-100 rounded" />
+            <div className="h-3 w-full bg-white/[0.04] rounded" />
             {[1, 2, 3, 4, 5].map(i => (
               <div key={i} className="flex gap-6">
                 {[1, 2, 3, 4, 5, 6].map(j => (
-                  <div key={j} className="h-4 bg-slate-100 rounded flex-1" />
+                  <div key={j} className="h-4 bg-white/[0.04] rounded flex-1" />
                 ))}
               </div>
             ))}
@@ -476,15 +476,15 @@ export default function AutomationPage() {
 
         <StatCardSkeletonRow count={2} />
 
-        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden animate-pulse">
-          <div className="px-5 py-4 border-b border-slate-100">
-            <div className="h-5 w-44 bg-slate-200 rounded" />
+        <div className="bg-[#161b22] rounded-xl border border-white/[0.06] overflow-hidden animate-pulse">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <div className="h-5 w-44 bg-white/[0.06] rounded" />
           </div>
           <div className="p-5 space-y-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="flex gap-6">
                 {[1, 2, 3, 4, 5].map(j => (
-                  <div key={j} className="h-4 bg-slate-100 rounded flex-1" />
+                  <div key={j} className="h-4 bg-white/[0.04] rounded flex-1" />
                 ))}
               </div>
             ))}
@@ -500,14 +500,14 @@ export default function AutomationPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+          <div className="w-16 h-16 rounded-full bg-[#f85149]/10 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-8 h-8 text-[#f85149]" />
           </div>
-          <p className="text-red-600 font-semibold text-lg mb-1">Failed to Load Data</p>
-          <p className="text-sm text-slate-500 mb-4">{error}</p>
+          <p className="text-[#f85149] font-semibold text-lg mb-1">Failed to Load Data</p>
+          <p className="text-sm text-[#8b949e] mb-4">{error}</p>
           <button
             onClick={loadData}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#f85149]/80 hover:bg-[#f85149] rounded-lg border border-[#f85149]/40 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -520,29 +520,17 @@ export default function AutomationPage() {
   // -- Main render ----------------------------------------------------------
 
   return (
-    <>
-      {/* Inject keyframe animation */}
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fadeIn {
-          animation: fadeInUp 0.5s ease-out;
-        }
-      `}</style>
-
-      <div className="space-y-8">
+    <div className="space-y-8" style={{ animation: 'fadeInUp 0.2s ease-out both' }}>
         {/* ================================================================
             HEADER
         ================================================================ */}
         <FadeIn delay={0}>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+              <h1 className="text-2xl font-bold text-[#f0f6fc] tracking-tight">
                 ERP Automation Dashboard
               </h1>
-              <p className="text-slate-500 mt-1 text-sm flex items-center gap-1.5">
+              <p className="text-[#484f58] mt-1 text-xs font-mono tabular-nums flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5" />
                 Last refreshed: {lastRefresh.toLocaleTimeString()}
               </p>
@@ -550,10 +538,10 @@ export default function AutomationPage() {
             <button
               onClick={loadData}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 hover:border-slate-400 transition-all disabled:opacity-50 shadow-sm"
+              aria-label="Refresh automation data"
+              className="p-2 rounded-lg text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.06] border border-white/[0.06] transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
             </button>
           </div>
         </FadeIn>
@@ -602,8 +590,8 @@ export default function AutomationPage() {
             PROGRESS SUMMARY BAR
         ================================================================ */}
         <FadeIn delay={160}>
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4">
+            <p className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider mb-3">
               Payment Status Distribution
             </p>
             <ProgressSummaryBar
@@ -629,7 +617,7 @@ export default function AutomationPage() {
             subtitle={`${net30?.orders.length || 0} orders across all statuses`}
             loading={loading}
             action={
-              <span className="text-xs text-slate-400 font-medium">
+              <span className="text-xs text-[#484f58] font-medium">
                 Total: {formatCurrency(totalNet30Value)}
               </span>
             }
@@ -752,7 +740,7 @@ export default function AutomationPage() {
             action={
               <button
                 onClick={() => setPreviewOpen(!previewOpen)}
-                className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1"
+                className="text-xs font-medium text-[#484f58] hover:text-[#8b949e] transition-colors flex items-center gap-1"
               >
                 {previewOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                 {previewOpen ? 'Collapse' : 'Expand'}
@@ -765,7 +753,7 @@ export default function AutomationPage() {
                   <button
                     onClick={() => runPreview('net30')}
                     disabled={previewLoading}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all disabled:opacity-50 shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#1f6feb] hover:bg-[#388bfd] rounded-lg transition-all disabled:opacity-50"
                   >
                     <Play className="w-4 h-4" />
                     Preview NET30 Reminders
@@ -773,7 +761,7 @@ export default function AutomationPage() {
                   <button
                     onClick={() => runPreview('digest')}
                     disabled={previewLoading}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-purple-700 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all disabled:opacity-50 shadow-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-[#a371f7]/80 hover:bg-[#a371f7] rounded-lg transition-all disabled:opacity-50"
                   >
                     <Play className="w-4 h-4" />
                     Preview RO Digest
@@ -781,22 +769,22 @@ export default function AutomationPage() {
                 </div>
 
                 {previewLoading && (
-                  <div className="flex items-center gap-3 text-slate-500 text-sm py-6">
+                  <div className="flex items-center gap-3 text-[#8b949e] text-sm py-6">
                     <div className="relative">
-                      <div className="w-8 h-8 rounded-full border-2 border-slate-200" />
-                      <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-t-blue-500 animate-spin" />
+                      <div className="w-8 h-8 rounded-full border-2 border-white/[0.08]" />
+                      <div className="absolute inset-0 w-8 h-8 rounded-full border-2 border-t-[#58a6ff] animate-spin" />
                     </div>
-                    Running <span className="font-semibold text-slate-700">{previewType}</span> preview...
+                    Running <span className="font-semibold text-[#f0f6fc]">{previewType}</span> preview...
                   </div>
                 )}
 
                 {previewResult && !previewLoading && (
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                      <span className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
                         Preview Output &mdash; {previewType}
                       </span>
-                      <span className="text-[10px] font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-mono text-[#484f58] bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded">
                         JSON
                       </span>
                     </div>
@@ -805,15 +793,15 @@ export default function AutomationPage() {
                 )}
 
                 {!previewResult && !previewLoading && (
-                  <div className="text-center py-8 text-slate-400 text-sm">
-                    <Zap className="w-6 h-6 mx-auto mb-2 text-slate-300" />
+                  <div className="text-center py-8 text-[#484f58] text-sm">
+                    <Zap className="w-6 h-6 mx-auto mb-2 text-[#484f58]" />
                     Select a preview type above to see automation output
                   </div>
                 )}
               </div>
             ) : (
-              <div className="text-center py-4 text-sm text-slate-400">
-                Click <span className="font-medium text-slate-600">Expand</span> to access dry-run automation previews
+              <div className="text-center py-4 text-sm text-[#484f58]">
+                Click <span className="font-medium text-[#8b949e]">Expand</span> to access dry-run automation previews
               </div>
             )}
           </ChartCard>
@@ -837,18 +825,18 @@ export default function AutomationPage() {
             <form onSubmit={submitDraft} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">To</label>
+                  <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">To</label>
                   <input
                     type="email"
                     value={draftTo}
                     onChange={e => setDraftTo(e.target.value)}
                     required
                     placeholder="recipient@example.com"
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#4a6fa5]/30 focus:border-[#4a6fa5] transition-all placeholder:text-slate-300"
+                    className="w-full px-3 py-2 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58] focus:outline-none focus:border-[#1f6feb] transition-all"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</label>
+                  <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Subject</label>
                   <input
                     type="text"
                     value={draftSubject}
@@ -856,12 +844,12 @@ export default function AutomationPage() {
                     required
                     maxLength={500}
                     placeholder="Email subject"
-                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#4a6fa5]/30 focus:border-[#4a6fa5] transition-all placeholder:text-slate-300"
+                    className="w-full px-3 py-2 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58] focus:outline-none focus:border-[#1f6feb] transition-all"
                   />
                 </div>
               </div>
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Body</label>
+                <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Body</label>
                 <textarea
                   value={draftBody}
                   onChange={e => setDraftBody(e.target.value)}
@@ -869,16 +857,15 @@ export default function AutomationPage() {
                   rows={5}
                   maxLength={50000}
                   placeholder="Email body (HTML supported)"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#4a6fa5]/30 focus:border-[#4a6fa5] transition-all resize-y placeholder:text-slate-300 font-mono"
+                  className="w-full px-3 py-2 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58] focus:outline-none focus:border-[#1f6feb] transition-all resize-y font-mono"
                 />
-                <p className="text-[10px] text-slate-400">{draftBody.length.toLocaleString()} / 50,000 chars</p>
+                <p className="text-[10px] text-[#484f58]">{draftBody.length.toLocaleString()} / 50,000 chars</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 <button
                   type="submit"
                   disabled={draftLoading}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-50 shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #4a6fa5 100%)' }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#1f6feb] hover:bg-[#388bfd] rounded-lg transition-all disabled:opacity-50"
                 >
                   {draftLoading
                     ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -886,7 +873,7 @@ export default function AutomationPage() {
                   {draftLoading ? 'Creating Draft...' : 'Save as Draft'}
                 </button>
                 {draftResult && (
-                  <div className={`flex items-center gap-2 text-sm ${draftResult.success ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <div className={`flex items-center gap-2 text-sm ${draftResult.success ? 'text-[#3fb950]' : 'text-[#f85149]'}`}>
                     {draftResult.success
                       ? <CheckCircle2 className="w-4 h-4 shrink-0" />
                       : <XCircle className="w-4 h-4 shrink-0" />}
@@ -897,7 +884,7 @@ export default function AutomationPage() {
                               href={draftResult.webLink}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="ml-1.5 inline-flex items-center gap-1 underline underline-offset-2 hover:text-emerald-700"
+                              className="ml-1.5 inline-flex items-center gap-1 underline underline-offset-2 hover:text-[#39d353]"
                             >
                               Open in Outlook <ExternalLink className="w-3 h-3" />
                             </a>
@@ -921,7 +908,7 @@ export default function AutomationPage() {
           >
             <form onSubmit={fetchThread} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversation ID</label>
+                <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Conversation ID</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -929,13 +916,12 @@ export default function AutomationPage() {
                     onChange={e => setThreadConversationId(e.target.value)}
                     required
                     placeholder="AAQkAG1mNTQwNjU1..."
-                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#8b2040]/30 focus:border-[#8b2040] transition-all placeholder:text-slate-300 font-mono"
+                    className="flex-1 px-3 py-2 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58] focus:outline-none focus:border-[#1f6feb] transition-all font-mono"
                   />
                   <button
                     type="submit"
                     disabled={threadLoading || !threadConversationId.trim()}
-                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
-                    style={{ background: 'linear-gradient(135deg, #6b1530 0%, #8b2040 100%)' }}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-[#9c2a3e]/80 hover:bg-[#9c2a3e] rounded-lg transition-all disabled:opacity-50 whitespace-nowrap border border-[#9c2a3e]/40"
                   >
                     {threadLoading
                       ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -946,7 +932,7 @@ export default function AutomationPage() {
               </div>
 
               {threadError && (
-                <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-[#f85149]/10 border border-[#f85149]/20 rounded-lg text-sm text-[#f85149]">
                   <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   {threadError}
                 </div>
@@ -954,43 +940,43 @@ export default function AutomationPage() {
 
               {threadMessages !== null && !threadLoading && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <p className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
                     {threadMessages.length === 0 ? 'No messages found' : `${threadMessages.length} message${threadMessages.length !== 1 ? 's' : ''}`}
                   </p>
                   <div className="space-y-2 max-h-[480px] overflow-y-auto scrollbar-thin pr-1">
                     {threadMessages.map(msg => (
                       <div
                         key={msg.id}
-                        className="border border-slate-100 rounded-lg overflow-hidden bg-white hover:border-slate-200 transition-colors"
+                        className="border border-white/[0.06] rounded-lg overflow-hidden bg-white/[0.03] hover:border-white/[0.12] transition-colors"
                       >
                         <button
                           type="button"
                           onClick={() => setThreadExpanded(prev => prev === msg.id ? null : msg.id)}
-                          className="w-full flex items-start justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                          className="w-full flex items-start justify-between gap-3 px-4 py-3 text-left hover:bg-white/[0.03] transition-colors"
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-xs font-semibold text-[#1e3a5f] truncate">
+                              <span className="text-xs font-semibold text-[#f0f6fc] truncate">
                                 {msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || 'Unknown sender'}
                               </span>
-                              <span className="text-[10px] text-slate-400 shrink-0">
+                              <span className="text-[10px] text-[#484f58] shrink-0">
                                 {msg.receivedDateTime
                                   ? new Date(msg.receivedDateTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                                   : ''}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-500 font-medium truncate">{msg.subject || '(no subject)'}</p>
+                            <p className="text-xs text-[#8b949e] font-medium truncate">{msg.subject || '(no subject)'}</p>
                             {threadExpanded !== msg.id && (
-                              <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{msg.bodyPreview}</p>
+                              <p className="text-xs text-[#484f58] mt-0.5 line-clamp-1">{msg.bodyPreview}</p>
                             )}
                           </div>
                           {threadExpanded === msg.id
-                            ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                            : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />}
+                            ? <ChevronDown className="w-4 h-4 text-[#484f58] shrink-0 mt-0.5" />
+                            : <ChevronRight className="w-4 h-4 text-[#484f58] shrink-0 mt-0.5" />}
                         </button>
                         {threadExpanded === msg.id && (
-                          <div className="px-4 pb-4 border-t border-slate-50">
-                            <pre className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap mt-3 font-sans">
+                          <div className="px-4 pb-4 border-t border-white/[0.04]">
+                            <pre className="text-xs text-[#8b949e] leading-relaxed whitespace-pre-wrap mt-3 font-sans">
                               {msg.bodyPreview || '(no preview available)'}
                             </pre>
                           </div>
@@ -1028,19 +1014,18 @@ export default function AutomationPage() {
                       onChange={e => setSyncFullMode(e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="absolute inset-0 bg-slate-200 rounded-full peer-checked:bg-[#4a6fa5] transition-colors" />
+                    <div className="absolute inset-0 bg-white/[0.08] rounded-full peer-checked:bg-[#1f6feb] transition-colors" />
                     <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
                   </span>
-                  <span className="text-sm font-medium text-slate-700">
-                    Full sync <span className="text-xs font-normal text-slate-400">(vs incremental)</span>
+                  <span className="text-sm font-medium text-[#f0f6fc]">
+                    Full sync <span className="text-xs font-normal text-[#484f58]">(vs incremental)</span>
                   </span>
                 </label>
 
                 <button
                   onClick={triggerSync}
                   disabled={syncLoading}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-50 shadow-sm"
-                  style={{ background: syncLoading ? '#6b7280' : 'linear-gradient(135deg, #1e3a5f 0%, #4a6fa5 100%)' }}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#1f6feb] hover:bg-[#388bfd] rounded-lg transition-all disabled:opacity-50 disabled:bg-white/[0.06]"
                 >
                   {syncLoading
                     ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -1049,7 +1034,7 @@ export default function AutomationPage() {
                 </button>
 
                 {syncLastAt && (
-                  <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                  <span className="text-xs text-[#484f58] flex items-center gap-1.5">
                     <Clock className="w-3.5 h-3.5" />
                     Last sync: {syncLastAt.toLocaleTimeString()}
                   </span>
@@ -1057,11 +1042,11 @@ export default function AutomationPage() {
               </div>
 
               {syncLoading && (
-                <div className="flex items-center gap-3 px-4 py-4 bg-[#4a6fa5]/5 border border-[#4a6fa5]/20 rounded-lg">
-                  <Loader2 className="w-5 h-5 text-[#4a6fa5] animate-spin shrink-0" />
+                <div className="flex items-center gap-3 px-4 py-4 bg-[#1f6feb]/[0.08] border border-[#1f6feb]/20 rounded-lg">
+                  <Loader2 className="w-5 h-5 text-[#58a6ff] animate-spin shrink-0" />
                   <div>
-                    <p className="text-sm font-semibold text-[#1e3a5f]">Sync in progress</p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-sm font-semibold text-[#f0f6fc]">Sync in progress</p>
+                    <p className="text-xs text-[#8b949e] mt-0.5">
                       Running {syncFullMode ? 'full' : 'incremental'} parts sync against ERP...
                     </p>
                   </div>
@@ -1071,42 +1056,41 @@ export default function AutomationPage() {
               {syncResult && !syncLoading && (
                 <div className={`flex items-start gap-3 px-4 py-4 rounded-lg border ${
                   syncResult.success
-                    ? 'bg-emerald-50 border-emerald-100'
-                    : 'bg-red-50 border-red-100'
+                    ? 'bg-[#3fb950]/10 border-[#3fb950]/20'
+                    : 'bg-[#f85149]/10 border-[#f85149]/20'
                 }`}>
                   {syncResult.success
-                    ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
-                    : <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />}
+                    ? <CheckCircle2 className="w-5 h-5 text-[#3fb950] shrink-0 mt-0.5" />
+                    : <XCircle className="w-5 h-5 text-[#f85149] shrink-0 mt-0.5" />}
                   <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${syncResult.success ? 'text-emerald-700' : 'text-red-700'}`}>
+                    <p className={`text-sm font-semibold ${syncResult.success ? 'text-[#3fb950]' : 'text-[#f85149]'}`}>
                       {syncResult.success ? 'Sync complete' : 'Sync failed'}
                     </p>
                     {syncResult.message && (
-                      <p className="text-xs text-slate-600 mt-0.5">{syncResult.message}</p>
+                      <p className="text-xs text-[#8b949e] mt-0.5">{syncResult.message}</p>
                     )}
                     {syncResult.count !== undefined && (
-                      <p className="text-xs text-slate-500 mt-1">
-                        <span className="font-semibold">{syncResult.count.toLocaleString()}</span> parts updated
-                        {syncResult.mode && <span className="ml-1.5 text-slate-400">({syncResult.mode} mode)</span>}
+                      <p className="text-xs text-[#8b949e] mt-1">
+                        <span className="font-semibold text-[#f0f6fc]">{syncResult.count.toLocaleString()}</span> parts updated
+                        {syncResult.mode && <span className="ml-1.5 text-[#484f58]">({syncResult.mode} mode)</span>}
                       </p>
                     )}
                     {syncResult.error && (
-                      <p className="text-xs text-red-600 mt-0.5">{syncResult.error}</p>
+                      <p className="text-xs text-[#f85149] mt-0.5">{syncResult.error}</p>
                     )}
                   </div>
                 </div>
               )}
 
               {!syncResult && !syncLoading && (
-                <div className="text-center py-6 text-slate-400 text-sm">
-                  <Database className="w-6 h-6 mx-auto mb-2 text-slate-200" />
+                <div className="text-center py-6 text-[#484f58] text-sm">
+                  <Database className="w-6 h-6 mx-auto mb-2 text-[#484f58]" />
                   No sync run yet this session
                 </div>
               )}
             </div>
           </ChartCard>
         </FadeIn>
-      </div>
-    </>
+    </div>
   )
 }

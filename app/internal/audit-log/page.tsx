@@ -99,29 +99,29 @@ const LIMIT = 25
 
 function getActionBadgeClass(action: string): string {
   const a = action.toUpperCase()
-  if (a === 'DELETE') return 'bg-red-50 text-red-700 border-red-200'
-  if (a === 'CREATE') return 'bg-green-50 text-green-700 border-green-200'
-  if (a === 'UPDATE') return 'bg-amber-50 text-amber-700 border-amber-200'
-  if (a === 'LOGIN' || a === 'LOGOUT') return 'bg-blue-50 text-blue-700 border-blue-200'
-  if (a === 'SEND_EMAIL') return 'bg-purple-50 text-purple-700 border-purple-200'
-  if (a === 'AI_CHAT') return 'bg-indigo-50 text-indigo-700 border-indigo-200'
-  if (a === 'RATE_LIMIT') return 'bg-orange-50 text-orange-700 border-orange-200'
-  if (a === 'EXPORT') return 'bg-teal-50 text-teal-700 border-teal-200'
-  if (a === 'VIEW') return 'bg-slate-50 text-slate-600 border-slate-200'
-  return 'bg-slate-50 text-slate-600 border-slate-200'
+  if (a === 'DELETE') return 'bg-[#f85149]/10 text-[#f85149] border-[#f85149]/20'
+  if (a === 'CREATE') return 'bg-[#3fb950]/10 text-[#3fb950] border-[#3fb950]/20'
+  if (a === 'UPDATE') return 'bg-[#d29922]/10 text-[#d29922] border-[#d29922]/20'
+  if (a === 'LOGIN' || a === 'LOGOUT') return 'bg-[#58a6ff]/10 text-[#58a6ff] border-[#58a6ff]/20'
+  if (a === 'SEND_EMAIL') return 'bg-[#a371f7]/10 text-[#a371f7] border-[#a371f7]/20'
+  if (a === 'AI_CHAT') return 'bg-[#79c0ff]/10 text-[#79c0ff] border-[#79c0ff]/20'
+  if (a === 'RATE_LIMIT') return 'bg-[#ffa657]/10 text-[#ffa657] border-[#ffa657]/20'
+  if (a === 'EXPORT') return 'bg-[#39d353]/10 text-[#39d353] border-[#39d353]/20'
+  if (a === 'VIEW') return 'bg-white/[0.06] text-[#8b949e] border-white/[0.08]'
+  return 'bg-white/[0.06] text-[#8b949e] border-white/[0.08]'
 }
 
 function getActionDotClass(action: string): string {
   const a = action.toUpperCase()
-  if (a === 'DELETE') return 'bg-red-500'
-  if (a === 'CREATE') return 'bg-green-500'
-  if (a === 'UPDATE') return 'bg-amber-500'
-  if (a === 'LOGIN' || a === 'LOGOUT') return 'bg-blue-500'
-  if (a === 'SEND_EMAIL') return 'bg-purple-500'
-  if (a === 'AI_CHAT') return 'bg-indigo-500'
-  if (a === 'RATE_LIMIT') return 'bg-orange-500'
-  if (a === 'EXPORT') return 'bg-teal-500'
-  return 'bg-slate-400'
+  if (a === 'DELETE') return 'bg-[#f85149]'
+  if (a === 'CREATE') return 'bg-[#3fb950]'
+  if (a === 'UPDATE') return 'bg-[#d29922]'
+  if (a === 'LOGIN' || a === 'LOGOUT') return 'bg-[#58a6ff]'
+  if (a === 'SEND_EMAIL') return 'bg-[#a371f7]'
+  if (a === 'AI_CHAT') return 'bg-[#79c0ff]'
+  if (a === 'RATE_LIMIT') return 'bg-[#ffa657]'
+  if (a === 'EXPORT') return 'bg-[#39d353]'
+  return 'bg-[#484f58]'
 }
 
 function ActionBadge({ action }: { action: string }) {
@@ -135,17 +135,17 @@ function ActionBadge({ action }: { action: string }) {
   )
 }
 
-function StatusBadge({ success, code }: { success: boolean; code: number | null }) {
+function AuditStatusBadge({ success, code }: { success: boolean; code: number | null }) {
   if (success) {
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-700">
+      <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#3fb950]">
         <CheckCircle2 className="w-3.5 h-3.5" />
         {code ?? 'OK'}
       </span>
     )
   }
   return (
-    <span className="inline-flex items-center gap-1 text-xs font-semibold text-red-600">
+    <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#f85149]">
       <XCircle className="w-3.5 h-3.5" />
       {code ?? 'ERR'}
     </span>
@@ -156,10 +156,10 @@ function formatTs(ts: string) {
   const d = new Date(ts)
   return (
     <span className="flex flex-col">
-      <span className="text-xs font-medium text-slate-800">
+      <span className="text-xs font-medium text-[#f0f6fc]">
         {d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
       </span>
-      <span className="text-[10px] text-slate-400 tabular-nums">
+      <span className="text-[10px] text-[#484f58] tabular-nums font-mono">
         {d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
       </span>
     </span>
@@ -167,8 +167,8 @@ function formatTs(ts: string) {
 }
 
 function DurationPill({ ms }: { ms: number | null }) {
-  if (ms == null) return <span className="text-slate-400 text-xs">—</span>
-  const color = ms > 2000 ? 'text-red-600' : ms > 500 ? 'text-amber-600' : 'text-slate-500'
+  if (ms == null) return <span className="text-[#484f58] text-xs">—</span>
+  const color = ms > 2000 ? 'text-[#f85149]' : ms > 500 ? 'text-[#d29922]' : 'text-[#8b949e]'
   return <span className={`text-xs tabular-nums font-mono ${color}`}>{ms}ms</span>
 }
 
@@ -176,47 +176,47 @@ function DurationPill({ ms }: { ms: number | null }) {
 
 function ExpandedRow({ row }: { row: AuditEvent }) {
   return (
-    <tr className="bg-slate-50/80 border-b border-slate-100">
+    <tr className="bg-[#0b0f14] border-b border-white/[0.04]">
       <td colSpan={8} className="px-5 py-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
           {/* Identity */}
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#484f58] flex items-center gap-1.5">
               <User className="w-3 h-3" /> Identity
             </p>
             <div className="space-y-1">
               <div className="flex justify-between gap-2">
-                <span className="text-xs text-slate-500">User ID</span>
-                <span className="text-xs font-mono text-slate-700">{row.user_id ?? '—'}</span>
+                <span className="text-xs text-[#8b949e]">User ID</span>
+                <span className="text-xs font-mono text-[#f0f6fc]">{row.user_id ?? '—'}</span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-xs text-slate-500">Email</span>
-                <span className="text-xs text-slate-700">{row.user_email ?? '—'}</span>
+                <span className="text-xs text-[#8b949e]">Email</span>
+                <span className="text-xs text-[#f0f6fc]">{row.user_email ?? '—'}</span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-xs text-slate-500">Role</span>
-                <span className="text-xs text-slate-700">{row.user_role ?? '—'}</span>
+                <span className="text-xs text-[#8b949e]">Role</span>
+                <span className="text-xs text-[#f0f6fc]">{row.user_role ?? '—'}</span>
               </div>
             </div>
           </div>
 
           {/* Network */}
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#484f58] flex items-center gap-1.5">
               <Globe className="w-3 h-3" /> Network
             </p>
             <div className="space-y-1">
               <div className="flex justify-between gap-2">
-                <span className="text-xs text-slate-500">IP Address</span>
-                <span className="text-xs font-mono text-slate-700">{row.ip_address ?? '—'}</span>
+                <span className="text-xs text-[#8b949e]">IP Address</span>
+                <span className="text-xs font-mono text-[#f0f6fc]">{row.ip_address ?? '—'}</span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-xs text-slate-500">Method</span>
-                <span className="text-xs font-mono font-bold text-slate-700">{row.method ?? '—'}</span>
+                <span className="text-xs text-[#8b949e]">Method</span>
+                <span className="text-xs font-mono font-bold text-[#f0f6fc]">{row.method ?? '—'}</span>
               </div>
               <div className="flex justify-between gap-2">
-                <span className="text-xs text-slate-500">Path</span>
-                <span className="text-xs font-mono text-slate-700 truncate max-w-[160px]" title={row.path ?? ''}>
+                <span className="text-xs text-[#8b949e]">Path</span>
+                <span className="text-xs font-mono text-[#f0f6fc] truncate max-w-[160px]" title={row.path ?? ''}>
                   {row.path ?? '—'}
                 </span>
               </div>
@@ -225,10 +225,10 @@ function ExpandedRow({ row }: { row: AuditEvent }) {
 
           {/* Client */}
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-[#484f58] flex items-center gap-1.5">
               <Terminal className="w-3 h-3" /> Client
             </p>
-            <p className="text-[10px] font-mono text-slate-500 break-all leading-relaxed">
+            <p className="text-[10px] font-mono text-[#8b949e] break-all leading-relaxed">
               {row.user_agent ?? '—'}
             </p>
           </div>
@@ -236,10 +236,10 @@ function ExpandedRow({ row }: { row: AuditEvent }) {
           {/* Error */}
           {row.error_message && (
             <div className="md:col-span-2 lg:col-span-3 space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-red-400 flex items-center gap-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#f85149] flex items-center gap-1.5">
                 <AlertTriangle className="w-3 h-3" /> Error
               </p>
-              <p className="text-xs font-mono text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 break-all">
+              <p className="text-xs font-mono text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 rounded-lg px-3 py-2 break-all">
                 {row.error_message}
               </p>
             </div>
@@ -248,10 +248,10 @@ function ExpandedRow({ row }: { row: AuditEvent }) {
           {/* Metadata */}
           {row.metadata && Object.keys(row.metadata).length > 0 && (
             <div className="md:col-span-2 lg:col-span-3 space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#484f58] flex items-center gap-1.5">
                 <FileText className="w-3 h-3" /> Metadata
               </p>
-              <pre className="text-[10px] font-mono text-slate-600 bg-slate-100 border border-slate-200 rounded-lg px-3 py-2 overflow-x-auto max-h-40">
+              <pre className="text-[10px] font-mono text-[#8b949e] bg-[#0b0f14] border border-white/[0.06] rounded-lg px-3 py-2 overflow-x-auto max-h-40">
                 {JSON.stringify(row.metadata, null, 2)}
               </pre>
             </div>
@@ -265,11 +265,11 @@ function ExpandedRow({ row }: { row: AuditEvent }) {
 // ─── Filter Bar ────────────────────────────────────────────────────────────────
 
 function selectClass() {
-  return 'h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-colors'
+  return 'h-9 px-3 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] text-[#f0f6fc] focus:outline-none focus:border-[#1f6feb] transition-colors'
 }
 
 function inputClass() {
-  return 'h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400 transition-colors'
+  return 'h-9 px-3 text-sm border border-white/[0.08] rounded-lg bg-[#0b0f14] text-[#f0f6fc] placeholder:text-[#484f58] focus:outline-none focus:border-[#1f6feb] transition-colors'
 }
 
 interface FilterBarProps {
@@ -283,11 +283,11 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
   const hasFilters = Object.values(filters).some((v) => v !== '')
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 px-5 py-4">
+    <div className="bg-[#161b22] rounded-xl border border-white/[0.06] px-5 py-4">
       <div className="flex flex-wrap gap-3 items-end">
         {/* Email search */}
         <div className="flex flex-col gap-1 flex-1 min-w-[180px]">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8b949e]">
             User Email
           </label>
           <input
@@ -301,7 +301,7 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
 
         {/* Action */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8b949e]">
             Action
           </label>
           <select
@@ -320,7 +320,7 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
 
         {/* Resource type */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8b949e]">
             Resource Type
           </label>
           <select
@@ -339,7 +339,7 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
 
         {/* Start date */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8b949e]">
             From
           </label>
           <input
@@ -352,7 +352,7 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
 
         {/* End date */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8b949e]">
             To
           </label>
           <input
@@ -365,7 +365,7 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
 
         {/* Success filter */}
         <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-[#8b949e]">
             Status
           </label>
           <select
@@ -384,7 +384,7 @@ function FilterBar({ filters, onChange, onReset, loading }: FilterBarProps) {
           <button
             onClick={onReset}
             disabled={loading}
-            className="h-9 inline-flex items-center gap-1.5 px-3 text-sm font-medium text-slate-600 bg-slate-100 border border-slate-200 rounded-lg hover:bg-slate-200 transition-colors disabled:opacity-50"
+            className="h-9 inline-flex items-center gap-1.5 px-3 text-sm font-medium text-[#8b949e] bg-white/[0.06] border border-white/[0.08] rounded-lg hover:bg-white/[0.10] hover:text-[#f0f6fc] transition-colors disabled:opacity-50"
           >
             <X className="w-3.5 h-3.5" />
             Reset
@@ -423,21 +423,21 @@ function Pagination({ page, total, limit, onChange, loading }: PaginationProps) 
 
   return (
     <div className="flex items-center justify-between px-1">
-      <span className="text-xs text-slate-500 tabular-nums">
+      <span className="text-xs text-[#8b949e] tabular-nums">
         {total === 0 ? 'No results' : `${start}–${end} of ${total.toLocaleString()} events`}
       </span>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onChange(page - 1)}
           disabled={page === 1 || loading}
-          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg text-[#8b949e] hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Previous page"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
         {pages.map((p, i) =>
           p === '…' ? (
-            <span key={`ellipsis-${i}`} className="px-2 text-xs text-slate-400">
+            <span key={`ellipsis-${i}`} className="px-2 text-xs text-[#484f58]">
               …
             </span>
           ) : (
@@ -445,10 +445,10 @@ function Pagination({ page, total, limit, onChange, loading }: PaginationProps) 
               key={p}
               onClick={() => onChange(p as number)}
               disabled={loading}
-              className={`min-w-[32px] h-8 px-2 text-xs font-semibold rounded-lg transition-colors ${
+              className={`min-w-[32px] h-8 px-2 text-xs font-medium rounded-lg transition-colors ${
                 p === page
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:bg-slate-100 disabled:opacity-50'
+                  ? 'bg-[#1f6feb] text-white'
+                  : 'text-[#8b949e] hover:bg-white/[0.06] hover:text-[#f0f6fc] disabled:opacity-50'
               }`}
             >
               {p}
@@ -458,7 +458,7 @@ function Pagination({ page, total, limit, onChange, loading }: PaginationProps) 
         <button
           onClick={() => onChange(page + 1)}
           disabled={page === totalPages || loading}
-          className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          className="p-1.5 rounded-lg text-[#8b949e] hover:bg-white/[0.06] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           aria-label="Next page"
         >
           <ChevronRight className="w-4 h-4" />
@@ -575,8 +575,8 @@ export default function AuditLogPage() {
       label: 'User',
       sortable: false,
       render: (row: AuditEvent) => (
-        <span className="text-xs text-slate-700 font-medium max-w-[160px] truncate block">
-          {row.user_email ?? <span className="text-slate-400 italic">anonymous</span>}
+        <span className="text-xs text-[#f0f6fc] font-medium max-w-[160px] truncate block">
+          {row.user_email ?? <span className="text-[#484f58] italic">anonymous</span>}
         </span>
       ),
     },
@@ -593,17 +593,17 @@ export default function AuditLogPage() {
       render: (row: AuditEvent) =>
         row.resource_type ? (
           <span className="flex flex-col">
-            <span className="text-xs font-medium text-slate-700">
+            <span className="text-xs font-medium text-[#f0f6fc]">
               {row.resource_type.replace(/_/g, ' ')}
             </span>
             {row.resource_id && (
-              <span className="text-[10px] font-mono text-slate-400 truncate max-w-[100px]">
+              <span className="text-[10px] font-mono text-[#484f58] truncate max-w-[100px]">
                 {row.resource_id}
               </span>
             )}
           </span>
         ) : (
-          <span className="text-slate-400 text-xs">—</span>
+          <span className="text-[#484f58] text-xs">—</span>
         ),
     },
     {
@@ -612,9 +612,9 @@ export default function AuditLogPage() {
       sortable: false,
       className: 'hidden lg:table-cell',
       render: (row: AuditEvent) => (
-        <span className="text-[10px] font-mono text-slate-500 truncate max-w-[180px] block">
+        <span className="text-[10px] font-mono text-[#8b949e] truncate max-w-[180px] block">
           {row.method && (
-            <span className="text-slate-400 mr-1 font-bold">{row.method}</span>
+            <span className="text-[#484f58] mr-1 font-bold">{row.method}</span>
           )}
           {row.path ?? '—'}
         </span>
@@ -624,7 +624,7 @@ export default function AuditLogPage() {
       key: 'success',
       label: 'Status',
       sortable: false,
-      render: (row: AuditEvent) => <StatusBadge success={row.success} code={row.status_code} />,
+      render: (row: AuditEvent) => <AuditStatusBadge success={row.success} code={row.status_code} />,
     },
     {
       key: 'duration_ms',
@@ -640,9 +640,9 @@ export default function AuditLogPage() {
       align: 'right' as const,
       render: (row: AuditEvent) =>
         expandedId === row.id ? (
-          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronUp className="w-3.5 h-3.5 text-[#484f58]" />
         ) : (
-          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          <ChevronDown className="w-3.5 h-3.5 text-[#484f58]" />
         ),
     },
   ]
@@ -651,14 +651,14 @@ export default function AuditLogPage() {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-50 flex items-center justify-center">
-            <AlertCircle className="w-8 h-8 text-red-500" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#f85149]/10 flex items-center justify-center">
+            <AlertCircle className="w-8 h-8 text-[#f85149]" />
           </div>
-          <p className="text-red-700 font-semibold text-lg mb-1">Unable to load audit logs</p>
-          <p className="text-slate-500 text-sm mb-4">{error}</p>
+          <p className="text-[#f85149] font-semibold text-lg mb-1">Unable to load audit logs</p>
+          <p className="text-[#8b949e] text-sm mb-4">{error}</p>
           <button
             onClick={() => fetchLogs(filters, page)}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1f6feb] rounded-lg hover:bg-[#388bfd] transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             Try again
@@ -669,26 +669,26 @@ export default function AuditLogPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" style={{ animation: 'fadeInUp 0.2s ease-out both' }}>
       {/* Header */}
       <div
-        className={`flex items-center justify-between transition-all duration-500 ${
+        className={`flex items-center justify-between transition-all duration-300 ${
           visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
         }`}
       >
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900">Audit Log</h1>
-          <p className="text-slate-500 mt-1 text-sm">
+          <h1 className="text-2xl font-bold text-[#f0f6fc]">Audit Log</h1>
+          <p className="text-[#8b949e] mt-0.5 text-sm">
             Track all system events, user actions, and security incidents.
           </p>
         </div>
         <button
           onClick={() => fetchLogs(filters, page)}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all duration-150 disabled:opacity-50 shadow-sm"
+          aria-label="Refresh audit log"
+          className="p-2 rounded-lg text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.06] border border-white/[0.06] transition-all duration-150 disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
         </button>
       </div>
 
@@ -726,12 +726,12 @@ export default function AuditLogPage() {
 
       {/* Error banner (soft) */}
       {error && logs.length > 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-lg bg-red-50 border border-red-200">
-          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-          <p className="text-sm font-medium text-red-800 flex-1">{error}</p>
+        <div className="flex items-center gap-3 p-3 rounded-lg bg-[#f85149]/10 border border-[#f85149]/20">
+          <AlertCircle className="w-4 h-4 text-[#f85149] flex-shrink-0" />
+          <p className="text-sm font-medium text-[#f85149] flex-1">{error}</p>
           <button
             onClick={() => setError(null)}
-            className="text-xs text-red-600 hover:text-red-800 font-medium"
+            className="text-xs text-[#f85149] hover:text-[#ff7b72] font-medium"
           >
             Dismiss
           </button>
@@ -771,7 +771,7 @@ export default function AuditLogPage() {
               : `${total.toLocaleString()} event${total !== 1 ? 's' : ''} found`
           }
           action={
-            <span className="text-xs text-slate-400 tabular-nums">
+            <span className="text-xs text-[#484f58] tabular-nums">
               Page {page} of {Math.max(1, Math.ceil(total / LIMIT))}
             </span>
           }
@@ -779,36 +779,36 @@ export default function AuditLogPage() {
           {/* Custom table with expandable rows */}
           {loading ? (
             <div className="animate-pulse space-y-0">
-              <div className="bg-slate-50 px-4 py-3 flex gap-6 rounded-t-lg">
+              <div className="bg-white/[0.04] px-4 py-3 flex gap-6 rounded-t-lg">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                  <div key={i} className="h-3 bg-slate-200 rounded flex-1" />
+                  <div key={i} className="h-3 bg-white/[0.08] rounded flex-1" />
                 ))}
               </div>
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="px-4 py-3 flex gap-6 border-t border-slate-100">
+                <div key={i} className="px-4 py-3 flex gap-6 border-t border-white/[0.04]">
                   {[1, 2, 3, 4, 5, 6, 7].map((j) => (
-                    <div key={j} className="h-3 bg-slate-100 rounded flex-1" />
+                    <div key={j} className="h-3 bg-white/[0.04] rounded flex-1" />
                   ))}
                 </div>
               ))}
             </div>
           ) : logs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-slate-300" />
+              <div className="w-12 h-12 rounded-full bg-white/[0.06] flex items-center justify-center">
+                <Shield className="w-6 h-6 text-[#484f58]" />
               </div>
-              <p className="text-sm text-slate-400 font-medium">No audit events found</p>
-              <p className="text-xs text-slate-300">Try adjusting your filters</p>
+              <p className="text-sm text-[#8b949e] font-medium">No audit events found</p>
+              <p className="text-xs text-[#484f58]">Try adjusting your filters</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50/80 text-left border-b border-slate-100">
+                  <tr className="bg-white/[0.04] text-left border-b border-white/[0.06]">
                     {columns.map((col) => (
                       <th
                         key={col.key}
-                        className={`px-4 py-2.5 font-semibold text-slate-600 text-xs ${
+                        className={`px-4 py-2.5 font-semibold text-[#8b949e] text-xs uppercase tracking-wider ${
                           col.align === 'right' ? 'text-right' : ''
                         } ${col.className || ''}`}
                       >
@@ -823,12 +823,12 @@ export default function AuditLogPage() {
                       <tr
                         key={row.id}
                         onClick={() => handleRowClick(row)}
-                        className={`border-b border-slate-50 cursor-pointer transition-colors ${
+                        className={`border-b border-white/[0.04] cursor-pointer transition-colors ${
                           expandedId === row.id
-                            ? 'bg-indigo-50/50'
+                            ? 'bg-[#1f6feb]/10'
                             : row.success
-                            ? 'hover:bg-slate-50/60'
-                            : 'bg-red-50/20 hover:bg-red-50/40'
+                            ? 'hover:bg-white/[0.03]'
+                            : 'bg-[#f85149]/[0.04] hover:bg-[#f85149]/[0.08]'
                         }`}
                       >
                         {columns.map((col) => (
@@ -852,7 +852,7 @@ export default function AuditLogPage() {
 
           {/* Pagination */}
           {!loading && logs.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
+            <div className="mt-4 pt-4 border-t border-white/[0.06]">
               <Pagination
                 page={page}
                 total={total}
@@ -872,7 +872,7 @@ export default function AuditLogPage() {
         }`}
       >
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mr-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-[#484f58] mr-2">
             Action legend:
           </span>
           {[

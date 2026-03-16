@@ -6,7 +6,15 @@
  * Token cached in module-level variable with 30-min TTL.
  */
 
-function getConfig() {
+// ---------------------------------------------------------------------------
+// Consolidated ERP AERO Token Manager
+// ---------------------------------------------------------------------------
+// This is the single source of truth for ERP auth tokens. Both erp-client.ts
+// and erp-aero.ts use this manager to prevent dual-token race conditions.
+// Token state is module-level (resets with vi.resetModules() in tests).
+// The shared authPromise prevents thundering herd on concurrent callers.
+
+export function getConfig() {
   return {
     baseUrl: process.env.ERP_AERO_BASE_URL || process.env.ERP_BASE_URL || 'https://wapi.erp.aero',
     cid: process.env.ERP_AERO_CID || process.env.ERP_CID || '',
@@ -23,6 +31,7 @@ const TOKEN_TTL_MS = 30 * 60 * 1000 // 30 minutes
 
 /**
  * Authenticate with ERP AERO and cache JWT token.
+ * Shared promise prevents thundering herd on concurrent callers.
  */
 async function signin(): Promise<string> {
   const config = getConfig()
@@ -61,8 +70,9 @@ async function signin(): Promise<string> {
 
 /**
  * Get auth headers, refreshing token if needed.
+ * Uses a shared promise to coalesce concurrent refresh requests.
  */
-async function getHeaders(): Promise<Record<string, string>> {
+export async function getHeaders(): Promise<Record<string, string>> {
   if (!cachedToken || Date.now() >= tokenExpiresAt) {
     if (authPromise) {
       await authPromise
@@ -75,6 +85,14 @@ async function getHeaders(): Promise<Record<string, string>> {
     Authorization: `Bearer ${cachedToken}`,
     Accept: 'application/json',
   }
+}
+
+/**
+ * Invalidate cached token (e.g., on 401 response).
+ */
+export function clearErpTokenCache() {
+  cachedToken = null
+  tokenExpiresAt = 0
 }
 
 /**
@@ -94,7 +112,7 @@ async function erpGet(endpoint: string, params?: Record<string, string>): Promis
 
   // If 401, re-signin and retry once
   if (resp.status === 401) {
-    cachedToken = null
+    clearErpTokenCache()
     headers = await getHeaders()
     resp = await fetch(url.toString(), { headers, signal: AbortSignal.timeout(10000) })
   }
@@ -128,7 +146,7 @@ async function fetchAllPages(endpoint: string, maxPages: number = 20): Promise<a
     const raw = await erpGet(endpoint, {
       direction: 'desc',
       order: 'modified_time',
-      page_size: '25',
+      page_size: '100',
       page: String(page),
     })
     const items = unwrapList(raw)
@@ -150,6 +168,14 @@ import type {
 } from '@genthrust/shared'
 
 export type { ERPPurchaseOrder, ERPRepairOrder, Net30Order, FollowupRO }
+
+/**
+ * Fetch all RO list items once. Used to eliminate triple-fetching.
+ * Callers can pass prefetched items to avoid redundant API calls.
+ */
+export async function getAllRepairOrderItems(): Promise<any[]> {
+  return fetchAllPages('v1/ro/list')
+}
 
 export async function getOpenPurchaseOrders(): Promise<ERPPurchaseOrder[]> {
   const items = await fetchAllPages('v1/po/list')
@@ -180,8 +206,8 @@ export async function getOpenPurchaseOrders(): Promise<ERPPurchaseOrder[]> {
   return orders
 }
 
-export async function getActiveRepairOrders(limit: number = 50): Promise<ERPRepairOrder[]> {
-  const items = await fetchAllPages('v1/ro/list')
+export async function getActiveRepairOrders(limit: number = 50, prefetchedItems?: any[]): Promise<ERPRepairOrder[]> {
+  const items = prefetchedItems ?? await fetchAllPages('v1/ro/list')
   const orders: ERPRepairOrder[] = []
 
   for (const item of items) {
@@ -207,11 +233,11 @@ export async function getActiveRepairOrders(limit: number = 50): Promise<ERPRepa
   return orders.slice(0, limit)
 }
 
-export async function getNet30PaymentDates(): Promise<{
+export async function getNet30PaymentDates(prefetchedItems?: any[]): Promise<{
   summary: { past_due: number; due_soon: number; upcoming: number }
   orders: Net30Order[]
 }> {
-  const items = await fetchAllPages('v1/ro/list')
+  const items = prefetchedItems ?? await fetchAllPages('v1/ro/list')
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -281,11 +307,11 @@ export async function getNet30PaymentDates(): Promise<{
   }
 }
 
-export async function getFollowupROs(): Promise<{
+export async function getFollowupROs(prefetchedItems?: any[]): Promise<{
   statuses: { Approved: number; Delivered: number }
   orders: FollowupRO[]
 }> {
-  const items = await fetchAllPages('v1/ro/list')
+  const items = prefetchedItems ?? await fetchAllPages('v1/ro/list')
   const orders: FollowupRO[] = []
 
   for (const item of items) {

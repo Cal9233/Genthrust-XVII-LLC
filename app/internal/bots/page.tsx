@@ -9,11 +9,34 @@ import {
   Bell, Shield, Eye, Trash2, CheckCircle,
   Mail, Download, Filter, Send, X, Inbox, MessageCircle,
 } from 'lucide-react'
-import { LineChart, Line } from 'recharts'
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend,
-  BarChart, Bar, XAxis, YAxis,
-} from 'recharts'
+import dynamic from 'next/dynamic'
+
+// Recharts components are dynamically imported to exclude them from the initial
+// JS bundle (~120 KB gzipped). ssr: false is required because Recharts relies
+// on browser-only APIs (ResizeObserver, SVG layout).
+const BotSparklineDynamic = dynamic(
+  () => import('@/components/internal/charts/BotFleetCharts').then((m) => m.BotSparkline),
+  {
+    ssr: false,
+    loading: () => <div className="w-[80px] h-[30px] bg-white/[0.04] rounded animate-pulse" />,
+  }
+)
+
+const SkuPieChartDynamic = dynamic(
+  () => import('@/components/internal/charts/BotMetricsCharts').then((m) => m.SkuPieChart),
+  {
+    ssr: false,
+    loading: () => <div className="w-full h-[260px] bg-white/[0.04] rounded-lg animate-pulse" />,
+  }
+)
+
+const VelocityBarChartDynamic = dynamic(
+  () => import('@/components/internal/charts/BotMetricsCharts').then((m) => m.VelocityBarChart),
+  {
+    ssr: false,
+    loading: () => <div className="w-full h-[320px] bg-white/[0.04] rounded-lg animate-pulse" />,
+  }
+)
 import { StatCard, StatCardSkeleton } from '@/components/internal/StatCard'
 import { StatusDot } from '@/components/internal/DataTable'
 import { DataTable, StatusBadge } from '@/components/internal/DataTable'
@@ -236,13 +259,13 @@ function FadeIn({ children, delay = 0, className = '' }: { children: React.React
 
 function SeverityBadge({ severity }: { severity: string }) {
   const colors: Record<string, string> = {
-    success: 'bg-green-100 text-green-700',
-    warning: 'bg-yellow-100 text-yellow-700',
-    error: 'bg-red-100 text-red-700',
-    info: 'bg-blue-100 text-blue-700',
+    success: 'bg-[#3fb950]/10 text-[#3fb950] border border-[#3fb950]/20',
+    warning: 'bg-[#d29922]/10 text-[#d29922] border border-[#d29922]/20',
+    error: 'bg-[#f85149]/10 text-[#f85149] border border-[#f85149]/20',
+    info: 'bg-[#58a6ff]/10 text-[#58a6ff] border border-[#58a6ff]/20',
   }
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase ${colors[severity] || colors.info}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase ${colors[severity] || colors.info}`}>
       {severity}
     </span>
   )
@@ -250,14 +273,14 @@ function SeverityBadge({ severity }: { severity: string }) {
 
 function BotBadge({ name }: { name: string }) {
   const colors: Record<string, string> = {
-    ils: 'bg-purple-100 text-purple-700',
-    internal: 'bg-blue-100 text-blue-700',
-    sync: 'bg-teal-100 text-teal-700',
-    aog: 'bg-red-100 text-red-700',
-    inventory: 'bg-orange-100 text-orange-700',
+    ils: 'bg-[#a371f7]/10 text-[#a371f7] border border-[#a371f7]/20',
+    internal: 'bg-[#58a6ff]/10 text-[#58a6ff] border border-[#58a6ff]/20',
+    sync: 'bg-[#39d353]/10 text-[#39d353] border border-[#39d353]/20',
+    aog: 'bg-[#f85149]/10 text-[#f85149] border border-[#f85149]/20',
+    inventory: 'bg-[#ffa657]/10 text-[#ffa657] border border-[#ffa657]/20',
   }
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${colors[name] || 'bg-slate-100 text-slate-600'}`}>
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium ${colors[name] || 'bg-white/[0.06] text-[#8b949e] border border-white/[0.08]'}`}>
       {name.toUpperCase()}
     </span>
   )
@@ -265,34 +288,34 @@ function BotBadge({ name }: { name: string }) {
 
 // Inventory Intel components
 const CONDITION_COLORS: Record<string, { bg: string; text: string; border: string; hex: string }> = {
-  NE: { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200', hex: '#22c55e' },
-  OH: { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', hex: '#3b82f6' },
-  SV: { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', hex: '#a855f7' },
-  AR: { bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', hex: '#f97316' },
-  FN: { bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200', hex: '#14b8a6' },
-  RP: { bg: 'bg-pink-100', text: 'text-pink-700', border: 'border-pink-200', hex: '#ec4899' },
-  NS: { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200', hex: '#eab308' },
+  NE: { bg: 'bg-[#3fb950]/10', text: 'text-[#3fb950]', border: 'border-[#3fb950]/20', hex: '#3fb950' },
+  OH: { bg: 'bg-[#58a6ff]/10', text: 'text-[#58a6ff]', border: 'border-[#58a6ff]/20', hex: '#58a6ff' },
+  SV: { bg: 'bg-[#a371f7]/10', text: 'text-[#a371f7]', border: 'border-[#a371f7]/20', hex: '#a371f7' },
+  AR: { bg: 'bg-[#ffa657]/10', text: 'text-[#ffa657]', border: 'border-[#ffa657]/20', hex: '#ffa657' },
+  FN: { bg: 'bg-[#39d353]/10', text: 'text-[#39d353]', border: 'border-[#39d353]/20', hex: '#39d353' },
+  RP: { bg: 'bg-[#f778ba]/10', text: 'text-[#f778ba]', border: 'border-[#f778ba]/20', hex: '#f778ba' },
+  NS: { bg: 'bg-[#d29922]/10', text: 'text-[#d29922]', border: 'border-[#d29922]/20', hex: '#d29922' },
 }
-const DEFAULT_CONDITION = { bg: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200', hex: '#94a3b8' }
+const DEFAULT_CONDITION = { bg: 'bg-white/[0.06]', text: 'text-[#8b949e]', border: 'border-white/[0.08]', hex: '#8b949e' }
 const PIE_FALLBACK_COLORS = ['#06b6d4', '#8b5cf6', '#f43f5e', '#84cc16', '#d946ef', '#0ea5e9']
 
 function conditionColor(cond: string) { return CONDITION_COLORS[cond] || DEFAULT_CONDITION }
 
 function VelocityBadge({ tier }: { tier: string }) {
   if (tier === 'HIGH')
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">HIGH</span>
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f85149]/10 text-[#f85149] border border-[#f85149]/20">HIGH</span>
   if (tier === 'MEDIUM')
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">MEDIUM</span>
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">{tier || 'LOW'}</span>
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ffa657]/10 text-[#ffa657] border border-[#ffa657]/20">MEDIUM</span>
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/[0.06] text-[#8b949e] border border-white/[0.08]">{tier || 'LOW'}</span>
 }
 
 function AlertTypeBadge({ type }: { type: string }) {
   const t = type?.toLowerCase() || ''
   if (t.includes('low') || t.includes('stock'))
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-yellow-100 text-yellow-700">Low Stock</span>
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#d29922]/10 text-[#d29922] border border-[#d29922]/20">Low Stock</span>
   if (t.includes('deplet'))
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Depleted</span>
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">{type}</span>
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f85149]/10 text-[#f85149] border border-[#f85149]/20">Depleted</span>
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#58a6ff]/10 text-[#58a6ff] border border-[#58a6ff]/20">{type}</span>
 }
 
 function ConditionPill({ condition, count }: { condition: string; count: number }) {
@@ -304,41 +327,15 @@ function ConditionPill({ condition, count }: { condition: string; count: number 
   )
 }
 
-function PieTooltipContent({ active, payload }: any) {
-  if (!active || !payload?.length) return null
-  const d = payload[0]
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-slate-900">{d.name}</p>
-      <p className="text-slate-500">{d.value} SKUs</p>
-    </div>
-  )
-}
-
-function BarTooltipContent({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-slate-200 rounded-lg shadow-lg px-3 py-2 text-xs min-w-[140px]">
-      <p className="font-semibold text-slate-900 mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <div key={p.dataKey} className="flex justify-between gap-4">
-          <span style={{ color: p.color }}>{p.name}</span>
-          <span className="font-medium text-slate-700">{p.value}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 // Alarms components
 function ConditionBadge({ condition }: { condition: string }) {
   const colors: Record<string, string> = {
-    NE: 'bg-green-100 text-green-700',
-    OH: 'bg-blue-100 text-blue-700',
-    SV: 'bg-purple-100 text-purple-700',
-    AR: 'bg-orange-100 text-orange-700',
+    NE: 'bg-[#3fb950]/10 text-[#3fb950] border border-[#3fb950]/20',
+    OH: 'bg-[#58a6ff]/10 text-[#58a6ff] border border-[#58a6ff]/20',
+    SV: 'bg-[#a371f7]/10 text-[#a371f7] border border-[#a371f7]/20',
+    AR: 'bg-[#ffa657]/10 text-[#ffa657] border border-[#ffa657]/20',
   }
-  const c = colors[condition] || 'bg-slate-100 text-slate-600'
+  const c = colors[condition] || 'bg-white/[0.06] text-[#8b949e] border border-white/[0.08]'
   return (
     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${c}`}>
       {condition}
@@ -349,15 +346,15 @@ function ConditionBadge({ condition }: { condition: string }) {
 function AlarmTypeBadge({ type }: { type: string }) {
   const t = type?.toUpperCase() || ''
   if (t.includes('OH'))
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">OH Depleted</span>
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#58a6ff]/10 text-[#58a6ff] border border-[#58a6ff]/20">OH Depleted</span>
   if (t.includes('AR'))
-    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700">AR Depleted</span>
-  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">{type}</span>
+    return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ffa657]/10 text-[#ffa657] border border-[#ffa657]/20">AR Depleted</span>
+  return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f85149]/10 text-[#f85149] border border-[#f85149]/20">{type}</span>
 }
 
 function QtyIndicator({ qty }: { qty: number }) {
-  if (qty === 0) return <span className="inline-flex items-center gap-1 text-red-600 font-bold"><AlertTriangle className="w-3 h-3" /> 0</span>
-  return <span className="text-green-600 font-bold">{qty}</span>
+  if (qty === 0) return <span className="inline-flex items-center gap-1 text-[#f85149] font-bold"><AlertTriangle className="w-3 h-3" /> 0</span>
+  return <span className="text-[#3fb950] font-bold">{qty}</span>
 }
 
 // Fleet helpers
@@ -376,20 +373,20 @@ function highlightLogLine(line: string): React.ReactNode {
   const tsMatch = line.match(timestampRe)
   let rest = line
   if (tsMatch) {
-    parts.push(<span key="ts" className="text-slate-500">{tsMatch[0]}</span>)
+    parts.push(<span key="ts" className="text-[#484f58]">{tsMatch[0]}</span>)
     rest = line.slice(tsMatch[0].length)
   }
   const keywordRe = /\b(ERROR|FATAL|EXCEPTION)\b/g
   const warnRe = /\b(WARNING|WARN)\b/g
   const successRe = /\b(SUCCESS|OK|COMPLETED)\b/g
   if (keywordRe.test(rest)) {
-    parts.push(<span key="body" className="text-red-400">{rest}</span>)
+    parts.push(<span key="body" className="text-[#f85149]">{rest}</span>)
   } else if (warnRe.test(rest)) {
-    parts.push(<span key="body" className="text-yellow-400">{rest}</span>)
+    parts.push(<span key="body" className="text-[#d29922]">{rest}</span>)
   } else if (successRe.test(rest)) {
-    parts.push(<span key="body" className="text-green-400">{rest}</span>)
+    parts.push(<span key="body" className="text-[#3fb950]">{rest}</span>)
   } else {
-    parts.push(<span key="body" className="text-slate-300">{rest}</span>)
+    parts.push(<span key="body" className="text-[#8b949e]">{rest}</span>)
   }
   return <>{parts}</>
 }
@@ -450,49 +447,49 @@ function AddInventorySection({ onAdded }: { onAdded: () => void }) {
     } finally { setSubmitting(false) }
   }, [form, onAdded])
 
-  const inputClass = 'w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white'
-  const labelClass = 'block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1'
+  const inputClass = 'w-full px-3 py-2 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58]'
+  const labelClass = 'block text-xs font-semibold text-[#8b949e] uppercase tracking-wider mb-1'
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+    <div className="bg-[#161b22] rounded-xl border border-white/[0.06] overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-slate-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-white/[0.03] transition-colors"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0">
-            <Plus className="w-4 h-4 text-emerald-600" />
+          <div className="w-7 h-7 rounded-lg bg-[#3fb950]/10 flex items-center justify-center flex-shrink-0">
+            <Plus className="w-4 h-4 text-[#3fb950]" />
           </div>
           <div>
-            <span className="text-sm font-semibold text-slate-900">Add Inventory</span>
-            <span className="ml-2 text-xs text-slate-400">Manually add a part to stock</span>
+            <span className="text-sm font-semibold text-[#f0f6fc]">Add Inventory</span>
+            <span className="ml-2 text-xs text-[#484f58]">Manually add a part to stock</span>
           </div>
         </div>
-        <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-4 h-4 text-[#484f58] transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="border-t border-slate-100 px-5 py-5">
+        <div className="border-t border-white/[0.06] px-5 py-5">
           {success && (
-            <div className="flex items-center gap-2 mb-4 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-lg">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-              <p className="text-sm text-emerald-700 font-medium">Part added to inventory successfully.</p>
+            <div className="flex items-center gap-2 mb-4 px-3 py-2.5 bg-[#3fb950]/10 border border-[#3fb950]/20 rounded-lg">
+              <CheckCircle2 className="w-4 h-4 text-[#3fb950] flex-shrink-0" />
+              <p className="text-sm text-[#3fb950] font-medium">Part added to inventory successfully.</p>
             </div>
           )}
           {submitError && (
-            <div className="flex items-center gap-2 mb-4 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-600">{submitError}</p>
+            <div className="flex items-center gap-2 mb-4 px-3 py-2.5 bg-[#f85149]/10 border border-[#f85149]/20 rounded-lg">
+              <AlertCircle className="w-4 h-4 text-[#f85149] flex-shrink-0" />
+              <p className="text-sm text-[#f85149]">{submitError}</p>
             </div>
           )}
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className={labelClass}>Part Number <span className="text-red-500">*</span></label>
+                <label className={labelClass}>Part Number <span className="text-[#f85149]">*</span></label>
                 <input type="text" required value={form.part_number} onChange={set('part_number')} placeholder="e.g. 69-37184-5" className={inputClass} />
               </div>
               <div>
-                <label className={labelClass}>Condition <span className="text-red-500">*</span></label>
+                <label className={labelClass}>Condition <span className="text-[#f85149]">*</span></label>
                 <select required value={form.condition} onChange={set('condition')} className={inputClass}>
                   <option value="">Select condition</option>
                   <option value="NE">NE — New</option>
@@ -505,7 +502,7 @@ function AddInventorySection({ onAdded }: { onAdded: () => void }) {
                 </select>
               </div>
               <div>
-                <label className={labelClass}>Quantity <span className="text-red-500">*</span></label>
+                <label className={labelClass}>Quantity <span className="text-[#f85149]">*</span></label>
                 <input type="number" required min="1" value={form.quantity} onChange={set('quantity')} placeholder="1" className={inputClass} />
               </div>
             </div>
@@ -539,11 +536,11 @@ function AddInventorySection({ onAdded }: { onAdded: () => void }) {
             </div>
             <div className="flex items-center justify-end gap-3">
               <button type="button" onClick={() => { setForm(EMPTY_FORM); setSubmitError(null); setSuccess(false) }}
-                className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+                className="px-4 py-2 text-sm font-medium text-[#8b949e] bg-white/[0.06] rounded-lg hover:bg-white/[0.08] border border-white/[0.06] transition-colors">
                 Clear
               </button>
               <button type="submit" disabled={submitting}
-                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-[#1f6feb] rounded-lg hover:bg-[#388bfd] transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 {submitting ? <><RefreshCw className="w-4 h-4 animate-spin" />Adding…</> : <><Plus className="w-4 h-4" />Add to Inventory</>}
               </button>
             </div>
@@ -638,9 +635,9 @@ function FleetTab() {
       <div className="space-y-8 animate-pulse">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-4 space-y-3">
-              <div className="h-3 w-16 bg-slate-200 rounded" /><div className="h-4 w-24 bg-slate-200 rounded" />
-              <div className="h-3 w-32 bg-slate-100 rounded" /><div className="h-[30px] w-[80px] bg-slate-100 rounded" />
+            <div key={i} className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4 space-y-3">
+              <div className="h-3 w-16 bg-white/[0.06] rounded" /><div className="h-4 w-24 bg-white/[0.06] rounded" />
+              <div className="h-3 w-32 bg-white/[0.04] rounded" /><div className="h-[30px] w-[80px] bg-white/[0.04] rounded" />
             </div>
           ))}
         </div>
@@ -652,9 +649,9 @@ function FleetTab() {
     return (
       <div className="flex items-center justify-center min-h-[30vh]">
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-          <p className="text-red-600 font-medium">{error}</p>
-          <button onClick={loadData} className="mt-3 text-sm text-blue-600 hover:underline">Try again</button>
+          <AlertCircle className="w-10 h-10 text-[#f85149] mx-auto mb-3" />
+          <p className="text-[#f85149] font-medium">{error}</p>
+          <button onClick={loadData} className="mt-3 text-sm text-[#58a6ff] hover:underline">Try again</button>
         </div>
       </div>
     )
@@ -664,13 +661,12 @@ function FleetTab() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-slate-500 text-sm">
+        <p className="text-[#484f58] text-xs font-mono tabular-nums">
           Last refreshed: {lastRefresh.toLocaleTimeString()} (auto-refreshes every 30s)
         </p>
-        <button onClick={loadData} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+        <button onClick={loadData} disabled={loading} aria-label="Refresh fleet"
+          className="p-2 rounded-lg text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.06] border border-white/[0.06] transition-colors disabled:opacity-50">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
         </button>
       </div>
 
@@ -684,27 +680,33 @@ function FleetTab() {
           const isRunning = bot.status === 'RUNNING'
           return (
             <FadeIn key={bot.key} delay={100 + idx * 80}>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow duration-200">
+              <div
+                className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4 hover:border-white/[0.12] transition-all duration-200"
+                style={isRunning ? { boxShadow: '0 0 0 1px rgba(63,185,80,0.12), 0 0 16px rgba(63,185,80,0.06)' } : undefined}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <span
-                      className={`inline-block w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-green-500' : bot.status === 'STOPPED' ? 'bg-red-500' : 'bg-yellow-500'}`}
-                      style={isRunning ? { animation: 'pulseDot 2s ease-in-out infinite' } : undefined}
+                      className={`inline-block w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+                        isRunning
+                          ? 'bg-[#3fb950] bot-running-dot'
+                          : bot.status === 'STOPPED'
+                          ? 'bg-[#f85149]'
+                          : 'bg-[#d29922]'
+                      }`}
                     />
                     <StatusDot status={bot.status} />
                   </div>
                 </div>
-                <h3 className="font-bold text-slate-900 text-sm">{bot.displayName}</h3>
-                <p className="text-xs text-slate-500 mt-1 line-clamp-2">{bot.description}</p>
+                <h3 className="font-bold text-[#f0f6fc] text-sm">{bot.displayName}</h3>
+                <p className="text-xs text-[#8b949e] mt-1 line-clamp-2">{bot.description}</p>
                 {primaryMetric && (
-                  <p className="text-xs text-slate-600 mt-2 font-medium">
-                    {primaryMetric[0]}: <span className="text-slate-900 font-bold">{primaryMetric[1]}</span>
+                  <p className="text-xs text-[#8b949e] mt-2 font-medium">
+                    {primaryMetric[0]}: <span className="text-[#f0f6fc] font-bold">{primaryMetric[1]}</span>
                   </p>
                 )}
                 <div className="mt-3">
-                  <LineChart width={80} height={30} data={sparkData}>
-                    <Line type="monotone" dataKey="v" stroke={isRunning ? '#22c55e' : '#94a3b8'} strokeWidth={1.5} dot={false} />
-                  </LineChart>
+                  <BotSparklineDynamic data={sparkData} isRunning={isRunning} />
                 </div>
               </div>
             </FadeIn>
@@ -733,11 +735,11 @@ function FleetTab() {
               <StatCard icon={Layers} label="Pending Drafts" value={inventory.pendingDrafts} color="purple" />
               <StatCard icon={Activity} label="Committed Stock" value={inventory.committedStock} color="green" />
               <StatCard icon={Bot} label="Total SKUs" value={inventory.totalSkus} color="blue" />
-              <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-xl border border-slate-200/60 p-4">
-                <p className="text-xs text-slate-500 font-medium mb-2">Condition Breakdown</p>
+              <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4">
+                <p className="text-xs text-[#8b949e] font-medium mb-2">Condition Breakdown</p>
                 <div className="flex flex-wrap gap-1">
                   {inventory.conditionBreakdown.map((c) => (
-                    <span key={c.condition} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/70 text-slate-700 border border-slate-200">
+                    <span key={c.condition} className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-white/[0.06] text-[#8b949e] border border-white/[0.08]">
                       {c.condition || 'N/A'}: {c.count}
                     </span>
                   ))}
@@ -752,20 +754,20 @@ function FleetTab() {
       <FadeIn delay={780}><SectionDivider label="Activity & Logs" icon={Terminal} /></FadeIn>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FadeIn delay={840}>
-          <ChartCard title="Notification Feed" icon={Activity} iconColor="text-blue-500" subtitle={`${data?.notifications.length || 0} events`}>
-            <div className="max-h-[400px] overflow-y-auto -mx-5 -mb-5 divide-y divide-slate-100">
+          <ChartCard title="Notification Feed" icon={Activity} iconColor="text-[#58a6ff]" subtitle={`${data?.notifications.length || 0} events`}>
+            <div className="max-h-[400px] overflow-y-auto -mx-5 -mb-5 divide-y divide-white/[0.04]">
               {data?.notifications.map((n, i) => (
-                <div key={i} className="px-5 py-3 hover:bg-slate-50/70 transition-colors">
+                <div key={i} className="px-5 py-3 hover:bg-white/[0.03] transition-colors">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-[10px] text-slate-400 font-mono">{formatDateShort(n.timestamp)}</span>
+                    <span className="text-[10px] text-[#484f58] font-mono">{formatDateShort(n.timestamp)}</span>
                     <BotBadge name={n.bot} />
                     <SeverityBadge severity={n.severity} />
                   </div>
-                  <p className="text-xs text-slate-600 truncate">{n.event}</p>
+                  <p className="text-xs text-[#8b949e] truncate">{n.event}</p>
                 </div>
               ))}
               {(!data?.notifications || data.notifications.length === 0) && (
-                <div className="px-5 py-8 text-center text-slate-400 text-sm">No notifications today</div>
+                <div className="px-5 py-8 text-center text-[#484f58] text-sm">No notifications today</div>
               )}
             </div>
           </ChartCard>
@@ -775,25 +777,25 @@ function FleetTab() {
           <ChartCard
             title="Bot Log Viewer"
             icon={Terminal}
-            iconColor="text-green-500"
+            iconColor="text-[#3fb950]"
             action={
               <div className="relative">
                 <select value={selectedBot} onChange={(e) => setSelectedBot(e.target.value)}
-                  className="text-xs font-medium text-slate-700 bg-slate-100 border border-slate-200 rounded-lg px-3 py-1.5 appearance-none pr-7 cursor-pointer">
+                  className="text-xs font-medium text-[#f0f6fc] bg-[#0b0f14] border border-white/[0.08] rounded-lg px-3 py-1.5 appearance-none pr-7 cursor-pointer focus:outline-none focus:border-[#1f6feb]">
                   {data?.statuses.map((bot) => (
                     <option key={bot.key} value={bot.key}>{bot.displayName}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-3 h-3 text-[#484f58] absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             }
           >
-            <div className="max-h-[400px] overflow-y-auto bg-slate-900 rounded-lg p-4 -mx-1">
+            <div className="max-h-[400px] overflow-y-auto bg-[#0b0f14] rounded-lg p-4 -mx-1">
               {logLoading ? (
-                <div className="text-slate-400 text-xs text-center py-4 animate-pulse">Loading logs...</div>
+                <div className="text-[#484f58] text-xs text-center py-4 animate-pulse">Loading logs...</div>
               ) : (
                 <pre className="text-xs font-mono whitespace-pre-wrap break-all">
-                  {highlightedLog || <span className="text-slate-500">No log content available</span>}
+                  {highlightedLog || <span className="text-[#484f58]">No log content available</span>}
                 </pre>
               )}
             </div>
@@ -804,14 +806,14 @@ function FleetTab() {
       {/* Service Controls */}
       <FadeIn delay={960}><SectionDivider label="Service Controls" icon={RotateCcw} /></FadeIn>
       <FadeIn delay={1020}>
-        <ChartCard title="Restart Services" icon={RotateCcw} iconColor="text-orange-500" subtitle="Manually restart a bot service">
+        <ChartCard title="Restart Services" icon={RotateCcw} iconColor="text-[#ffa657]" subtitle="Manually restart a bot service">
           {restartResult && (
-            <div className="mb-4 p-3 rounded-lg bg-blue-50 text-blue-700 text-sm font-medium">{restartResult}</div>
+            <div className="mb-4 p-3 rounded-lg bg-[#58a6ff]/10 border border-[#58a6ff]/20 text-[#58a6ff] text-sm font-medium">{restartResult}</div>
           )}
           <div className="flex flex-wrap gap-3">
             {data?.statuses.map((bot) => (
               <button key={bot.key} onClick={() => restartBot(bot.key)} disabled={restartingBot === bot.key}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-slate-50 border border-slate-200 rounded-lg hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700 transition-colors disabled:opacity-50">
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#8b949e] bg-white/[0.04] border border-white/[0.06] rounded-lg hover:bg-[#ffa657]/10 hover:border-[#ffa657]/20 hover:text-[#ffa657] transition-colors disabled:opacity-50">
                 <RotateCcw className={`w-3.5 h-3.5 ${restartingBot === bot.key ? 'animate-spin' : ''}`} />
                 Restart {bot.displayName}
               </button>
@@ -928,29 +930,29 @@ function InventoryIntelTab() {
   }, [data?.salesVelocity])
 
   const velocityColumns = [
-    { key: 'part_number', label: 'Part Number', sortable: true, render: (row: VelocityItem) => <span className="font-medium text-slate-900">{row.part_number}</span> },
+    { key: 'part_number', label: 'Part Number', sortable: true, render: (row: VelocityItem) => <span className="font-medium text-[#f0f6fc]">{row.part_number}</span> },
     { key: 'sold_last_7d', label: '7d Sold', align: 'right' as const, sortable: true },
     { key: 'sold_last_30d', label: '30d Sold', align: 'right' as const, sortable: true },
     { key: 'sold_last_90d', label: '90d Sold', align: 'right' as const, sortable: true },
-    { key: 'total_revenue_30d', label: '30d Revenue', align: 'right' as const, sortable: true, render: (row: VelocityItem) => <span className="font-medium">{formatCurrency(row.total_revenue_30d)}</span> },
+    { key: 'total_revenue_30d', label: '30d Revenue', align: 'right' as const, sortable: true, render: (row: VelocityItem) => <span className="font-medium text-[#f0f6fc]">{formatCurrency(row.total_revenue_30d)}</span> },
     { key: 'velocity_tier', label: 'Tier', sortable: true, render: (row: VelocityItem) => <VelocityBadge tier={row.velocity_tier} /> },
   ]
 
   const alertColumns = [
     { key: 'alert_type', label: 'Type', sortable: true, render: (row: InvAlertItem) => <AlertTypeBadge type={row.alert_type} /> },
-    { key: 'part_number', label: 'Part Number', sortable: true, render: (row: InvAlertItem) => <span className="font-medium text-slate-900">{row.part_number}</span> },
-    { key: 'serial_number', label: 'Serial', sortable: true, render: (row: InvAlertItem) => <span className="text-slate-600">{row.serial_number || '—'}</span> },
-    { key: 'details', label: 'Details', render: (row: InvAlertItem) => <span className="text-slate-600 truncate block max-w-[300px]">{row.details}</span> },
-    { key: 'created_at', label: 'Time', sortable: true, render: (row: InvAlertItem) => <span className="text-slate-500 text-xs">{formatDate(row.created_at)}</span> },
+    { key: 'part_number', label: 'Part Number', sortable: true, render: (row: InvAlertItem) => <span className="font-medium text-[#f0f6fc]">{row.part_number}</span> },
+    { key: 'serial_number', label: 'Serial', sortable: true, render: (row: InvAlertItem) => <span className="text-[#8b949e]">{row.serial_number || '—'}</span> },
+    { key: 'details', label: 'Details', render: (row: InvAlertItem) => <span className="text-[#8b949e] truncate block max-w-[300px]">{row.details}</span> },
+    { key: 'created_at', label: 'Time', sortable: true, render: (row: InvAlertItem) => <span className="text-[#484f58] text-xs">{formatDate(row.created_at)}</span> },
   ]
 
   const searchColumns = [
-    { key: 'part_number', label: 'Part Number', sortable: true, render: (row: SearchResult) => <span className="font-medium text-slate-900">{row.part_number}</span> },
-    { key: 'description', label: 'Description', render: (row: SearchResult) => <span className="text-slate-600 truncate block max-w-[200px]">{row.description || '—'}</span> },
+    { key: 'part_number', label: 'Part Number', sortable: true, render: (row: SearchResult) => <span className="font-medium text-[#f0f6fc]">{row.part_number}</span> },
+    { key: 'description', label: 'Description', render: (row: SearchResult) => <span className="text-[#8b949e] truncate block max-w-[200px]">{row.description || '—'}</span> },
     { key: 'condition', label: 'Condition', sortable: true, render: (row: SearchResult) => <ConditionPill condition={row.condition || ''} count={row.quantity} /> },
     { key: 'quantity', label: 'Qty', align: 'right' as const, sortable: true },
-    { key: 'warehouse_code', label: 'Warehouse', sortable: true, render: (row: SearchResult) => <span className="text-slate-600">{row.warehouse_code || '—'}</span> },
-    { key: 'unit_price', label: 'Unit Price', align: 'right' as const, sortable: true, render: (row: SearchResult) => <span className="font-medium">{formatCurrency(row.unit_price)}</span> },
+    { key: 'warehouse_code', label: 'Warehouse', sortable: true, render: (row: SearchResult) => <span className="text-[#8b949e]">{row.warehouse_code || '—'}</span> },
+    { key: 'unit_price', label: 'Unit Price', align: 'right' as const, sortable: true, render: (row: SearchResult) => <span className="font-medium text-[#f0f6fc]">{formatCurrency(row.unit_price)}</span> },
   ]
 
   if (loading && !data) {
@@ -973,9 +975,9 @@ function InventoryIntelTab() {
     return (
       <div className="flex items-center justify-center min-h-[30vh]">
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-          <p className="text-red-600 font-medium">{error}</p>
-          <button onClick={loadData} className="mt-3 text-sm text-blue-600 hover:underline">Try again</button>
+          <AlertCircle className="w-10 h-10 text-[#f85149] mx-auto mb-3" />
+          <p className="text-[#f85149] font-medium">{error}</p>
+          <button onClick={loadData} className="mt-3 text-sm text-[#58a6ff] hover:underline">Try again</button>
         </div>
       </div>
     )
@@ -989,27 +991,26 @@ function InventoryIntelTab() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-slate-500 text-sm">Last refreshed: {lastRefresh.toLocaleTimeString()}</p>
-        <button onClick={loadData} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+        <p className="text-[#484f58] text-xs font-mono tabular-nums">Last refreshed: {lastRefresh.toLocaleTimeString()}</p>
+        <button onClick={loadData} disabled={loading} aria-label="Refresh inventory"
+          className="p-2 rounded-lg text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.06] border border-white/[0.06] transition-colors disabled:opacity-50">
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
         </button>
       </div>
 
       {/* Inventory Search */}
       <FadeIn delay={80}><SectionDivider label="Inventory Search" icon={Search} /></FadeIn>
       <FadeIn delay={120}>
-        <ChartCard title="Inventory Search" icon={Search} iconColor="text-blue-500">
+        <ChartCard title="Inventory Search" icon={Search} iconColor="text-[#58a6ff]">
           <div className="flex gap-3 mb-4">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[#484f58] absolute left-3 top-1/2 -translate-y-1/2" />
               <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by part number..."
-                className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                className="w-full pl-10 pr-4 py-2 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58]" />
             </div>
             <select value={searchCondition} onChange={(e) => setSearchCondition(e.target.value)}
-              className="text-sm border border-slate-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+              className="text-sm border border-white/[0.08] rounded-lg px-3 py-2 bg-[#0b0f14] text-[#f0f6fc] focus:outline-none focus:border-[#1f6feb]">
               <option value="">All Conditions</option>
               <option value="NE">NE — New</option>
               <option value="OH">OH — Overhauled</option>
@@ -1021,11 +1022,11 @@ function InventoryIntelTab() {
           {!searchLoading && searchResults.length > 0 && (
             <>
               <DataTable<SearchResult> columns={searchColumns} data={searchResults} emptyMessage="No results" />
-              <p className="text-xs text-slate-400 mt-2">{searchResults.length} results</p>
+              <p className="text-xs text-[#484f58] mt-2">{searchResults.length} results</p>
             </>
           )}
           {searchQuery && !searchLoading && searchResults.length === 0 && (
-            <div className="text-center py-6 text-slate-400 text-sm">No results found for &ldquo;{searchQuery}&rdquo;</div>
+            <div className="text-center py-6 text-[#484f58] text-sm">No results found for &ldquo;{searchQuery}&rdquo;</div>
           )}
         </ChartCard>
       </FadeIn>
@@ -1039,15 +1040,15 @@ function InventoryIntelTab() {
         <ChartCard title="C Check Part Lookup" icon={FileText} iconColor="text-indigo-500" subtitle="Upload a C Check pre-draw PDF to bulk-check part availability">
           {batchSearchLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4" />
-              <p className="text-sm font-medium text-slate-600">Searching inventory...</p>
-              <p className="text-xs text-slate-400 mt-1">Checking local database and ERP AERO</p>
+              <div className="w-10 h-10 border-4 border-white/[0.08] border-t-[#1f6feb] rounded-full animate-spin mb-4" />
+              <p className="text-sm font-medium text-[#8b949e]">Searching inventory...</p>
+              <p className="text-xs text-[#484f58] mt-1">Checking local database and ERP AERO</p>
             </div>
           ) : batchSearchError ? (
             <div className="flex flex-col items-center justify-center py-12">
-              <AlertCircle className="w-10 h-10 text-red-500 mb-3" />
-              <p className="text-sm font-medium text-red-600">{batchSearchError}</p>
-              <button onClick={resetCCheckState} className="mt-3 text-sm text-blue-600 hover:underline">Try again</button>
+              <AlertCircle className="w-10 h-10 text-[#f85149] mb-3" />
+              <p className="text-sm font-medium text-[#f85149]">{batchSearchError}</p>
+              <button onClick={resetCCheckState} className="mt-3 text-sm text-[#58a6ff] hover:underline">Try again</button>
             </div>
           ) : batchResults ? (
             <InventoryMatchResults results={batchResults} onReset={resetCCheckState} />
@@ -1075,31 +1076,19 @@ function InventoryIntelTab() {
       <FadeIn delay={360}><SectionDivider label="Condition Breakdown" icon={PieChartIcon} /></FadeIn>
       <FadeIn delay={400}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-xl border border-slate-200 p-5 flex flex-col justify-center">
-            <h3 className="text-sm font-semibold text-slate-500 mb-3">By Condition Code</h3>
+          <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-5 flex flex-col justify-center">
+            <h3 className="text-sm font-semibold text-[#8b949e] mb-3">By Condition Code</h3>
             <div className="flex flex-wrap gap-2">
               {data?.conditionBreakdown.map((c) => (
                 <ConditionPill key={c.condition} condition={c.condition} count={c.count} />
               ))}
               {(!data?.conditionBreakdown || data.conditionBreakdown.length === 0) && (
-                <p className="text-sm text-slate-400">No condition data available</p>
+                <p className="text-sm text-[#484f58]">No condition data available</p>
               )}
             </div>
           </div>
-          <ChartCard title="SKU Distribution" icon={PieChartIcon} iconColor="text-purple-500">
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value" nameKey="name" stroke="none">
-                    {pieData.map((_, idx) => (<Cell key={idx} fill={pieColors[idx]} />))}
-                  </Pie>
-                  <RechartsTooltip content={<PieTooltipContent />} />
-                  <Legend verticalAlign="bottom" iconType="circle" iconSize={8} formatter={(value: string) => <span className="text-xs text-slate-600">{value}</span>} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-sm text-slate-400 text-center py-10">No condition data available</p>
-            )}
+          <ChartCard title="SKU Distribution" icon={PieChartIcon} iconColor="text-[#a371f7]">
+            <SkuPieChartDynamic pieData={pieData} pieColors={pieColors} />
           </ChartCard>
         </div>
       </FadeIn>
@@ -1107,21 +1096,8 @@ function InventoryIntelTab() {
       {/* Sales Velocity */}
       <FadeIn delay={480}><SectionDivider label="Sales Velocity" icon={TrendingUp} /></FadeIn>
       <FadeIn delay={520}>
-        <ChartCard title="Top 10 Movers — Units Sold" icon={BarChart3} iconColor="text-teal-500" subtitle="Grouped by 7-day, 30-day, and 90-day windows">
-          {barData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={320}>
-              <BarChart data={barData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
-                <XAxis dataKey="part" tick={{ fontSize: 11, fill: '#64748b' }} angle={-35} textAnchor="end" height={70} interval={0} />
-                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} allowDecimals={false} />
-                <RechartsTooltip content={<BarTooltipContent />} />
-                <Bar dataKey="7d" name="7-day" fill="#3b82f6" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="30d" name="30-day" fill="#8b5cf6" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="90d" name="90-day" fill="#14b8a6" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <p className="text-sm text-slate-400 text-center py-10">No velocity data available</p>
-          )}
+        <ChartCard title="Top 10 Movers — Units Sold" icon={BarChart3} iconColor="text-[#39d353]" subtitle="Grouped by 7-day, 30-day, and 90-day windows">
+          <VelocityBarChartDynamic barData={barData} />
         </ChartCard>
       </FadeIn>
 
@@ -1231,7 +1207,7 @@ function AlarmsTab() {
   if (loading && !data) {
     return (
       <div className="flex items-center justify-center min-h-[30vh]">
-        <div className="flex items-center gap-3 text-slate-500">
+        <div className="flex items-center gap-3 text-[#8b949e]">
           <RefreshCw className="w-5 h-5 animate-spin" />
           <span>Loading inventory alarms...</span>
         </div>
@@ -1243,9 +1219,9 @@ function AlarmsTab() {
     return (
       <div className="flex items-center justify-center min-h-[30vh]">
         <div className="text-center">
-          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
-          <p className="text-red-600 font-medium">{error}</p>
-          <button onClick={loadData} className="mt-3 text-sm text-blue-600 hover:underline">Try again</button>
+          <AlertCircle className="w-10 h-10 text-[#f85149] mx-auto mb-3" />
+          <p className="text-[#f85149] font-medium">{error}</p>
+          <button onClick={loadData} className="mt-3 text-sm text-[#58a6ff] hover:underline">Try again</button>
         </div>
       </div>
     )
@@ -1260,80 +1236,79 @@ function AlarmsTab() {
     <div className="space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-slate-500 text-sm">Last refreshed: {lastRefresh.toLocaleTimeString()}</p>
+        <p className="text-[#484f58] text-xs font-mono tabular-nums">Last refreshed: {lastRefresh.toLocaleTimeString()}</p>
         <div className="flex items-center gap-2">
           <button onClick={runCheck} disabled={checking}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50">
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#f85149]/80 hover:bg-[#f85149] rounded-lg border border-[#f85149]/40 transition-colors disabled:opacity-50">
             <Shield className={`w-4 h-4 ${checking ? 'animate-pulse' : ''}`} />
             {checking ? 'Checking...' : 'Check Now'}
           </button>
-          <button onClick={loadData} disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50">
+          <button onClick={loadData} disabled={loading} aria-label="Refresh alarms"
+            className="p-2 rounded-lg text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.06] border border-white/[0.06] transition-colors disabled:opacity-50">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
           </button>
         </div>
       </div>
 
       {/* Check Result Banner */}
       {checkResult && (
-        <div className={`rounded-xl border p-4 ${checkResult.alarms_triggered > 0 ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+        <div className={`rounded-xl border p-4 ${checkResult.alarms_triggered > 0 ? 'bg-[#f85149]/10 border-[#f85149]/20' : 'bg-[#3fb950]/10 border-[#3fb950]/20'}`}>
           <div className="flex items-center gap-2">
             {checkResult.alarms_triggered > 0
-              ? <AlertTriangle className="w-5 h-5 text-red-600" />
-              : <CheckCircle className="w-5 h-5 text-green-600" />}
-            <span className={`font-medium ${checkResult.alarms_triggered > 0 ? 'text-red-700' : 'text-green-700'}`}>
+              ? <AlertTriangle className="w-5 h-5 text-[#f85149]" />
+              : <CheckCircle className="w-5 h-5 text-[#3fb950]" />}
+            <span className={`font-medium ${checkResult.alarms_triggered > 0 ? 'text-[#f85149]' : 'text-[#3fb950]'}`}>
               Checked {checkResult.checked} parts — {checkResult.alarms_triggered} alarm{checkResult.alarms_triggered !== 1 ? 's' : ''} triggered
             </span>
           </div>
           {checkResult.alarms.length > 0 && (
             <ul className="mt-2 space-y-1">
               {checkResult.alarms.map((a, i) => (
-                <li key={i} className="text-sm text-red-600">
+                <li key={i} className="text-sm text-[#f85149]">
                   {a.part_number} ({a.condition_code}): qty dropped from {a.previous_qty} to {a.current_qty}
                 </li>
               ))}
             </ul>
           )}
-          <button onClick={() => setCheckResult(null)} className="mt-2 text-xs text-slate-500 hover:text-slate-700 underline">Dismiss</button>
+          <button onClick={() => setCheckResult(null)} className="mt-2 text-xs text-[#484f58] hover:text-[#8b949e] underline">Dismiss</button>
         </div>
       )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600"><Eye className="w-5 h-5" /></div>
-            <div><p className="text-xs text-slate-500 font-medium">Watched Parts</p><p className="text-xl font-extrabold text-navy-900">{summary?.watchedParts || 0}</p></div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#58a6ff]/10 text-[#58a6ff]"><Eye className="w-5 h-5" /></div>
+            <div><p className="text-xs text-[#8b949e] font-medium">Watched Parts</p><p className="text-xl font-extrabold text-[#f0f6fc]">{summary?.watchedParts || 0}</p></div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${summary?.activeAlarms ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}><Bell className="w-5 h-5" /></div>
-            <div><p className="text-xs text-slate-500 font-medium">Active Alarms</p><p className="text-xl font-extrabold text-navy-900">{summary?.activeAlarms || 0}</p></div>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${summary?.activeAlarms ? 'bg-[#f85149]/10 text-[#f85149]' : 'bg-[#3fb950]/10 text-[#3fb950]'}`}><Bell className="w-5 h-5" /></div>
+            <div><p className="text-xs text-[#8b949e] font-medium">Active Alarms</p><p className="text-xl font-extrabold text-[#f0f6fc]">{summary?.activeAlarms || 0}</p></div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-50 text-blue-600"><Package className="w-5 h-5" /></div>
-            <div><p className="text-xs text-slate-500 font-medium">OH Watched</p><p className="text-xl font-extrabold text-navy-900">{summary?.ohWatched || 0}</p></div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#58a6ff]/10 text-[#58a6ff]"><Package className="w-5 h-5" /></div>
+            <div><p className="text-xs text-[#8b949e] font-medium">OH Watched</p><p className="text-xl font-extrabold text-[#f0f6fc]">{summary?.ohWatched || 0}</p></div>
           </div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-4">
+        <div className="bg-[#161b22] rounded-xl border border-white/[0.06] p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-orange-50 text-orange-600"><Package className="w-5 h-5" /></div>
-            <div><p className="text-xs text-slate-500 font-medium">AR Watched</p><p className="text-xl font-extrabold text-navy-900">{summary?.arWatched || 0}</p></div>
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-[#ffa657]/10 text-[#ffa657]"><Package className="w-5 h-5" /></div>
+            <div><p className="text-xs text-[#8b949e] font-medium">AR Watched</p><p className="text-xl font-extrabold text-[#f0f6fc]">{summary?.arWatched || 0}</p></div>
           </div>
         </div>
       </div>
 
       {/* Active Alarms Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 text-red-500" />
-          <h2 className="font-bold text-navy-900">Active Alarms</h2>
+      <div className="bg-[#161b22] rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-[#f85149]" />
+          <h2 className="font-bold text-[#f0f6fc]">Active Alarms</h2>
           {unacknowledgedAlarms.length > 0 && (
-            <span className="ml-auto text-xs font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded-full">
+            <span className="ml-auto text-xs font-bold text-[#f85149] bg-[#f85149]/10 border border-[#f85149]/20 px-2 py-0.5 rounded-full">
               {unacknowledgedAlarms.length} unacknowledged
             </span>
           )}
@@ -1341,28 +1316,28 @@ function AlarmsTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 text-left">
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Type</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Part Number</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Details</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Time</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Status</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600"></th>
+              <tr className="bg-white/[0.04] text-left border-b border-white/[0.06]">
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Type</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Part Number</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Details</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Time</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Status</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/[0.04]">
               {unacknowledgedAlarms.map((alarm) => (
-                <tr key={alarm.id} className="hover:bg-red-50/50 transition-colors">
+                <tr key={alarm.id} className="hover:bg-[#f85149]/[0.04] transition-colors">
                   <td className="px-4 py-3"><AlarmTypeBadge type={alarm.alert_type} /></td>
-                  <td className="px-4 py-3 font-medium text-navy-900">{alarm.part_number}</td>
-                  <td className="px-4 py-3 text-slate-600 truncate max-w-[300px]">{alarm.details}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(alarm.created_at)}</td>
+                  <td className="px-4 py-3 font-medium text-[#f0f6fc]">{alarm.part_number}</td>
+                  <td className="px-4 py-3 text-[#8b949e] truncate max-w-[300px]">{alarm.details}</td>
+                  <td className="px-4 py-3 text-[#484f58] text-xs">{formatDate(alarm.created_at)}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700">Unacknowledged</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f85149]/10 text-[#f85149] border border-[#f85149]/20">Unacknowledged</span>
                   </td>
                   <td className="px-4 py-3">
                     <button onClick={() => acknowledgeAlarm(alarm.id)} disabled={actionLoading === `ack-${alarm.id}`}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50">
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#3fb950] bg-[#3fb950]/10 border border-[#3fb950]/20 rounded-lg hover:bg-[#3fb950]/20 transition-colors disabled:opacity-50">
                       <CheckCircle className="w-3 h-3" />
                       {actionLoading === `ack-${alarm.id}` ? 'Ack...' : 'Acknowledge'}
                     </button>
@@ -1370,13 +1345,13 @@ function AlarmsTab() {
                 </tr>
               ))}
               {acknowledgedAlarms.slice(0, 10).map((alarm) => (
-                <tr key={alarm.id} className="hover:bg-slate-50 transition-colors opacity-60">
+                <tr key={alarm.id} className="hover:bg-white/[0.02] transition-colors opacity-50">
                   <td className="px-4 py-3"><AlarmTypeBadge type={alarm.alert_type} /></td>
-                  <td className="px-4 py-3 font-medium text-navy-900">{alarm.part_number}</td>
-                  <td className="px-4 py-3 text-slate-600 truncate max-w-[300px]">{alarm.details}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(alarm.created_at)}</td>
+                  <td className="px-4 py-3 font-medium text-[#f0f6fc]">{alarm.part_number}</td>
+                  <td className="px-4 py-3 text-[#8b949e] truncate max-w-[300px]">{alarm.details}</td>
+                  <td className="px-4 py-3 text-[#484f58] text-xs">{formatDate(alarm.created_at)}</td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-700">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#3fb950]/10 text-[#3fb950] border border-[#3fb950]/20">
                       Ack by {alarm.acknowledged_by}
                     </span>
                   </td>
@@ -1384,7 +1359,7 @@ function AlarmsTab() {
                 </tr>
               ))}
               {(data?.recentAlarms?.length || 0) === 0 && (
-                <tr><td colSpan={6} className="px-4 py-6 text-center text-slate-400">No alarms</td></tr>
+                <tr><td colSpan={6} className="px-4 py-6 text-center text-[#484f58]">No alarms</td></tr>
               )}
             </tbody>
           </table>
@@ -1392,37 +1367,37 @@ function AlarmsTab() {
       </div>
 
       {/* Watchlist Table */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Eye className="w-4 h-4 text-blue-500" />
-          <h2 className="font-bold text-navy-900">Watchlist</h2>
-          <span className="ml-auto text-xs text-slate-400">{data?.watchlist?.length || 0} parts</span>
+      <div className="bg-[#161b22] rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+          <Eye className="w-4 h-4 text-[#58a6ff]" />
+          <h2 className="font-bold text-[#f0f6fc]">Watchlist</h2>
+          <span className="ml-auto text-xs text-[#484f58]">{data?.watchlist?.length || 0} parts</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 text-left">
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Part Number</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Condition</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Description</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600 text-right">Last Qty</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Last Checked</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600">Added By</th>
-                <th className="px-4 py-2.5 font-semibold text-slate-600"></th>
+              <tr className="bg-white/[0.04] text-left border-b border-white/[0.06]">
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Part Number</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Condition</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Description</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider text-right">Last Qty</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Last Checked</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Added By</th>
+                <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-white/[0.04]">
               {data?.watchlist?.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-navy-900">{item.part_number}</td>
+                <tr key={item.id} className="hover:bg-white/[0.03] transition-colors">
+                  <td className="px-4 py-3 font-medium text-[#f0f6fc]">{item.part_number}</td>
                   <td className="px-4 py-3"><ConditionBadge condition={item.condition_code} /></td>
-                  <td className="px-4 py-3 text-slate-600 truncate max-w-[200px]">{item.description || '\u2014'}</td>
+                  <td className="px-4 py-3 text-[#8b949e] truncate max-w-[200px]">{item.description || '\u2014'}</td>
                   <td className="px-4 py-3 text-right"><QtyIndicator qty={item.last_known_qty} /></td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{formatDate(item.last_checked_at)}</td>
-                  <td className="px-4 py-3 text-slate-500 text-xs">{item.added_by}</td>
+                  <td className="px-4 py-3 text-[#484f58] text-xs">{formatDate(item.last_checked_at)}</td>
+                  <td className="px-4 py-3 text-[#484f58] text-xs">{item.added_by}</td>
                   <td className="px-4 py-3">
                     <button onClick={() => removeFromWatchlist(item.id)} disabled={actionLoading === `rm-${item.id}`}
-                      className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50">
+                      className="flex items-center gap-1 px-2 py-1.5 text-xs font-medium text-[#f85149] hover:bg-[#f85149]/10 rounded-lg transition-colors disabled:opacity-50">
                       <Trash2 className="w-3 h-3" />
                       {actionLoading === `rm-${item.id}` ? '...' : 'Remove'}
                     </button>
@@ -1430,7 +1405,7 @@ function AlarmsTab() {
                 </tr>
               ))}
               {(!data?.watchlist || data.watchlist.length === 0) && (
-                <tr><td colSpan={7} className="px-4 py-6 text-center text-slate-400">No parts being watched</td></tr>
+                <tr><td colSpan={7} className="px-4 py-6 text-center text-[#484f58]">No parts being watched</td></tr>
               )}
             </tbody>
           </table>
@@ -1438,59 +1413,59 @@ function AlarmsTab() {
       </div>
 
       {/* Add to Watchlist */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2">
-          <Plus className="w-4 h-4 text-green-500" />
-          <h2 className="font-bold text-navy-900">Add to Watchlist</h2>
+      <div className="bg-[#161b22] rounded-xl border border-white/[0.06] overflow-hidden">
+        <div className="px-5 py-4 border-b border-white/[0.06] flex items-center gap-2">
+          <Plus className="w-4 h-4 text-[#3fb950]" />
+          <h2 className="font-bold text-[#f0f6fc]">Add to Watchlist</h2>
         </div>
         <div className="p-5">
           <div className="flex gap-3 mb-4">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-[#484f58] absolute left-3 top-1/2 -translate-y-1/2" />
               <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search ERP parts by part number..."
-                className="w-full pl-10 pr-4 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                className="w-full pl-10 pr-4 py-2 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58]" />
             </div>
           </div>
-          {searchLoading && <div className="text-center py-4 text-slate-400 text-sm">Searching ERP...</div>}
+          {searchLoading && <div className="text-center py-4 text-[#484f58] text-sm">Searching ERP...</div>}
           {searchResults.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 text-left">
-                    <th className="px-4 py-2.5 font-semibold text-slate-600">Part Number</th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600">Description</th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600">Condition</th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 text-right">Qty</th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600 text-right">Price</th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600">Warehouse</th>
-                    <th className="px-4 py-2.5 font-semibold text-slate-600"></th>
+                  <tr className="bg-white/[0.04] text-left border-b border-white/[0.06]">
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Part Number</th>
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Description</th>
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Condition</th>
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider text-right">Qty</th>
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider text-right">Price</th>
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider">Warehouse</th>
+                    <th className="px-4 py-2.5 font-semibold text-[#8b949e] uppercase text-xs tracking-wider"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-white/[0.04]">
                   {searchResults.map((part, i) => {
                     const isWatched = watchedPartKeys.has(`${part.part_number}|${part.condition}`)
                     return (
-                      <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-4 py-3 font-medium text-navy-900">{part.part_number}</td>
-                        <td className="px-4 py-3 text-slate-600 truncate max-w-[200px]">{part.description || '\u2014'}</td>
+                      <tr key={i} className="hover:bg-white/[0.03] transition-colors">
+                        <td className="px-4 py-3 font-medium text-[#f0f6fc]">{part.part_number}</td>
+                        <td className="px-4 py-3 text-[#8b949e] truncate max-w-[200px]">{part.description || '\u2014'}</td>
                         <td className="px-4 py-3">{part.condition ? <ConditionBadge condition={part.condition} /> : '\u2014'}</td>
                         <td className="px-4 py-3 text-right"><QtyIndicator qty={part.quantity} /></td>
-                        <td className="px-4 py-3 text-right font-medium">{formatCurrency(part.unit_price)}</td>
-                        <td className="px-4 py-3 text-slate-600">{part.warehouse || '\u2014'}</td>
+                        <td className="px-4 py-3 text-right font-medium text-[#f0f6fc]">{formatCurrency(part.unit_price)}</td>
+                        <td className="px-4 py-3 text-[#8b949e]">{part.warehouse || '\u2014'}</td>
                         <td className="px-4 py-3">
                           {part.condition ? (
                             isWatched ? (
-                              <span className="text-xs text-green-600 font-medium flex items-center gap-1"><Eye className="w-3 h-3" /> Watching</span>
+                              <span className="text-xs text-[#3fb950] font-medium flex items-center gap-1"><Eye className="w-3 h-3" /> Watching</span>
                             ) : (
                               <button onClick={() => addToWatchlist(part)} disabled={actionLoading === `add-${part.part_number}-${part.condition}`}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50">
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[#58a6ff] bg-[#58a6ff]/10 border border-[#58a6ff]/20 rounded-lg hover:bg-[#58a6ff]/20 transition-colors disabled:opacity-50">
                                 <Plus className="w-3 h-3" />
                                 {actionLoading === `add-${part.part_number}-${part.condition}` ? 'Adding...' : 'Watch'}
                               </button>
                             )
                           ) : (
-                            <span className="text-xs text-slate-400">No condition</span>
+                            <span className="text-xs text-[#484f58]">No condition</span>
                           )}
                         </td>
                       </tr>
@@ -1498,11 +1473,11 @@ function AlarmsTab() {
                   })}
                 </tbody>
               </table>
-              <p className="text-xs text-slate-400 mt-2 px-4">{searchResults.length} results from ERP</p>
+              <p className="text-xs text-[#484f58] mt-2 px-4">{searchResults.length} results from ERP</p>
             </div>
           )}
           {searchQuery && !searchLoading && searchResults.length === 0 && (
-            <div className="text-center py-6 text-slate-400 text-sm">No ERP results for &ldquo;{searchQuery}&rdquo;</div>
+            <div className="text-center py-6 text-[#484f58] text-sm">No ERP results for &ldquo;{searchQuery}&rdquo;</div>
           )}
         </div>
       </div>
@@ -1609,23 +1584,23 @@ function QuotesTab() {
       key: 'sender_email', label: 'From', sortable: true,
       render: (row: QuoteRequest) => (
         <div>
-          <div className="font-medium text-slate-900 truncate max-w-[180px]">{row.sender_name || row.sender_email}</div>
-          {row.sender_name && <div className="text-xs text-slate-400 truncate max-w-[180px]">{row.sender_email}</div>}
+          <div className="font-medium text-[#f0f6fc] truncate max-w-[180px]">{row.sender_name || row.sender_email}</div>
+          {row.sender_name && <div className="text-xs text-[#484f58] truncate max-w-[180px]">{row.sender_email}</div>}
         </div>
       ),
     },
     {
       key: 'subject', label: 'Subject', sortable: true,
-      render: (row: QuoteRequest) => <div className="max-w-[250px] truncate text-slate-700" title={row.subject}>{row.subject}</div>,
+      render: (row: QuoteRequest) => <div className="max-w-[250px] truncate text-[#8b949e]" title={row.subject}>{row.subject}</div>,
     },
     {
       key: 'part_numbers', label: 'Parts',
       render: (row: QuoteRequest) => (
         <div className="flex flex-wrap gap-1 max-w-[200px]">
           {(row.part_numbers || []).slice(0, 3).map((pn) => (
-            <span key={pn} className="inline-block px-1.5 py-0.5 bg-slate-100 text-slate-700 text-xs rounded font-mono">{pn}</span>
+            <span key={pn} className="inline-block px-1.5 py-0.5 bg-white/[0.06] text-[#8b949e] border border-white/[0.08] text-xs rounded font-mono">{pn}</span>
           ))}
-          {(row.part_numbers || []).length > 3 && <span className="text-xs text-slate-400">+{row.part_numbers.length - 3}</span>}
+          {(row.part_numbers || []).length > 3 && <span className="text-xs text-[#484f58]">+{row.part_numbers.length - 3}</span>}
         </div>
       ),
     },
@@ -1635,7 +1610,7 @@ function QuotesTab() {
     },
     {
       key: 'received_at', label: 'Received', sortable: true,
-      render: (row: QuoteRequest) => <span className="text-xs text-slate-500 whitespace-nowrap">{formatDate(row.received_at)}</span>,
+      render: (row: QuoteRequest) => <span className="text-xs text-[#484f58] whitespace-nowrap">{formatDate(row.received_at)}</span>,
     },
     {
       key: 'actions', label: '', align: 'right' as const,
@@ -1643,7 +1618,7 @@ function QuotesTab() {
         <div className="flex items-center gap-1">
           {row.status === 'pending' && (
             <button onClick={(e) => { e.stopPropagation(); handleStatusChange(row.id, 'processed') }}
-              className="p-1 text-blue-500 hover:bg-blue-50 rounded transition-colors" title="Mark as processed">
+              className="p-1 text-[#58a6ff] hover:bg-[#58a6ff]/10 rounded transition-colors" title="Mark as processed">
               <CheckCircle className="w-4 h-4" />
             </button>
           )}
@@ -1664,15 +1639,15 @@ function QuotesTab() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-slate-500 text-sm">Manage incoming quote requests from email</p>
+        <p className="text-[#8b949e] text-sm">Manage incoming quote requests from email</p>
         <div className="flex items-center gap-2">
           <button onClick={handleSync} disabled={syncing}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1f6feb] text-white text-sm font-medium rounded-lg hover:bg-[#388bfd] disabled:opacity-50 transition-colors">
             <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
             Sync Emails
           </button>
           <button onClick={handleExport}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white text-slate-700 text-sm font-medium rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors">
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/[0.04] text-[#8b949e] text-sm font-medium rounded-lg border border-white/[0.06] hover:bg-white/[0.08] hover:text-[#f0f6fc] transition-colors">
             <Download className="w-4 h-4" />
             Export CSV
           </button>
@@ -1681,7 +1656,7 @@ function QuotesTab() {
 
       {/* Error Banner */}
       {error && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <div className="flex items-center gap-2 px-4 py-3 bg-[#f85149]/10 border border-[#f85149]/20 rounded-lg text-sm text-[#f85149]">
           <AlertCircle className="w-4 h-4 flex-shrink-0" />
           {error}
           <button onClick={() => setError('')} className="ml-auto"><X className="w-4 h-4" /></button>
@@ -1699,71 +1674,71 @@ function QuotesTab() {
       <ChartCard
         title="Quote Requests"
         icon={Mail}
-        iconColor="text-blue-500"
+        iconColor="text-[#58a6ff]"
         action={
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#484f58]" />
             <input type="text" placeholder="Search quotes..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 w-56" />
+              className="pl-9 pr-3 py-1.5 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58] w-56" />
           </div>
         }
       >
-        <div className="flex items-center gap-1 mb-4 border-b border-slate-100 -mx-5 px-5">
+        <div className="flex items-center gap-1 mb-4 border-b border-white/[0.06] -mx-5 px-5">
           {filterTabs.map((tab) => (
             <button key={tab.key} onClick={() => setStatusFilter(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${statusFilter === tab.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors ${statusFilter === tab.key ? 'border-[#1f6feb] text-[#58a6ff]' : 'border-transparent text-[#484f58] hover:text-[#8b949e]'}`}>
               {tab.label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+              <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusFilter === tab.key ? 'bg-[#1f6feb]/20 text-[#58a6ff]' : 'bg-white/[0.06] text-[#484f58]'}`}>
                 {tab.count}
               </span>
             </button>
           ))}
         </div>
-        <DataTable columns={columns} data={quotes} loading={loading} onRowClick={openDetail} emptyMessage="No quote requests found" emptyIcon={<Inbox className="w-8 h-8 text-slate-300" />} />
+        <DataTable columns={columns} data={quotes} loading={loading} onRowClick={openDetail} emptyMessage="No quote requests found" emptyIcon={<Inbox className="w-8 h-8 text-[#484f58]" />} />
       </ChartCard>
 
       {/* Detail Side Panel */}
       {selectedQuote && (
         <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/30" onClick={() => { setSelectedQuote(null); setShowCompose(false) }} />
-          <div className="relative w-full max-w-lg bg-white shadow-xl overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+          <div className="absolute inset-0 bg-black/60" onClick={() => { setSelectedQuote(null); setShowCompose(false) }} />
+          <div className="relative w-full max-w-lg bg-[#161b22] border-l border-white/[0.06] shadow-2xl overflow-y-auto">
+            <div className="sticky top-0 bg-[#161b22] border-b border-white/[0.06] px-6 py-4 flex items-center justify-between z-10">
               <div>
-                <h2 className="font-bold text-slate-900 truncate max-w-[300px]">{selectedQuote.subject}</h2>
-                <p className="text-xs text-slate-500 mt-0.5">From: {selectedQuote.sender_name || selectedQuote.sender_email}</p>
+                <h2 className="font-bold text-[#f0f6fc] truncate max-w-[300px]">{selectedQuote.subject}</h2>
+                <p className="text-xs text-[#8b949e] mt-0.5">From: {selectedQuote.sender_name || selectedQuote.sender_email}</p>
               </div>
-              <button onClick={() => { setSelectedQuote(null); setShowCompose(false) }} className="p-1 hover:bg-slate-100 rounded">
-                <X className="w-5 h-5 text-slate-500" />
+              <button onClick={() => { setSelectedQuote(null); setShowCompose(false) }} className="p-1 hover:bg-white/[0.06] rounded">
+                <X className="w-5 h-5 text-[#8b949e]" />
               </button>
             </div>
             <div className="px-6 py-5 space-y-6">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Status</p>
+                  <p className="text-xs text-[#484f58] font-medium mb-1">Status</p>
                   <StatusBadge status={statusMap[selectedQuote.status] || selectedQuote.status} />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Received</p>
-                  <p className="text-slate-700">{formatDate(selectedQuote.received_at)}</p>
+                  <p className="text-xs text-[#484f58] font-medium">Received</p>
+                  <p className="text-[#f0f6fc]">{formatDate(selectedQuote.received_at)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Sender Email</p>
-                  <p className="text-slate-700 truncate">{selectedQuote.sender_email}</p>
+                  <p className="text-xs text-[#484f58] font-medium">Sender Email</p>
+                  <p className="text-[#8b949e] truncate">{selectedQuote.sender_email}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400 font-medium">Processed</p>
-                  <p className="text-slate-700">{formatDate(selectedQuote.processed_at)}</p>
+                  <p className="text-xs text-[#484f58] font-medium">Processed</p>
+                  <p className="text-[#8b949e]">{formatDate(selectedQuote.processed_at)}</p>
                 </div>
               </div>
 
               <div>
-                <p className="text-xs text-slate-400 font-medium mb-2">Part Numbers</p>
+                <p className="text-xs text-[#484f58] font-medium mb-2">Part Numbers</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(selectedQuote.part_numbers || []).map((pn) => (
-                    <span key={pn} className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded font-mono">{pn}</span>
+                    <span key={pn} className="px-2 py-1 bg-white/[0.06] text-[#8b949e] border border-white/[0.08] text-xs rounded font-mono">{pn}</span>
                   ))}
                   {(!selectedQuote.part_numbers || selectedQuote.part_numbers.length === 0) && (
-                    <span className="text-xs text-slate-400">No part numbers extracted</span>
+                    <span className="text-xs text-[#484f58]">No part numbers extracted</span>
                   )}
                 </div>
               </div>
@@ -1771,40 +1746,40 @@ function QuotesTab() {
               <div className="flex items-center gap-2">
                 {selectedQuote.status === 'pending' && (
                   <button onClick={() => handleStatusChange(selectedQuote.id, 'processed')}
-                    className="px-3 py-1.5 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors">
+                    className="px-3 py-1.5 bg-[#58a6ff]/10 text-[#58a6ff] border border-[#58a6ff]/20 text-sm font-medium rounded-lg hover:bg-[#58a6ff]/20 transition-colors">
                     Mark Processed
                   </button>
                 )}
                 <button onClick={() => { setShowCompose(true); setComposeSubject(`Re: ${selectedQuote.subject}`) }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 text-sm font-medium rounded-lg hover:bg-green-100 transition-colors">
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#3fb950]/10 text-[#3fb950] border border-[#3fb950]/20 text-sm font-medium rounded-lg hover:bg-[#3fb950]/20 transition-colors">
                   <Send className="w-3.5 h-3.5" />
                   Send Response
                 </button>
               </div>
 
               <div>
-                <p className="text-xs text-slate-400 font-medium mb-2">Response History</p>
+                <p className="text-xs text-[#484f58] font-medium mb-2">Response History</p>
                 {detailLoading ? (
-                  <div className="animate-pulse space-y-2"><div className="h-16 bg-slate-100 rounded" /></div>
+                  <div className="animate-pulse space-y-2"><div className="h-16 bg-white/[0.04] rounded" /></div>
                 ) : quoteResponses.length === 0 ? (
-                  <p className="text-sm text-slate-400">No responses yet</p>
+                  <p className="text-sm text-[#484f58]">No responses yet</p>
                 ) : (
                   <div className="space-y-3">
                     {quoteResponses.map((r) => (
-                      <div key={r.id} className="border border-slate-100 rounded-lg p-3 text-sm">
+                      <div key={r.id} className="border border-white/[0.06] bg-white/[0.03] rounded-lg p-3 text-sm">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-slate-700">{r.sent_by}</span>
-                          <span className="text-xs text-slate-400">{formatDate(r.sent_at)}</span>
+                          <span className="font-medium text-[#f0f6fc]">{r.sent_by}</span>
+                          <span className="text-xs text-[#484f58]">{formatDate(r.sent_at)}</span>
                         </div>
                         {r.part_number && (
-                          <p className="text-xs text-slate-500">
-                            Part: <span className="font-mono">{r.part_number}</span>
+                          <p className="text-xs text-[#8b949e]">
+                            Part: <span className="font-mono text-[#f0f6fc]">{r.part_number}</span>
                             {r.price_quoted != null && ` — $${Number(r.price_quoted).toFixed(2)}`}
                             {r.availability && ` — ${r.availability}`}
                           </p>
                         )}
                         {r.response_text && (
-                          <p className="mt-2 text-xs text-slate-600 line-clamp-3">
+                          <p className="mt-2 text-xs text-[#8b949e] line-clamp-3">
                             {stripHtml(r.response_text).substring(0, 300)}
                           </p>
                         )}
@@ -1815,21 +1790,21 @@ function QuotesTab() {
               </div>
 
               {showCompose && (
-                <div className="border border-blue-200 rounded-lg p-4 bg-blue-50/30 space-y-3">
+                <div className="border border-[#1f6feb]/30 rounded-lg p-4 bg-[#1f6feb]/[0.06] space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-sm text-slate-900">Compose Email Response</h3>
-                    <button onClick={() => setShowCompose(false)} className="p-1 hover:bg-slate-100 rounded">
-                      <X className="w-4 h-4 text-slate-400" />
+                    <h3 className="font-bold text-sm text-[#f0f6fc]">Compose Email Response</h3>
+                    <button onClick={() => setShowCompose(false)} className="p-1 hover:bg-white/[0.06] rounded">
+                      <X className="w-4 h-4 text-[#8b949e]" />
                     </button>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500 font-medium">To</label>
-                    <p className="text-sm text-slate-700">{selectedQuote.sender_email}</p>
+                    <label className="text-xs text-[#8b949e] font-medium">To</label>
+                    <p className="text-sm text-[#f0f6fc]">{selectedQuote.sender_email}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-slate-500 font-medium">Template</label>
+                    <label className="text-xs text-[#8b949e] font-medium">Template</label>
                     <select value={composeTemplate} onChange={(e) => setComposeTemplate(e.target.value)}
-                      className="mt-1 w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400">
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc]">
                       <option value="partFound">Parts Found</option>
                       <option value="partNotFound">Parts Not Found</option>
                       <option value="mixedResults">Mixed Results</option>
@@ -1839,29 +1814,29 @@ function QuotesTab() {
                   {composeTemplate === 'custom' && (
                     <>
                       <div>
-                        <label className="text-xs text-slate-500 font-medium">Subject</label>
+                        <label className="text-xs text-[#8b949e] font-medium">Subject</label>
                         <input type="text" value={composeSubject} onChange={(e) => setComposeSubject(e.target.value)}
-                          className="mt-1 w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400" />
+                          className="mt-1 w-full px-3 py-1.5 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc]" />
                       </div>
                       <div>
-                        <label className="text-xs text-slate-500 font-medium">Message</label>
+                        <label className="text-xs text-[#8b949e] font-medium">Message</label>
                         <textarea value={composeMessage} onChange={(e) => setComposeMessage(e.target.value)} rows={5}
-                          className="mt-1 w-full px-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
+                          className="mt-1 w-full px-3 py-1.5 text-sm border border-white/[0.08] rounded-lg focus:outline-none focus:border-[#1f6feb] bg-[#0b0f14] text-[#f0f6fc] placeholder-[#484f58] resize-none"
                           placeholder="Type your response..." />
                       </div>
                     </>
                   )}
                   {composeTemplate !== 'custom' && (
-                    <p className="text-xs text-slate-500 italic">Email will be auto-generated using the selected template with the quote&apos;s part numbers.</p>
+                    <p className="text-xs text-[#484f58] italic">Email will be auto-generated using the selected template with the quote&apos;s part numbers.</p>
                   )}
                   <div className="flex items-center gap-2 pt-1">
                     <button onClick={handleSendEmail} disabled={sending || (composeTemplate === 'custom' && !composeMessage)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#1f6feb] text-white text-sm font-medium rounded-lg hover:bg-[#388bfd] disabled:opacity-50 transition-colors">
                       <Send className="w-3.5 h-3.5" />
                       {sending ? 'Sending...' : 'Send Email'}
                     </button>
                     <button onClick={() => setShowCompose(false)}
-                      className="px-4 py-2 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-100 transition-colors">
+                      className="px-4 py-2 text-[#8b949e] text-sm font-medium rounded-lg hover:bg-white/[0.06] transition-colors">
                       Cancel
                     </button>
                   </div>
@@ -1896,52 +1871,36 @@ export default function BotsPage() {
   const [activeTab, setActiveTab] = useState<SubTab>('fleet')
 
   return (
-    <>
-      <style>{`
-        @keyframes fadeSlideIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes pulseDot {
-          0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,197,94,.6); }
-          50%       { opacity: .85; box-shadow: 0 0 0 4px rgba(34,197,94,0); }
-        }
-      `}</style>
-
-      <div className="space-y-6">
+    <div className="space-y-6" style={{ animation: 'fadeInUp 0.2s ease-out both' }}>
         {/* Page header */}
         <div>
-          <h1 className="text-3xl font-extrabold text-slate-900">Bot Operations</h1>
+          <h1 className="text-2xl font-bold text-[#f0f6fc]">Bot Operations</h1>
         </div>
 
         {/* Sub-tab nav */}
         <nav
-          className="border-b border-slate-200 flex items-center gap-0 overflow-x-auto"
+          className="flex items-center gap-1 overflow-x-auto"
           aria-label="Bot sub-navigation"
         >
-          {SUB_TABS.map((tab) => {
-            const isActive = activeTab === tab.key
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                aria-current={isActive ? 'page' : undefined}
-                className={`relative flex items-center px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
-                  isActive
-                    ? 'text-navy-700'
-                    : 'text-slate-500 hover:text-navy-600'
-                }`}
-              >
-                {tab.label}
-                {isActive && (
-                  <span
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-navy-600"
-                    aria-hidden="true"
-                  />
-                )}
-              </button>
-            )
-          })}
+          <div className="inline-flex items-center bg-white/[0.05] rounded-lg p-0.5 border border-white/[0.06]">
+            {SUB_TABS.map((tab) => {
+              const isActive = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative flex items-center px-4 py-1.5 text-sm font-medium whitespace-nowrap rounded-md transition-all duration-150 ${
+                    isActive
+                      ? 'bg-[#1f6feb] text-white shadow-sm'
+                      : 'text-[#8b949e] hover:text-[#f0f6fc]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
         </nav>
 
         {/* Sub-tab content */}
@@ -1952,6 +1911,5 @@ export default function BotsPage() {
           {activeTab === 'quotes' && <QuotesTab />}
         </div>
       </div>
-    </>
   )
 }

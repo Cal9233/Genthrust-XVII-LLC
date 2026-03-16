@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { getAllBotStatuses, getBotMetrics, getNotificationFeed } from '@/lib/bot-helpers'
+import { getAllBotStatusesAsync, getBotMetrics, getNotificationFeed } from '@/lib/bot-helpers'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
@@ -10,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const statuses = getAllBotStatuses()
+    const statuses = await getAllBotStatusesAsync()
 
     const metrics: Record<string, Record<string, number>> = {}
     for (const bot of statuses) {

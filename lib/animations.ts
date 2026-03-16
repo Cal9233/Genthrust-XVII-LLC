@@ -1,11 +1,65 @@
 import { Variants, Transition } from 'framer-motion'
+import { useReducedMotion as useFramerReducedMotion } from 'framer-motion'
 
-// Utility to check for reduced motion preference
+// Utility to check for reduced motion preference (synchronous, SSR-safe)
 export const getReducedMotionTransition = (normalTransition: Transition): Transition => {
   if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     return { duration: 0 }
   }
   return normalTransition
+}
+
+/**
+ * Returns a reduced-motion-safe version of a Variants object.
+ * All transitions are replaced with { duration: 0 } so elements snap
+ * immediately into their visible state without movement.
+ */
+function toInstantVariants(variants: Variants): Variants {
+  const instant: Variants = {}
+  for (const [key, def] of Object.entries(variants)) {
+    if (typeof def === 'object' && def !== null) {
+      const { transition: _t, x: _x, y: _y, scale: _s, rotate: _r, ...rest } = def as Record<string, unknown>
+      instant[key] = { ...rest, transition: { duration: 0 } }
+    } else {
+      instant[key] = def
+    }
+  }
+  return instant
+}
+
+/**
+ * Hook: returns all animation variant sets, respecting prefers-reduced-motion.
+ * When reduced motion is active every variant becomes an instant fade
+ * (no translate, no scale, no rotate) with duration 0.
+ *
+ * Usage in any 'use client' component / page:
+ *   const anim = useAnimationVariants()
+ *   <motion.div variants={anim.fadeInUp} ...>
+ */
+export function useAnimationVariants() {
+  const reduce = useFramerReducedMotion()
+
+  const maybe = <T extends Variants>(v: T): T =>
+    reduce ? (toInstantVariants(v) as T) : v
+
+  return {
+    fadeIn: maybe(fadeIn),
+    fadeInUp: maybe(fadeInUp),
+    slideInLeft: maybe(slideInLeft),
+    slideInRight: maybe(slideInRight),
+    slideInUp: maybe(slideInUp),
+    slideInDown: maybe(slideInDown),
+    staggerContainer: maybe(staggerContainer),
+    staggerItem: maybe(staggerItem),
+    staggerGrid: maybe(staggerGrid),
+    timelineAnimation: maybe(timelineAnimation),
+    scaleIn: maybe(scaleIn),
+    cardHover: maybe(cardHover),
+    liftEffect: maybe(liftEffect),
+    hudFadeIn: maybe(hudFadeIn),
+    glassReveal: maybe(glassReveal),
+    iconBounce: maybe(iconBounce),
+  }
 }
 
 // Scroll-triggered animations

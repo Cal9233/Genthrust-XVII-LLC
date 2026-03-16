@@ -20,6 +20,7 @@
  *   - get_client_orders: Orders filtered by company
  */
 
+import crypto from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import createMcpHandler from "@vercel/mcp-adapter/next";
 import { z } from "zod";
@@ -33,15 +34,28 @@ export const dynamic = 'force-dynamic'
 function checkAuth(request: Request): boolean {
   const apiKey = process.env.MCP_API_KEY;
   if (!apiKey) {
-    // No key configured — deny by default unless explicitly opted in
-    return process.env.MCP_ALLOW_UNAUTHENTICATED === 'true';
+    // No key configured — fail closed. MCP_API_KEY is required.
+    return false;
   }
 
   const authHeader = request.headers.get("authorization");
   if (!authHeader) return false;
 
-  const token = authHeader.replace("Bearer ", "");
-  return token === apiKey;
+  // Proper Bearer parsing: split on first space only
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer" || !parts[1]) return false;
+
+  const token = parts[1];
+
+  // Timing-safe comparison to prevent timing attacks
+  try {
+    const tokenBuf = Buffer.from(token, "utf-8");
+    const keyBuf = Buffer.from(apiKey, "utf-8");
+    if (tokenBuf.length !== keyBuf.length) return false;
+    return crypto.timingSafeEqual(tokenBuf, keyBuf);
+  } catch {
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { inventoryQuery } from '@/lib/inventory-db'
-import { getAllBotStatuses } from '@/lib/bot-helpers'
+import { getAllBotStatusesAsync } from '@/lib/bot-helpers'
 export const dynamic = 'force-dynamic'
 
 async function safeCount(sql: string, useInventoryDb = false): Promise<Record<string, any>> {
@@ -62,7 +62,7 @@ export async function GET() {
     // Bot statuses — synchronous (reads Windows service state)
     let botSummary = { total: 0, running: 0, stopped: 0 }
     try {
-      const statuses = getAllBotStatuses()
+      const statuses = await getAllBotStatusesAsync()
       botSummary = {
         total: statuses.length,
         running: statuses.filter(b => b.status === 'RUNNING').length,

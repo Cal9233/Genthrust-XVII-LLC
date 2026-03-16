@@ -1,14 +1,23 @@
 import mysql from 'mysql2/promise'
 
-// Second MySQL pool for bot inventory database (genthrust_inventory on port 3306)
-let pool: mysql.Pool | null = null
+// Cache pool in globalThis to survive module re-evaluation in Next.js
+const globalForInventoryDb = globalThis as unknown as {
+  inventoryMysqlPool: mysql.Pool | undefined
+}
 
 export function getInventoryPool(): mysql.Pool {
-  if (!pool) {
-    pool = mysql.createPool({
+  if (!globalForInventoryDb.inventoryMysqlPool) {
+    if (!process.env.BOT_DB_USER) {
+      throw new Error(
+        'BOT_DB_USER environment variable is required for inventory database connection. ' +
+        'Set it in your .env file.'
+      )
+    }
+
+    globalForInventoryDb.inventoryMysqlPool = mysql.createPool({
       host: process.env.BOT_DB_HOST || 'localhost',
       port: parseInt(process.env.BOT_DB_PORT || '3306'),
-      user: process.env.BOT_DB_USER || 'root',
+      user: process.env.BOT_DB_USER,
       password: process.env.BOT_DB_PASSWORD || '',
       database: process.env.BOT_DB_NAME || 'genthrust_inventory',
       waitForConnections: true,
@@ -17,7 +26,7 @@ export function getInventoryPool(): mysql.Pool {
       connectTimeout: 5000,
     })
   }
-  return pool
+  return globalForInventoryDb.inventoryMysqlPool
 }
 
 export async function inventoryQuery<T = any>(

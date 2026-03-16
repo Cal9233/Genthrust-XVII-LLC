@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation'
 import {
   Bot, Database, Zap, Users, Package, Mail,
-  CheckCircle, AlertTriangle, XCircle,
 } from 'lucide-react'
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter'
 
 interface StatusOverviewData {
   bots: { total: number; running: number; stopped: number }
@@ -26,21 +26,22 @@ function formatCurrency(val: number) {
 
 type HealthLevel = 'healthy' | 'warning' | 'critical'
 
-function StatusDot({ level }: { level: HealthLevel }) {
-  const colors = {
-    healthy: 'bg-green-500',
-    warning: 'bg-yellow-500',
-    critical: 'bg-red-500',
-  }
-  return (
-    <span className={`inline-block w-2.5 h-2.5 rounded-full ${colors[level]} animate-pulse`} />
-  )
+const healthColors: Record<HealthLevel, string> = {
+  healthy: '#3fb950',
+  warning: '#d29922',
+  critical: '#f85149',
 }
 
-function StatusIcon({ level }: { level: HealthLevel }) {
-  if (level === 'healthy') return <CheckCircle className="w-4 h-4 text-green-500" />
-  if (level === 'warning') return <AlertTriangle className="w-4 h-4 text-yellow-500" />
-  return <XCircle className="w-4 h-4 text-red-500" />
+const healthBadgeStyles: Record<HealthLevel, string> = {
+  healthy: 'bg-[#3fb950]/10 text-[#3fb950]',
+  warning: 'bg-[#d29922]/10 text-[#d29922]',
+  critical: 'bg-[#f85149]/10 text-[#f85149]',
+}
+
+const healthLabel: Record<HealthLevel, string> = {
+  healthy: 'Healthy',
+  warning: 'Warning',
+  critical: 'Critical',
 }
 
 interface OverviewCardProps {
@@ -48,38 +49,63 @@ interface OverviewCardProps {
   title: string
   health: HealthLevel
   metrics: { label: string; value: string | number }[]
-  gradient: string
-  iconBg: string
   onClick?: () => void
 }
 
-function OverviewCard({ icon: Icon, title, health, metrics, gradient, iconBg, onClick }: OverviewCardProps) {
+function OverviewCard({ icon: Icon, title, health, metrics, onClick }: OverviewCardProps) {
   return (
     <div
       onClick={onClick}
-      className={`bg-gradient-to-br ${gradient} rounded-xl border p-5 transition-all duration-200 ${
-        onClick ? 'cursor-pointer hover:shadow-md hover:scale-[1.02]' : ''
-      }`}
+      className={`relative bg-[#161b22] border border-white/[0.06] rounded-lg p-5
+        overflow-hidden
+        hover:bg-[#1a2233] hover:border-white/[0.10]
+        transition-all duration-150
+        ${onClick ? 'cursor-pointer' : ''}`}
     >
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconBg}`}>
-            <Icon className="w-5 h-5" />
+      {/* Left accent bar — color indicates health */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-lg"
+        style={{ backgroundColor: healthColors[health] }}
+      />
+
+      {/* Content shifted right of the accent bar */}
+      <div className="pl-2">
+        {/* Top row: icon + title left, health badge right */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Icon className="w-5 h-5 text-[#8b949e] flex-shrink-0" />
+            <h3 className="text-sm font-medium text-[#f0f6fc] truncate">{title}</h3>
           </div>
-          <h3 className="font-semibold text-slate-900">{title}</h3>
+          <span
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+              text-[10px] font-medium uppercase tracking-wide flex-shrink-0 ml-2
+              ${healthBadgeStyles[health]}`}
+          >
+            <span
+              className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+              style={{ backgroundColor: healthColors[health] }}
+            />
+            {healthLabel[health]}
+          </span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <StatusDot level={health} />
-          <StatusIcon level={health} />
+
+        {/* Metrics grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {metrics.map((m) => (
+            <div key={m.label}>
+              <p className="text-[10px] text-[#8b949e] uppercase tracking-wider font-medium mb-0.5">
+                {m.label}
+              </p>
+              <p className="text-xl font-mono font-semibold text-[#f0f6fc] leading-tight">
+                {typeof m.value === 'number' ? (
+                  <AnimatedCounter value={m.value} duration={600} />
+                ) : (
+                  m.value
+                )}
+              </p>
+            </div>
+          ))}
         </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {metrics.map((m) => (
-          <div key={m.label}>
-            <p className="text-[10px] uppercase tracking-wider text-slate-400 font-medium">{m.label}</p>
-            <p className="text-lg font-bold text-slate-900 font-mono">{m.value}</p>
-          </div>
-        ))}
       </div>
     </div>
   )
@@ -87,18 +113,21 @@ function OverviewCard({ icon: Icon, title, health, metrics, gradient, iconBg, on
 
 function OverviewCardSkeleton() {
   return (
-    <div className="bg-gradient-to-br from-slate-500/10 to-slate-600/5 rounded-xl border border-slate-200/60 p-5 animate-pulse">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-lg bg-slate-200" />
-        <div className="h-5 w-24 bg-slate-200 rounded" />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        {[1, 2].map((i) => (
-          <div key={i}>
-            <div className="h-3 w-14 bg-slate-200 rounded mb-1" />
-            <div className="h-6 w-16 bg-slate-200 rounded" />
-          </div>
-        ))}
+    <div className="relative bg-[#1a2233] rounded-lg p-5 overflow-hidden animate-pulse">
+      <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-white/[0.06]" />
+      <div className="pl-2">
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="w-5 h-5 rounded bg-white/[0.06]" />
+          <div className="h-4 w-24 bg-white/[0.06] rounded" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2].map((i) => (
+            <div key={i}>
+              <div className="h-2.5 w-14 bg-white/[0.06] rounded mb-1.5" />
+              <div className="h-6 w-16 bg-white/[0.06] rounded" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -109,7 +138,7 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
 
   if (loading || !data) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Array.from({ length: 6 }).map((_, i) => (
           <OverviewCardSkeleton key={i} />
         ))}
@@ -122,23 +151,17 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
     : 'healthy'
 
   const erpHealth: HealthLevel = data.erp.openInvoices > 20 ? 'warning' : 'healthy'
-
   const automationHealth: HealthLevel = data.automation.dueSoon > 5 ? 'warning' : 'healthy'
-
   const clientHealth: HealthLevel = data.clients.pending > 5 ? 'warning' : 'healthy'
-
   const inventoryHealth: HealthLevel = data.inventory.activeAlarms > 0 ? 'warning' : 'healthy'
-
   const quotesHealth: HealthLevel = data.quotes.pending > 10 ? 'warning' : 'healthy'
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <OverviewCard
         icon={Bot}
         title="Bot Fleet"
         health={botHealth}
-        gradient="from-blue-500/10 to-blue-600/5 border-blue-200/60"
-        iconBg="bg-blue-100 text-blue-600"
         onClick={() => router.push('/internal/bots')}
         metrics={[
           { label: 'Running', value: `${data.bots.running}/${data.bots.total}` },
@@ -150,8 +173,6 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
         icon={Database}
         title="ERP"
         health={erpHealth}
-        gradient="from-indigo-500/10 to-indigo-600/5 border-indigo-200/60"
-        iconBg="bg-indigo-100 text-indigo-600"
         onClick={() => router.push('/internal/erp')}
         metrics={[
           { label: 'Active ROs', value: data.erp.activeROs },
@@ -165,8 +186,6 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
         icon={Zap}
         title="Automation"
         health={automationHealth}
-        gradient="from-orange-500/10 to-orange-600/5 border-orange-200/60"
-        iconBg="bg-orange-100 text-orange-600"
         onClick={() => router.push('/internal/automation')}
         metrics={[
           { label: 'Due This Week', value: data.automation.dueSoon },
@@ -178,8 +197,6 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
         icon={Users}
         title="Clients"
         health={clientHealth}
-        gradient="from-teal-500/10 to-teal-600/5 border-teal-200/60"
-        iconBg="bg-teal-100 text-teal-600"
         onClick={() => router.push('/internal/clients')}
         metrics={[
           { label: 'Active', value: data.clients.active },
@@ -191,8 +208,6 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
         icon={Package}
         title="Inventory"
         health={inventoryHealth}
-        gradient="from-purple-500/10 to-purple-600/5 border-purple-200/60"
-        iconBg="bg-purple-100 text-purple-600"
         onClick={() => router.push('/internal/bots')}
         metrics={[
           { label: 'SKUs', value: data.inventory.totalSkus.toLocaleString() },
@@ -204,8 +219,6 @@ export default function StatusOverviewGrid({ data, loading }: StatusOverviewGrid
         icon={Mail}
         title="Quotes / RFQ"
         health={quotesHealth}
-        gradient="from-red-500/10 to-red-600/5 border-red-200/60"
-        iconBg="bg-red-100 text-red-600"
         onClick={() => router.push('/internal/bots')}
         metrics={[
           { label: 'Pending', value: data.quotes.pending },

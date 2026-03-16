@@ -144,8 +144,14 @@ export function verifyMfaChallengeToken(token: string): { userId: number; email:
     if (payload.purpose !== 'mfa-challenge') return null
     if (payload.exp < Math.floor(Date.now() / 1000)) return null
 
+    // Validate sub is a numeric string before parsing
+    if (typeof payload.sub !== 'string' || !/^\d+$/.test(payload.sub)) return null
+
+    const userId = parseInt(payload.sub, 10)
+    if (!Number.isFinite(userId) || userId <= 0) return null
+
     return {
-      userId: parseInt(payload.sub),
+      userId,
       email: payload.email,
     }
   } catch {

@@ -16,10 +16,10 @@ export default function InternalError({
 
   return (
     <div className="flex-1 flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl shadow-card p-8 text-center">
-        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-burgundy-100 flex items-center justify-center">
+      <div className="max-w-md w-full bg-[#161b22] border border-white/[0.06] rounded-2xl p-8 text-center">
+        <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-[#f85149]/10 flex items-center justify-center">
           <svg
-            className="w-6 h-6 text-burgundy-600"
+            className="w-6 h-6 text-[#f85149]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -34,12 +34,12 @@ export default function InternalError({
           </svg>
         </div>
 
-        <h1 className="text-xl font-semibold text-slate-900 mb-2">
+        <h1 className="text-xl font-semibold text-[#f0f6fc] mb-2">
           Something went wrong
         </h1>
 
         {error.message && (
-          <p className="text-sm text-slate-500 font-mono bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-6 text-left break-words">
+          <p className="text-sm text-[#8b949e] font-mono bg-[#0b0f14] border border-white/[0.06] rounded-lg px-4 py-3 mb-6 text-left break-words">
             {error.message}
           </p>
         )}
@@ -47,13 +47,13 @@ export default function InternalError({
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={reset}
-            className="px-5 py-2.5 bg-navy-600 hover:bg-navy-700 text-white text-sm font-medium rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:ring-offset-2"
+            className="px-5 py-2.5 bg-[#1f6feb] hover:bg-[#388bfd] text-white text-sm font-medium rounded-lg transition-colors"
           >
             Try Again
           </button>
           <Link
             href="/internal"
-            className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium rounded-lg border border-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:ring-offset-2"
+            className="px-5 py-2.5 bg-white/[0.06] hover:bg-white/[0.09] text-[#f0f6fc] text-sm font-medium rounded-lg border border-white/[0.06] transition-colors"
           >
             Return to Dashboard
           </Link>

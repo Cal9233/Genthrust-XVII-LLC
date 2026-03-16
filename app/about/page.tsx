@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { StatsBar } from '@/components/sections/StatsBar'
-import { fadeIn, fadeInUp, staggerGrid, staggerItem, slideInLeft, slideInRight, iconBounce } from '@/lib/animations'
+import { useAnimationVariants } from '@/lib/animations'
 import { ADVANTAGES } from '@/lib/constants'
 import { Shield, Clock, Globe, Award, Building2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
@@ -18,9 +18,10 @@ const iconMap = {
 }
 
 export default function AboutPage() {
+  const anim = useAnimationVariants()
   return (
     <motion.main
-      variants={fadeIn}
+      variants={anim.fadeIn}
       initial="hidden"
       animate="visible"
       className="bg-white text-navy overflow-x-hidden"
@@ -47,13 +48,13 @@ export default function AboutPage() {
 
         <div className="container mx-auto px-4 md:px-6 relative z-10">
           <motion.div
-            variants={staggerItem}
+            variants={anim.staggerItem}
             initial="hidden"
             animate="visible"
             className="text-center max-w-4xl mx-auto"
           >
             <motion.p
-              variants={fadeInUp}
+              variants={anim.fadeInUp}
               initial="hidden"
               animate="visible"
               className="text-electric-blue uppercase tracking-[0.3em] text-sm font-medium mb-6"
@@ -61,7 +62,7 @@ export default function AboutPage() {
               About GENTHRUST
             </motion.p>
             <motion.h1
-              variants={fadeInUp}
+              variants={anim.fadeInUp}
               initial="hidden"
               animate="visible"
               transition={{ delay: 0.1 }}
@@ -72,7 +73,7 @@ export default function AboutPage() {
               <span className="text-electric-blue-400">AVIATION</span>
             </motion.h1>
             <motion.p
-              variants={fadeInUp}
+              variants={anim.fadeInUp}
               initial="hidden"
               animate="visible"
               transition={{ delay: 0.2 }}
@@ -89,7 +90,7 @@ export default function AboutPage() {
         <div className="container mx-auto px-4 md:px-6">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <motion.div
-              variants={slideInLeft}
+              variants={anim.slideInLeft}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: '-100px' }}
@@ -112,7 +113,7 @@ export default function AboutPage() {
             </motion.div>
 
             <motion.div
-              variants={slideInRight}
+              variants={anim.slideInRight}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: '-100px' }}
@@ -135,7 +136,7 @@ export default function AboutPage() {
       <section className="relative py-28 bg-gradient-to-b from-slate-50 to-white">
         <div className="container mx-auto px-4 md:px-6">
           <motion.div
-            variants={fadeInUp}
+            variants={anim.fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}
@@ -150,7 +151,7 @@ export default function AboutPage() {
           </motion.div>
 
           <motion.div
-            variants={staggerGrid}
+            variants={anim.staggerGrid}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}
@@ -161,12 +162,12 @@ export default function AboutPage() {
               return (
                 <motion.div
                   key={advantage.title}
-                  variants={staggerItem}
+                  variants={anim.staggerItem}
                   whileHover={{ y: -4 }}
                   className="group relative p-8 rounded-2xl bg-white border-2 border-slate-200 hover:border-electric-blue/50 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   <motion.div
-                    variants={iconBounce}
+                    variants={anim.iconBounce}
                     initial="rest"
                     whileHover="hover"
                     className="relative w-16 h-16 rounded-xl bg-electric-blue/10 flex items-center justify-center mb-6 group-hover:bg-electric-blue/20 transition-all duration-300"
@@ -191,7 +192,7 @@ export default function AboutPage() {
       <section className="relative py-28 bg-gradient-to-b from-white to-electric-blue/5">
         <div className="container mx-auto px-4 md:px-6">
           <motion.div
-            variants={fadeInUp}
+            variants={anim.fadeInUp}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: '-100px' }}

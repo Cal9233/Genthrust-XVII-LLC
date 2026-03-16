@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     const params = request.nextUrl.searchParams
     const search = params.get('search') || ''
     const status = params.get('status') || ''
-    const page = parseInt(params.get('page') || '1')
+    const page = Math.max(1, parseInt(params.get('page') || '1') || 1)
     const limit = Math.min(parseInt(params.get('limit') || '50') || 50, 200)
     const offset = (page - 1) * limit
 

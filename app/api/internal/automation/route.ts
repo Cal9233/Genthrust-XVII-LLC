@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import {
+  getAllRepairOrderItems,
   getNet30PaymentDates,
   getFollowupROs,
   getOpenPurchaseOrders,
@@ -16,20 +17,29 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const [net30, followups, purchaseOrders, repairOrders] = await Promise.all([
-      getNet30PaymentDates().catch(err => {
-        console.error('NET30 fetch error:', err)
-        return { summary: { past_due: 0, due_soon: 0, upcoming: 0 }, orders: [] }
-      }),
-      getFollowupROs().catch(err => {
-        console.error('Followup ROs fetch error:', err)
-        return { statuses: { Approved: 0, Delivered: 0 }, orders: [] }
+    // Fetch RO list once; PO list is a separate endpoint so it runs in parallel
+    const [roItems, purchaseOrders] = await Promise.all([
+      getAllRepairOrderItems().catch(err => {
+        console.error('RO list fetch error:', err)
+        return [] as any[]
       }),
       getOpenPurchaseOrders().catch(err => {
         console.error('PO fetch error:', err)
         return []
       }),
-      getActiveRepairOrders(50).catch(err => {
+    ])
+
+    // Process the single RO list through all three views in parallel
+    const [net30, followups, repairOrders] = await Promise.all([
+      getNet30PaymentDates(roItems).catch(err => {
+        console.error('NET30 fetch error:', err)
+        return { summary: { past_due: 0, due_soon: 0, upcoming: 0 }, orders: [] }
+      }),
+      getFollowupROs(roItems).catch(err => {
+        console.error('Followup ROs fetch error:', err)
+        return { statuses: { Approved: 0, Delivered: 0 }, orders: [] }
+      }),
+      getActiveRepairOrders(50, roItems).catch(err => {
         console.error('RO fetch error:', err)
         return []
       }),

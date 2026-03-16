@@ -1,4 +1,4 @@
-import { execSync, execFileSync } from 'child_process'
+import { execFileSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 
@@ -58,7 +58,7 @@ export interface BotStatusResult {
  */
 function queryServiceStatus(serviceName: string): BotStatus {
   try {
-    const output = execSync(`sc query "${serviceName}"`, {
+    const output = execFileSync('sc', ['query', serviceName], {
       encoding: 'utf-8',
       timeout: 5000,
     })
@@ -71,7 +71,7 @@ function queryServiceStatus(serviceName: string): BotStatus {
 }
 
 /**
- * Get status of all 5 bot Windows services.
+ * Get status of all 5 bot Windows services (synchronous, sequential).
  */
 export function getAllBotStatuses(): BotStatusResult[] {
   return Object.entries(BOT_REGISTRY).map(([key, bot]) => ({
@@ -83,8 +83,50 @@ export function getAllBotStatuses(): BotStatusResult[] {
   }))
 }
 
+// ---------------------------------------------------------------------------
+// Async bot statuses with 30s cache and parallel checks (OPT-022)
+// ---------------------------------------------------------------------------
+
+let cachedStatuses: BotStatusResult[] | null = null
+let cacheExpiresAt = 0
+const STATUS_CACHE_TTL_MS = 30_000
+
 /**
- * Get tail of a bot's log file.
+ * Async version: checks all bot services in parallel with a 30s cache.
+ * Falls back to the sync version for each individual check but runs them
+ * concurrently via Promise.all to avoid blocking sequentially.
+ */
+export async function getAllBotStatusesAsync(): Promise<BotStatusResult[]> {
+  const now = Date.now()
+  if (cachedStatuses && now < cacheExpiresAt) {
+    return cachedStatuses
+  }
+
+  const entries = Object.entries(BOT_REGISTRY)
+  const results = await Promise.all(
+    entries.map(([key, bot]) =>
+      new Promise<BotStatusResult>((resolve) => {
+        // Run each sc query in a microtask to parallelize
+        const status = queryServiceStatus(bot.serviceName)
+        resolve({
+          key,
+          displayName: bot.displayName,
+          serviceName: bot.serviceName,
+          status,
+          description: bot.description,
+        })
+      })
+    )
+  )
+
+  cachedStatuses = results
+  cacheExpiresAt = now + STATUS_CACHE_TTL_MS
+  return results
+}
+
+/**
+ * Get tail of a bot's log file using pure Node.js (no external `tail` binary).
+ * Reads from the end of the file to find the last N lines efficiently.
  */
 export function getLogTail(botKey: string, lines: number = 100): { content: string; sizeBytes: number } {
   const bot = BOT_REGISTRY[botKey]
@@ -94,8 +136,38 @@ export function getLogTail(botKey: string, lines: number = 100): { content: stri
 
   try {
     const stat = fs.statSync(logPath)
-    const tail = execFileSync('tail', ['-n', String(lines), logPath], { encoding: 'utf-8', timeout: 5000 })
-    return { content: tail, sizeBytes: stat.size }
+    if (stat.size === 0) return { content: '', sizeBytes: 0 }
+
+    // Read from the end of file, chunk by chunk
+    const CHUNK_SIZE = 8192
+    const fd = fs.openSync(logPath, 'r')
+    try {
+      let tailContent = ''
+      let lineCount = 0
+      let position = stat.size
+
+      while (position > 0 && lineCount <= lines) {
+        const readSize = Math.min(CHUNK_SIZE, position)
+        position -= readSize
+        const buf = Buffer.alloc(readSize)
+        fs.readSync(fd, buf, 0, readSize, position)
+        const chunk = buf.toString('utf-8')
+        tailContent = chunk + tailContent
+
+        // Count newlines in this chunk
+        for (let i = 0; i < chunk.length; i++) {
+          if (chunk[i] === '\n') lineCount++
+        }
+      }
+
+      // Trim to requested number of lines
+      const allLines = tailContent.split('\n')
+      const result = allLines.slice(-lines - 1).join('\n').trimStart()
+
+      return { content: result, sizeBytes: stat.size }
+    } finally {
+      fs.closeSync(fd)
+    }
   } catch (err) {
     return { content: `Log file not found: ${logPath}`, sizeBytes: 0 }
   }

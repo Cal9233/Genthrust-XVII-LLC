@@ -14,7 +14,7 @@ interface AnimatedCounterProps {
 export function AnimatedCounter({
   value,
   suffix = '',
-  duration = 2000,
+  duration = 600,
   className,
 }: AnimatedCounterProps) {
   const [count, setCount] = useState(0)
@@ -51,12 +51,12 @@ export function AnimatedCounter({
   return (
     <motion.span
       ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0 }}
+      animate={isInView ? { opacity: 1 } : {}}
+      transition={{ duration: 0.2 }}
       className={cn('tabular-nums', className)}
     >
-      {count}
+      {count.toLocaleString()}
       {suffix}
     </motion.span>
   )

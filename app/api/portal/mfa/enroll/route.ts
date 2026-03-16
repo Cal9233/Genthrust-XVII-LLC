@@ -58,7 +58,7 @@ export async function POST() {
       status_code: 200,
     }).catch(() => {})
 
-    return NextResponse.json({ qrCodeUrl })
+    return NextResponse.json({ qrCodeUrl, secret })
   } catch (error) {
     console.error('MFA enroll error:', error)
     return NextResponse.json({ error: 'Enrollment failed' }, { status: 500 })
