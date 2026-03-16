@@ -17,7 +17,7 @@ export function PdfDropZone({ onParsed }: PdfDropZoneProps) {
   const handleFile = useCallback(async (file: File) => {
     setError(null)
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
+    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
       setError('Please upload a PDF file')
       return
     }
@@ -70,6 +70,7 @@ export function PdfDropZone({ onParsed }: PdfDropZoneProps) {
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return
     setDragging(false)
   }, [])
 

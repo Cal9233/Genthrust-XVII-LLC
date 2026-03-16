@@ -1,50 +1,20 @@
-export interface Net30Order {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  total: number
-  payment_terms: string
-  received_date: string | null
-  payment_due_date: string | null
-  status_flag: 'PAST_DUE' | 'DUE_SOON' | 'UPCOMING' | null
-  days_overdue?: number
-  days_until_due?: number
-}
+import type {
+  Net30Order,
+  FollowupRO,
+  ERPPurchaseOrder,
+  ERPRepairOrder,
+} from '@genthrust/shared'
 
-export interface FollowupRO {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  status: string
-  total: number
-  payment_terms: string | null
-}
+export type { Net30Order, FollowupRO, ERPPurchaseOrder }
 
-export interface PurchaseOrder {
-  po_number: string
-  vendor: string
-  po_date: string | null
-  total: number
-  status: string
-  payment_terms: string | null
-  due_date: string | null
-  priority: string | null
-  ship_via: string | null
-}
+/** Dashboard-specific subset of ERPRepairOrder (fewer fields) */
+export type RepairOrderERP = Pick<
+  ERPRepairOrder,
+  'ro_number' | 'vendor' | 'status' | 'due_date' | 'total'
+> & { ro_id: number | string }
 
-export interface RepairOrderERP {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  contact: string | null
-  status: string
-  due_date: string | null
-  total: number
-  payment_terms: string | null
-  priority: string | null
-  date_received: string | null
-  last_modified: string | null
-}
+/** Alias for backward compat — PurchaseOrder = ERPPurchaseOrder */
+export type PurchaseOrder = ERPPurchaseOrder
 
 export interface AutomationDashboardData {
   net30: {

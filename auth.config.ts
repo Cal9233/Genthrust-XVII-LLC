@@ -1,6 +1,8 @@
 import type { NextAuthConfig } from 'next-auth'
 
 // Edge-safe config: used by middleware (no Node.js-only imports here)
+// NOTE: Audit logging for login/login-failed is added in auth.ts (non-edge)
+// because logAuditEvent depends on Node.js DB driver.
 export const authConfig = {
   pages: {
     signIn: '/signin',
@@ -61,6 +63,7 @@ export const authConfig = {
     },
     async signIn({ user, profile, account }) {
       if (account?.provider === 'credentials') {
+        // Credentials login audit is handled in auth.ts authorize()
         return true
       }
 
@@ -70,6 +73,7 @@ export const authConfig = {
         (profile?.upn as string | undefined)
 
       if (!email || !email.toLowerCase().endsWith('@genthrust.net')) {
+        // Entra login rejected — non-genthrust email (logged at edge, no DB access)
         return false
       }
       return true

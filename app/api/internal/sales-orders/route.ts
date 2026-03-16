@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const search = params.get('search') || ''
     const status = params.get('status') || ''
     const page = parseInt(params.get('page') || '1')
-    const limit = parseInt(params.get('limit') || '50')
+    const limit = Math.min(parseInt(params.get('limit') || '50') || 50, 200)
     const offset = (page - 1) * limit
 
     let where = 'WHERE 1=1'
@@ -37,8 +37,10 @@ export async function GET(request: NextRequest) {
       `SELECT so.id, so.erp_so_id, so.so_number, so.customer_po, so.customer_name,
               so.contact_name, so.status, so.priority, so.due_date, so.total, so.track_no,
               so.erp_created_at, so.erp_modified_at,
-              (SELECT COUNT(*) FROM sales_order_lines WHERE sales_order_id = so.id) as line_count
+              COALESCE(lc.line_count, 0) as line_count
        FROM sales_orders so
+       LEFT JOIN (SELECT sales_order_id, COUNT(*) as line_count FROM sales_order_lines GROUP BY sales_order_id) lc
+         ON lc.sales_order_id = so.id
        ${where}
        ORDER BY so.erp_modified_at DESC
        LIMIT ? OFFSET ?`,

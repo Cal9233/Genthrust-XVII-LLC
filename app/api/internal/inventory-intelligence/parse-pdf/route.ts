@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
-import { PDFParse } from 'pdf-parse'
 import { parseCCheckPdf } from '@/lib/pdf-parser'
 import type { ParsePdfResponse } from '@/types/pdf'
 
@@ -23,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+    if (!file.name.toLowerCase().endsWith('.pdf') || file.type !== 'application/pdf') {
       return NextResponse.json({ error: 'Only PDF files are accepted' }, { status: 400 })
     }
 
@@ -36,10 +35,16 @@ export async function POST(request: NextRequest) {
     const arrayBuffer = await file.arrayBuffer()
     const data = new Uint8Array(arrayBuffer)
 
-    // Parse PDF to text using pdf-parse v2 API
+    // Dynamic import avoids Next.js static-analysis ESM interop issues.
+    // pdf-parse v2 exposes PDFParse as a named export (no default export in CJS bundle).
+    const { PDFParse } = await import('pdf-parse')
     const pdf = new PDFParse({ data })
-    const textResult = await pdf.getText()
-    await pdf.destroy()
+    let textResult: Awaited<ReturnType<typeof pdf.getText>>
+    try {
+      textResult = await pdf.getText()
+    } finally {
+      await pdf.destroy()
+    }
 
     // Parse the extracted text into structured rows
     const rows = parseCCheckPdf(textResult.text)
@@ -56,7 +61,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('PDF parse error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
-      { error: 'Failed to parse PDF', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to parse PDF' },
       { status: 500 }
     )
   }

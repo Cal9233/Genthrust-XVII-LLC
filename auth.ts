@@ -5,6 +5,7 @@ import { authConfig } from './auth.config'
 import { query } from '@/lib/db'
 import { verifyPassword } from '@/lib/password'
 import { verifyMfaChallengeToken, decryptSecret, verifyTotpCode } from '@/lib/mfa'
+import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 import bcrypt from 'bcryptjs'
 
 interface PortalUserRow {
@@ -37,7 +38,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID!,
       clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET!,
       issuer: process.env.AUTH_MICROSOFT_ENTRA_ID_ISSUER!,
-      authorization: { params: { scope: 'openid profile email' } },
+      authorization: { params: { scope: 'openid profile email', prompt: 'select_account' } },
     }),
     Credentials({
       id: 'credentials',
@@ -53,6 +54,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const password = credentials?.password as string | undefined
         const mfaToken = credentials?.mfaToken as string | undefined
         const totpCode = credentials?.totpCode as string | undefined
+
+        // Helper: fire-and-forget audit for login events
+        const auditLogin = (success: boolean, userEmail?: string, userId?: string, reason?: string) => {
+          logAuditEvent({
+            action: success ? ACTION_TYPES.LOGIN : ACTION_TYPES.LOGIN_FAILED,
+            resource_type: RESOURCE_TYPES.CLIENT,
+            user_email: userEmail ?? email ?? null,
+            user_id: userId ?? null,
+            user_role: 'client',
+            success,
+            error_message: reason ?? null,
+            metadata: { provider: 'credentials', mfaFlow: !!(mfaToken && totpCode) },
+          }).catch(() => {})
+        }
 
         // --- Mode B: MFA token + TOTP code ---
         if (mfaToken && totpCode) {
@@ -117,8 +132,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
           }
 
-          if (!codeValid) return null
+          if (!codeValid) {
+            auditLogin(false, user.email, String(user.id), 'Invalid TOTP/recovery code')
+            return null
+          }
 
+          auditLogin(true, user.email, String(user.id))
           return {
             id: String(user.id),
             email: user.email,
@@ -151,11 +170,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = rows[0]
         const isValid = await verifyPassword(password, user.password_hash)
 
-        if (!isValid) return null
+        if (!isValid) {
+          auditLogin(false, email, String(user.id), 'Invalid password')
+          return null
+        }
 
         // If MFA is enabled, block Mode A login — must use two-step flow
         if (user.mfa_enabled === 1) return null
 
+        auditLogin(true, user.email, String(user.id))
         return {
           id: String(user.id),
           email: user.email,

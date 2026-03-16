@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { decryptSecret, verifyTotpCode } from '@/lib/mfa'
+import { createRateLimiter } from '@/lib/rate-limit'
+import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 import bcrypt from 'bcryptjs'
 export const dynamic = 'force-dynamic'
+
+const mfaDisableLimiter = createRateLimiter({ maxAttempts: 5, windowMs: 5 * 60 * 1000, name: 'mfa-disable' })
 
 interface FactorRow {
   secret_encrypted: string
@@ -29,6 +33,16 @@ export async function POST(request: Request) {
     }
 
     const userId = parseInt(session.user.id)
+    const userKey = String(userId)
+
+    // Rate limit: max 5 failed attempts per 5 minutes
+    const rl = mfaDisableLimiter.check(userKey)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      )
+    }
 
     // Get verified factor
     const factors = await query<FactorRow[]>(
@@ -64,8 +78,12 @@ export async function POST(request: Request) {
     }
 
     if (!codeValid) {
+      mfaDisableLimiter.record(userKey)
       return NextResponse.json({ error: 'Invalid code' }, { status: 400 })
     }
+
+    // Success — reset rate limit counter
+    mfaDisableLimiter.reset(userKey)
 
     // Mark the used recovery code before bulk delete
     if (usedRecoveryCodeId !== null) {
@@ -79,6 +97,16 @@ export async function POST(request: Request) {
     await query(`DELETE FROM mfa_factors WHERE user_id = ?`, [userId])
     await query(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`, [userId])
     await query(`UPDATE portal_users SET mfa_enabled = 0 WHERE id = ?`, [userId])
+
+    logAuditEvent({
+      action: ACTION_TYPES.MFA_DISABLE,
+      resource_type: RESOURCE_TYPES.MFA,
+      user_id: String(userId),
+      user_email: session.user.email ?? null,
+      user_role: 'client',
+      success: true,
+      status_code: 200,
+    }).catch(() => {})
 
     return NextResponse.json({ success: true })
   } catch (error) {

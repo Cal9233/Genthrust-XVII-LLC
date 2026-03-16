@@ -7,7 +7,7 @@
 
 **Genthrust XVII LLC** — aviation parts brokerage. This Next.js app is the public website, internal dashboard, and client portal.
 
-**Tech Stack:** Next.js 14, React 18, TypeScript, Tailwind CSS, MySQL (mysql2/promise, no ORM), NextAuth 5 (Entra ID + Credentials), Three.js (@react-three/fiber)
+**Tech Stack:** Next.js 14, React 18, TypeScript, Tailwind CSS, MySQL (mysql2/promise + Drizzle ORM), NextAuth 5 (Entra ID + Credentials), Three.js (@react-three/fiber), Framer Motion, Recharts, Zod, otpauth/qrcode (MFA), @microsoft/microsoft-graph-client, trigger.dev SDK, @vercel/mcp-adapter
 
 **Project Root:** `C:\Users\calvi\Projects\Genthrust-XVII-LLC`
 
@@ -36,7 +36,16 @@
 - `/login` → redirects authenticated to `/portal`
 - `/register` → redirects authenticated to role-appropriate dashboard
 
-**Key files:** `auth.ts` (providers + NextAuth export), `auth.config.ts` (edge-safe callbacks), `middleware.ts`, `types/next-auth.d.ts` (Session/JWT type augmentation)
+**MFA (Client Portal):**
+- Implementation: `lib/mfa.ts` — TOTP via `otpauth`, secrets encrypted with AES-256-GCM (`MFA_ENCRYPTION_KEY` env var)
+- Recovery codes: 10 codes, bcrypt hashed, marked used on redemption
+- Mandatory for all client users — enforced in `auth.config.ts` callback, redirects to `/portal/mfa-setup`
+- Two-step login: POST `/api/auth/verify-credentials` → `mfaToken` (10-min JWT) → POST to NextAuth with TOTP code
+- Rate limited: 5 attempts per 60 seconds per IP on verify-credentials
+
+**Audit Logging:** `lib/audit-logger.ts` — logs access events to DB, viewable at `/api/internal/audit-log`
+
+**Key files:** `auth.ts` (providers + NextAuth export), `auth.config.ts` (edge-safe callbacks), `middleware.ts`, `types/next-auth.d.ts` (Session/JWT type augmentation), `lib/mfa.ts` (TOTP + encryption)
 
 ## Database
 
@@ -47,22 +56,48 @@
 | `genthrust` | 3307 (Docker) | `query()` | `lib/db.ts` |
 | `genthrust_inventory` | 3306 (native) | `inventoryQuery()` | `lib/inventory-db.ts` |
 
-Both use mysql2/promise pools with `connectionLimit: 10`.
+Both use mysql2/promise pools with `connectionLimit: 10`. Drizzle ORM wraps the main pool via `lib/db/index.ts` with schema from `lib/db/schema.ts`.
 
 ### Schema Reference
+
+**genthrust DB (port 3307):**
 
 | Table | Key Columns |
 |-------|-------------|
 | `parts` | erp_product_id, product_name, mfr_part_no, nsn_number, cage_code, hazmat, product_category |
 | `companies` | company_name, (customer/supplier directory) |
 | `portal_users` | email, password_hash, contact_name, company_id, erp_contact_id, is_active |
+| `mfa_factors` | user_id, secret (AES-256-GCM encrypted), verified, created_at |
+| `mfa_recovery_codes` | user_id, code_hash (bcrypt), used |
 | `repair_orders` | ro_number, vendor_name, status, priority, due_date, total |
+| `repair_order_lines` | ro_id, part_number, description, qty, price |
 | `sales_orders` | so_number, customer_po, customer_name, status, total |
+| `sales_order_lines` | so_id, part_number, description, qty, price |
 | `invoices` | invoice_no, account_name, status, due_date, open_balance |
+| `invoice_lines` | invoice_id, description, qty, unit_price |
 | `quotes` | Quote records |
 | `rfqs` | Request for quote records |
 | `documents` | Document metadata |
 | `catalog_items` | Catalog entries |
+| `clients` | Client records |
+| `notification_queue` | Email notifications (Outlook integration) |
+| `ro_status_history` | Repair order status changes |
+| `ro_activity_log` | Field-level activity log |
+| `ro_relations` | Links between repair orders |
+| `files_upload` | File uploads to SharePoint |
+
+**Auth.js tables** (Drizzle-managed): `users`, `accounts`, `sessions`, `verificationTokens`, `authenticators`
+
+**genthrust_inventory DB (port 3306):**
+
+| Table | Purpose |
+|-------|---------|
+| `inventoryindex` | Part inventory snapshot |
+| `shops` | Repair shop directory |
+| `ils_pending_quotes` | ILS bot pending quotes |
+| `sales_velocity` | Sales velocity data |
+| `inventory_watchlist` | User watchlists |
+| `inventory_alerts` | Stock level alerts |
 
 ## MCP Servers (Project-Scoped via `.mcp.json`)
 
@@ -93,10 +128,12 @@ Bot metrics extracted via regex from log files (`getBotMetrics()`). Notification
 ## ERP AERO Integration
 
 - **Base URL:** `https://wapi.erp.aero`
-- **Auth:** POST `/v1/auth/signin` with form-encoded cid/email/password → token cached in memory (`lib/erp-aero.ts`)
-- **Token refresh:** On 401, clears cached token and retries once via `erpFetch()`
+- **Basic client:** `lib/erp-aero.ts` — simple token + fetch, auto-retry on 401
+- **Production client:** `lib/erp-client.ts` — 30-min token TTL, single concurrent auth request (prevents thundering herd)
+- **Auth:** POST `/v1/auth/signin` with form-encoded cid/email/password
 - **Functions:** `getPartsList(page, pageSize)`, `getPartDetails(productId)`, `clearTokenCache()`
 - **Sync endpoint:** `/api/internal/sync/parts` pulls parts into MySQL `parts` table
+- **Sync script:** `scripts/sync-parts.ts` (also via trigger.dev)
 - **Automation:** NET30 payment reminders, RO digests via `genthrust-automation` MCP server
 
 ## API Routes
@@ -105,11 +142,14 @@ Bot metrics extracted via regex from log files (`getBotMetrics()`). Notification
 | Route | Method | Purpose |
 |-------|--------|---------|
 | `/api/auth/[...nextauth]` | GET/POST | NextAuth handler |
+| `/api/auth/verify-credentials` | POST | Pre-login MFA token generation (rate limited: 5/60s) |
 | `/api/contact` | POST | Contact form (logs only — email NOT implemented, TODO: Resend/SendGrid) |
 | `/api/search` | GET | Parts search (`?q=`) — LIKE queries on parts table |
 | `/api/clients` | GET | Public client listing |
-| `/api/register` | POST | Create inactive portal user |
+| `/api/register` | POST | Create inactive portal user (rate limited: 3/hr) |
 | `/api/register/companies` | GET | Company list for registration dropdown |
+| `/api/mcp` | GET/POST/DELETE | MCP HTTP endpoint — 10 AI tools (auth: MCP_API_KEY or MCP_ALLOW_UNAUTHENTICATED) |
+| `/api/admin/create-client` | POST | Admin client creation |
 
 ### Internal (requires `role: 'internal'`)
 | Route | Method | Purpose |
@@ -131,6 +171,11 @@ Bot metrics extracted via regex from log files (`getBotMetrics()`). Notification
 | `/api/internal/inventory-intelligence` | GET | Inventory analytics (uses `safeQuery()`) |
 | `/api/internal/inventory-intelligence/search` | GET | Inventory search |
 | `/api/internal/sync/parts` | POST | Pull parts from ERP AERO into MySQL |
+| `/api/internal/email` | GET/POST | Email drafts via Outlook (Microsoft Graph) |
+| `/api/internal/quotes` | GET | Quote management |
+| `/api/internal/audit-log` | GET | Access log with timestamp filtering |
+| `/api/internal/status-overview` | GET | Aggregated health status for dashboard cards |
+| `/api/internal/inventory-alarms` | GET/POST | Watchlist + stock alert management |
 
 ### Portal (requires `role: 'client'`, company-scoped)
 | Route | Method | Purpose |
@@ -139,11 +184,9 @@ Bot metrics extracted via regex from log files (`getBotMetrics()`). Notification
 | `/api/portal/invoices/[id]` | GET | Client's invoice |
 | `/api/portal/repair-orders/[id]` | GET | Client's repair order |
 | `/api/portal/sales-orders/[id]` | GET | Client's sales order |
-
-### Other
-| Route | Purpose |
-|-------|---------|
-| `/api/admin/create-client` | Admin client creation |
+| `/api/portal/mfa/enroll` | POST | MFA TOTP enrollment |
+| `/api/portal/mfa/disable` | POST | MFA disabling |
+| `/api/portal/mfa/challenge` | POST | TOTP challenge verification |
 
 ## Component Patterns
 
@@ -175,7 +218,7 @@ From `tailwind.config.js`:
 
 ## Key Patterns & Gotchas
 
-- **No ORM** — all database access is raw SQL via `query()` from `lib/db.ts` and `inventoryQuery()` from `lib/inventory-db.ts`
+- **Dual DB access** — raw SQL via `query()` from `lib/db.ts` AND Drizzle ORM via `lib/db/index.ts` (schema in `lib/db/schema.ts`). Both use the same pool.
 - **Inventory DB is separate** — `genthrust_inventory` on port 3306 (native MySQL), `genthrust` on port 3307 (Docker)
 - **ERP AERO token caching** — `lib/erp-aero.ts` caches auth token in module-level variable, auto-refreshes on 401
 - **Contact email NOT implemented** — `/api/contact` only logs, has TODO for Resend/SendGrid
@@ -183,7 +226,7 @@ From `tailwind.config.js`:
 - **Bot status via `sc query`** — `lib/bot-helpers.ts` runs Windows `sc query` to check service state
 - **Dashboard safe wrappers** — `safeCount()` / `safeQuery()` return 0/[] on DB errors (used in dashboard, bots/inventory, inventory-intelligence)
 - **FeaturedInventory hardcoded** — uses sample data from `lib/constants.ts`, not live DB
-- **No rate limiting** on API endpoints
+- **Rate limiting** on login (5/60s), register (3/hr), inventory search (20/60s) — other endpoints unprotected
 - **Edge-compatible auth** — `auth.config.ts` has no Node.js-only imports (runs in middleware edge runtime)
 
 ## Key Directories
@@ -219,4 +262,11 @@ BOT_DB_HOST, BOT_DB_PORT, BOT_DB_NAME, BOT_DB_USER, BOT_DB_PASSWORD
 
 # ERP AERO
 ERP_AERO_BASE_URL, ERP_AERO_EMAIL, ERP_AERO_PASSWORD, ERP_AERO_CID
+
+# MFA
+MFA_ENCRYPTION_KEY (AES-256-GCM, 32-byte hex)
+
+# MCP
+MCP_API_KEY (bearer token for MCP endpoint)
+MCP_ALLOW_UNAUTHENTICATED (true to allow unauthenticated MCP access)
 ```

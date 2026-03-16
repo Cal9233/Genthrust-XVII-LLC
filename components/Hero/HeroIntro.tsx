@@ -130,12 +130,12 @@ function LeftPanel() {
     >
       <div className="flex items-center gap-2 border-b border-white/[0.06] pb-2">
         <div className="w-1 h-3 bg-horizon-blue rounded-full" style={{ boxShadow: '0 0 4px #38B2AC' }} />
-        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">Systems</span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-white/30">Operations</span>
       </div>
 
       <div className="flex gap-4 justify-center">
-        <ArcGauge value={94} label="Capacity" unit="PCT" color="#38B2AC" size={76} delay={0.5} />
-        <ArcGauge value={72} label="Throughput" unit="KTS" color="#1e4a8d" size={76} delay={0.65} />
+        <ArcGauge value={99} label="Availability" unit="PCT" color="#38B2AC" size={76} delay={0.5} />
+        <ArcGauge value={98} label="AOG Response" unit="PCT" color="#1e4a8d" size={76} delay={0.65} />
       </div>
 
       <StatusGrid delay={0.9} />

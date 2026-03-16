@@ -165,6 +165,15 @@ export function InventoryMatchResults({ results, onReset }: InventoryMatchResult
           </div>
         </div>
       )}
+
+      {/* Empty state */}
+      {foundParts.length === 0 && notFoundParts.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-slate-400">
+          <Package className="w-10 h-10 mb-3 opacity-40" />
+          <p className="text-sm font-medium">No results returned</p>
+          <p className="text-xs mt-1">The search completed but no parts were matched</p>
+        </div>
+      )}
     </div>
   )
 }

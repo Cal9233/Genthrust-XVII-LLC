@@ -152,10 +152,10 @@ const TELEMETRY_LINES = [
   'FREQ: 121.500 GUARD · 123.450 ATIS',
   'METAR: KMIA 141253Z 09007KT 10SM FEW025 28/22 A2993',
   'NOTAM: TFR ACTIVE WITHIN 30NM · REVIEW BEFORE DISPATCH',
-  'STOCK: B737-NG ACTUATORS IN 14DAY LEAD · MFR VERIFIED',
-  'AOG: PRIORITY LANE ACTIVE · ETA < 4HR MIA → LAX',
-  'CERT: FAA AC 00-56B · EASA PART 145 COMPLIANT',
-  'SYS: INVENTORY SYNC NOMINAL · LAST RUN 00:04:17 AGO',
+  'CAPABILITY: GLOBAL SOURCING NETWORK · 180+ COUNTRIES SERVED',
+  'SERVICE: AOG RESPONSE < 4HR · PRIORITY DISPATCH ACTIVE',
+  'CERT: FAA AC 00-56B · EASA PART 145 · AS9120B COMPLIANT',
+  'COVERAGE: B7X7 · A320 FAMILY · CRJ · ATR · EMBRAER PLATFORMS',
 ]
 
 export function TelemetryTicker({ delay = 0 }: { delay?: number }) {
@@ -201,13 +201,14 @@ interface StatusItem {
   code: string
   label: string
   status: 'nominal' | 'active' | 'alert'
+  display?: string
 }
 
 const STATUS_ITEMS: StatusItem[] = [
-  { code: 'INV', label: 'Inventory', status: 'nominal' },
-  { code: 'ERP', label: 'ERP Sync', status: 'nominal' },
-  { code: 'AOG', label: 'AOG Lane', status: 'active' },
-  { code: 'QA',  label: 'Cert Status', status: 'nominal' },
+  { code: 'FAA', label: 'FAA Certified', status: 'nominal', display: 'verified' },
+  { code: 'EASA', label: 'EASA Compliant', status: 'nominal', display: 'verified' },
+  { code: 'AOG', label: 'AOG Priority', status: 'active', display: 'active' },
+  { code: '24/7', label: '24/7 Support', status: 'nominal', display: 'online' },
 ]
 
 const STATUS_COLORS = {
@@ -240,10 +241,6 @@ export function StatusGrid({ delay = 0 }: { delay?: number }) {
             }}
           />
           <span className="font-mono text-[9px] text-white/25 tracking-wider flex-1">{item.label}</span>
-          <span className="font-mono text-[8px] uppercase tracking-widest"
-            style={{ color: STATUS_COLORS[item.status] }}>
-            {item.status}
-          </span>
         </motion.div>
       ))}
     </motion.div>

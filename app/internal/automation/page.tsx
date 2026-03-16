@@ -4,68 +4,27 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   RefreshCw, AlertCircle, Zap, DollarSign, FileText,
   Wrench, ShoppingCart, ChevronDown, ChevronRight, Play,
-  Clock, CalendarClock, Timer, TrendingUp
+  Clock, CalendarClock, Timer, TrendingUp,
+  Mail, Send, MessageSquare, Database, CheckCircle2, XCircle,
+  Loader2, ExternalLink, Search
 } from 'lucide-react'
 import { StatCard } from '@/components/internal/StatCard'
 import { DataTable, StatusBadge } from '@/components/internal/DataTable'
 import { ChartCard, SectionDivider } from '@/components/internal/ChartCard'
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — from @genthrust/shared via types/automation
 // ---------------------------------------------------------------------------
 
-interface Net30Order {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  total: number
-  payment_terms: string
-  received_date: string | null
-  payment_due_date: string | null
-  status_flag: 'PAST_DUE' | 'DUE_SOON' | 'UPCOMING' | null
-  days_overdue?: number
-  days_until_due?: number
-}
+import type {
+  Net30Order,
+  FollowupRO,
+  PurchaseOrder,
+  RepairOrderERP,
+  AutomationDashboardData,
+} from '@/types/automation'
 
-interface FollowupRO {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  status: string
-  total: number
-  payment_terms: string | null
-}
-
-interface PurchaseOrder {
-  po_number: string
-  vendor: string
-  po_date: string | null
-  total: number
-  status: string
-  payment_terms: string | null
-  due_date: string | null
-}
-
-interface RepairOrderERP {
-  ro_number: string
-  vendor: string
-  status: string
-  due_date: string | null
-  total: number
-}
-
-interface AutomationData {
-  net30: {
-    summary: { past_due: number; due_soon: number; upcoming: number }
-    orders: Net30Order[]
-  }
-  followups: {
-    statuses: { Approved: number; Delivered: number }
-    orders: FollowupRO[]
-  }
-  purchaseOrders: PurchaseOrder[]
-  repairOrders: RepairOrderERP[]
-}
+type AutomationData = AutomationDashboardData
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -285,6 +244,34 @@ function StatCardSkeletonRow({ count }: { count: number }) {
 // Main Component
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Email Tools types
+// ---------------------------------------------------------------------------
+
+interface EmailDraftResult {
+  success: boolean
+  messageId?: string
+  webLink?: string
+  error?: string
+}
+
+interface ThreadMessage {
+  id: string
+  subject?: string
+  from?: { emailAddress?: { name?: string; address?: string } }
+  receivedDateTime?: string
+  bodyPreview?: string
+  body?: { content?: string; contentType?: string }
+}
+
+interface SyncResult {
+  success?: boolean
+  message?: string
+  count?: number
+  mode?: string
+  error?: string
+}
+
 export default function AutomationPage() {
   const [data, setData] = useState<AutomationData | null>(null)
   const [loading, setLoading] = useState(true)
@@ -296,6 +283,26 @@ export default function AutomationPage() {
   const [previewType, setPreviewType] = useState<string | null>(null)
   const [previewResult, setPreviewResult] = useState<any>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+
+  // Email draft state
+  const [draftTo, setDraftTo] = useState('')
+  const [draftSubject, setDraftSubject] = useState('')
+  const [draftBody, setDraftBody] = useState('')
+  const [draftLoading, setDraftLoading] = useState(false)
+  const [draftResult, setDraftResult] = useState<EmailDraftResult | null>(null)
+
+  // Thread viewer state
+  const [threadConversationId, setThreadConversationId] = useState('')
+  const [threadLoading, setThreadLoading] = useState(false)
+  const [threadMessages, setThreadMessages] = useState<ThreadMessage[] | null>(null)
+  const [threadError, setThreadError] = useState<string | null>(null)
+  const [threadExpanded, setThreadExpanded] = useState<string | null>(null)
+
+  // Sync state
+  const [syncLoading, setSyncLoading] = useState(false)
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null)
+  const [syncLastAt, setSyncLastAt] = useState<Date | null>(null)
+  const [syncFullMode, setSyncFullMode] = useState(false)
 
   async function loadData() {
     setLoading(true)
@@ -323,6 +330,68 @@ export default function AutomationPage() {
       setPreviewResult({ error: 'Preview request failed' })
     } finally {
       setPreviewLoading(false)
+    }
+  }
+
+  async function submitDraft(e: React.FormEvent) {
+    e.preventDefault()
+    setDraftLoading(true)
+    setDraftResult(null)
+    try {
+      const res = await fetch('/api/internal/email/draft', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: draftTo, subject: draftSubject, body: draftBody }),
+      })
+      const json = await res.json()
+      setDraftResult(json)
+      if (json.success) {
+        setDraftTo('')
+        setDraftSubject('')
+        setDraftBody('')
+      }
+    } catch {
+      setDraftResult({ success: false, error: 'Request failed' })
+    } finally {
+      setDraftLoading(false)
+    }
+  }
+
+  async function fetchThread(e: React.FormEvent) {
+    e.preventDefault()
+    if (!threadConversationId.trim()) return
+    setThreadLoading(true)
+    setThreadMessages(null)
+    setThreadError(null)
+    setThreadExpanded(null)
+    try {
+      const res = await fetch(`/api/internal/email/thread?conversationId=${encodeURIComponent(threadConversationId.trim())}`)
+      const json = await res.json()
+      if (json.graphError || json.error) {
+        setThreadError(json.error || 'Failed to fetch thread')
+      } else {
+        setThreadMessages(json.messages || [])
+      }
+    } catch {
+      setThreadError('Request failed')
+    } finally {
+      setThreadLoading(false)
+    }
+  }
+
+  async function triggerSync() {
+    setSyncLoading(true)
+    setSyncResult(null)
+    try {
+      const url = `/api/internal/sync/parts${syncFullMode ? '?full=true' : ''}`
+      const res = await fetch(url, { method: 'POST' })
+      const json = await res.json()
+      setSyncResult(json)
+      if (json.success) setSyncLastAt(new Date())
+    } catch {
+      setSyncResult({ error: 'Sync request failed' })
+    } finally {
+      setSyncLoading(false)
     }
   }
 
@@ -747,6 +816,294 @@ export default function AutomationPage() {
                 Click <span className="font-medium text-slate-600">Expand</span> to access dry-run automation previews
               </div>
             )}
+          </ChartCard>
+        </FadeIn>
+
+        {/* ================================================================
+            EMAIL TOOLS
+        ================================================================ */}
+        <FadeIn delay={1000}>
+          <SectionDivider label="Email Tools" icon={Mail} />
+        </FadeIn>
+
+        {/* Draft Composer */}
+        <FadeIn delay={1060}>
+          <ChartCard
+            title="Draft Email Composer"
+            icon={Mail}
+            iconColor="text-[#4a6fa5]"
+            subtitle="Create a draft in the shared Outlook mailbox via Microsoft Graph"
+          >
+            <form onSubmit={submitDraft} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">To</label>
+                  <input
+                    type="email"
+                    value={draftTo}
+                    onChange={e => setDraftTo(e.target.value)}
+                    required
+                    placeholder="recipient@example.com"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#4a6fa5]/30 focus:border-[#4a6fa5] transition-all placeholder:text-slate-300"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Subject</label>
+                  <input
+                    type="text"
+                    value={draftSubject}
+                    onChange={e => setDraftSubject(e.target.value)}
+                    required
+                    maxLength={500}
+                    placeholder="Email subject"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#4a6fa5]/30 focus:border-[#4a6fa5] transition-all placeholder:text-slate-300"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Body</label>
+                <textarea
+                  value={draftBody}
+                  onChange={e => setDraftBody(e.target.value)}
+                  required
+                  rows={5}
+                  maxLength={50000}
+                  placeholder="Email body (HTML supported)"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#4a6fa5]/30 focus:border-[#4a6fa5] transition-all resize-y placeholder:text-slate-300 font-mono"
+                />
+                <p className="text-[10px] text-slate-400">{draftBody.length.toLocaleString()} / 50,000 chars</p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <button
+                  type="submit"
+                  disabled={draftLoading}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-50 shadow-sm"
+                  style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #4a6fa5 100%)' }}
+                >
+                  {draftLoading
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Send className="w-4 h-4" />}
+                  {draftLoading ? 'Creating Draft...' : 'Save as Draft'}
+                </button>
+                {draftResult && (
+                  <div className={`flex items-center gap-2 text-sm ${draftResult.success ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {draftResult.success
+                      ? <CheckCircle2 className="w-4 h-4 shrink-0" />
+                      : <XCircle className="w-4 h-4 shrink-0" />}
+                    {draftResult.success
+                      ? <>Draft saved
+                          {draftResult.webLink && (
+                            <a
+                              href={draftResult.webLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-1.5 inline-flex items-center gap-1 underline underline-offset-2 hover:text-emerald-700"
+                            >
+                              Open in Outlook <ExternalLink className="w-3 h-3" />
+                            </a>
+                          )}
+                        </>
+                      : draftResult.error || 'Failed to create draft'}
+                  </div>
+                )}
+              </div>
+            </form>
+          </ChartCard>
+        </FadeIn>
+
+        {/* Thread Viewer */}
+        <FadeIn delay={1120}>
+          <ChartCard
+            title="Email Thread Viewer"
+            icon={MessageSquare}
+            iconColor="text-[#8b2040]"
+            subtitle="Fetch a conversation thread by ID from the shared mailbox"
+          >
+            <form onSubmit={fetchThread} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Conversation ID</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={threadConversationId}
+                    onChange={e => setThreadConversationId(e.target.value)}
+                    required
+                    placeholder="AAQkAG1mNTQwNjU1..."
+                    className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#8b2040]/30 focus:border-[#8b2040] transition-all placeholder:text-slate-300 font-mono"
+                  />
+                  <button
+                    type="submit"
+                    disabled={threadLoading || !threadConversationId.trim()}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-50 shadow-sm whitespace-nowrap"
+                    style={{ background: 'linear-gradient(135deg, #6b1530 0%, #8b2040 100%)' }}
+                  >
+                    {threadLoading
+                      ? <Loader2 className="w-4 h-4 animate-spin" />
+                      : <Search className="w-4 h-4" />}
+                    {threadLoading ? 'Loading...' : 'Fetch Thread'}
+                  </button>
+                </div>
+              </div>
+
+              {threadError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 bg-red-50 border border-red-100 rounded-lg text-sm text-red-600">
+                  <XCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  {threadError}
+                </div>
+              )}
+
+              {threadMessages !== null && !threadLoading && (
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    {threadMessages.length === 0 ? 'No messages found' : `${threadMessages.length} message${threadMessages.length !== 1 ? 's' : ''}`}
+                  </p>
+                  <div className="space-y-2 max-h-[480px] overflow-y-auto scrollbar-thin pr-1">
+                    {threadMessages.map(msg => (
+                      <div
+                        key={msg.id}
+                        className="border border-slate-100 rounded-lg overflow-hidden bg-white hover:border-slate-200 transition-colors"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setThreadExpanded(prev => prev === msg.id ? null : msg.id)}
+                          className="w-full flex items-start justify-between gap-3 px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-xs font-semibold text-[#1e3a5f] truncate">
+                                {msg.from?.emailAddress?.name || msg.from?.emailAddress?.address || 'Unknown sender'}
+                              </span>
+                              <span className="text-[10px] text-slate-400 shrink-0">
+                                {msg.receivedDateTime
+                                  ? new Date(msg.receivedDateTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                                  : ''}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 font-medium truncate">{msg.subject || '(no subject)'}</p>
+                            {threadExpanded !== msg.id && (
+                              <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{msg.bodyPreview}</p>
+                            )}
+                          </div>
+                          {threadExpanded === msg.id
+                            ? <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                            : <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />}
+                        </button>
+                        {threadExpanded === msg.id && (
+                          <div className="px-4 pb-4 border-t border-slate-50">
+                            <pre className="text-xs text-slate-600 leading-relaxed whitespace-pre-wrap mt-3 font-sans">
+                              {msg.bodyPreview || '(no preview available)'}
+                            </pre>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </form>
+          </ChartCard>
+        </FadeIn>
+
+        {/* ================================================================
+            ERP SYNC TRIGGER
+        ================================================================ */}
+        <FadeIn delay={1200}>
+          <SectionDivider label="ERP Sync" icon={Database} />
+        </FadeIn>
+
+        <FadeIn delay={1260}>
+          <ChartCard
+            title="Parts Sync Trigger"
+            icon={Database}
+            iconColor="text-[#4a6fa5]"
+            subtitle="Trigger an ERP parts sync — incremental (recent changes) or full catalog"
+          >
+            <div className="space-y-5">
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                  <span className="relative inline-block w-10 h-5">
+                    <input
+                      type="checkbox"
+                      checked={syncFullMode}
+                      onChange={e => setSyncFullMode(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="absolute inset-0 bg-slate-200 rounded-full peer-checked:bg-[#4a6fa5] transition-colors" />
+                    <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-transform peer-checked:translate-x-5" />
+                  </span>
+                  <span className="text-sm font-medium text-slate-700">
+                    Full sync <span className="text-xs font-normal text-slate-400">(vs incremental)</span>
+                  </span>
+                </label>
+
+                <button
+                  onClick={triggerSync}
+                  disabled={syncLoading}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg transition-all disabled:opacity-50 shadow-sm"
+                  style={{ background: syncLoading ? '#6b7280' : 'linear-gradient(135deg, #1e3a5f 0%, #4a6fa5 100%)' }}
+                >
+                  {syncLoading
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Database className="w-4 h-4" />}
+                  {syncLoading ? 'Syncing...' : `Run ${syncFullMode ? 'Full' : 'Incremental'} Sync`}
+                </button>
+
+                {syncLastAt && (
+                  <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    Last sync: {syncLastAt.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+
+              {syncLoading && (
+                <div className="flex items-center gap-3 px-4 py-4 bg-[#4a6fa5]/5 border border-[#4a6fa5]/20 rounded-lg">
+                  <Loader2 className="w-5 h-5 text-[#4a6fa5] animate-spin shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-[#1e3a5f]">Sync in progress</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Running {syncFullMode ? 'full' : 'incremental'} parts sync against ERP...
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {syncResult && !syncLoading && (
+                <div className={`flex items-start gap-3 px-4 py-4 rounded-lg border ${
+                  syncResult.success
+                    ? 'bg-emerald-50 border-emerald-100'
+                    : 'bg-red-50 border-red-100'
+                }`}>
+                  {syncResult.success
+                    ? <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
+                    : <XCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />}
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold ${syncResult.success ? 'text-emerald-700' : 'text-red-700'}`}>
+                      {syncResult.success ? 'Sync complete' : 'Sync failed'}
+                    </p>
+                    {syncResult.message && (
+                      <p className="text-xs text-slate-600 mt-0.5">{syncResult.message}</p>
+                    )}
+                    {syncResult.count !== undefined && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        <span className="font-semibold">{syncResult.count.toLocaleString()}</span> parts updated
+                        {syncResult.mode && <span className="ml-1.5 text-slate-400">({syncResult.mode} mode)</span>}
+                      </p>
+                    )}
+                    {syncResult.error && (
+                      <p className="text-xs text-red-600 mt-0.5">{syncResult.error}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!syncResult && !syncLoading && (
+                <div className="text-center py-6 text-slate-400 text-sm">
+                  <Database className="w-6 h-6 mx-auto mb-2 text-slate-200" />
+                  No sync run yet this session
+                </div>
+              )}
+            </div>
           </ChartCard>
         </FadeIn>
       </div>

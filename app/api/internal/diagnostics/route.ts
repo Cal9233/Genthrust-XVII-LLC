@@ -14,16 +14,13 @@ export async function GET() {
 
     const results: Record<string, any> = {
       timestamp: new Date().toISOString(),
-      session: {
-        email: session.user.email,
-        role: (session.user as any).role,
-      },
+      role: (session.user as any).role,
     }
 
     // Test main DB (genthrust on port 3307)
     try {
-      const rows = await query<any[]>('SELECT 1 as test')
-      results.mainDb = { connected: true, result: rows[0] }
+      await query<any[]>('SELECT 1')
+      results.mainDb = { connected: true }
     } catch (error) {
       console.error('Main DB connection error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
       results.mainDb = { connected: false }
@@ -31,27 +28,27 @@ export async function GET() {
 
     // Test inventory DB (genthrust_inventory on port 3306)
     try {
-      const rows = await inventoryQuery<any[]>('SELECT 1 as test')
-      results.inventoryDb = { connected: true, result: rows[0] }
+      await inventoryQuery<any[]>('SELECT 1')
+      results.inventoryDb = { connected: true }
     } catch (error) {
       console.error('Inventory DB connection error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
       results.inventoryDb = { connected: false }
     }
 
-    // Check inventory tables exist
+    // Check inventory DB connectivity (no schema leakage)
     try {
-      const tables = await inventoryQuery<any[]>('SHOW TABLES')
-      results.inventoryTables = tables.map((t: any) => Object.values(t)[0])
+      await inventoryQuery<any[]>('SELECT 1')
+      results.inventoryConnected = true
     } catch (error) {
-      console.error('Inventory tables error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
-      results.inventoryTables = { connected: false }
+      console.error('Inventory connectivity error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
+      results.inventoryConnected = false
     }
 
     return NextResponse.json(results)
   } catch (error) {
     console.error('Diagnostics API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
-      { error: 'Diagnostics failed', details: error instanceof Error ? error.message : String(error) },
+      { error: 'Diagnostics failed' },
       { status: 500 }
     )
   }

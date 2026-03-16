@@ -6,6 +6,7 @@ import {
   encryptSecret,
   generateQrCodeDataUrl,
 } from '@/lib/mfa'
+import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,17 @@ export async function POST() {
     // Generate QR code
     const qrCodeUrl = await generateQrCodeDataUrl(uri)
 
-    return NextResponse.json({ qrCodeUrl, secret })
+    logAuditEvent({
+      action: ACTION_TYPES.MFA_ENROLL,
+      resource_type: RESOURCE_TYPES.MFA,
+      user_id: String(userId),
+      user_email: email,
+      user_role: 'client',
+      success: true,
+      status_code: 200,
+    }).catch(() => {})
+
+    return NextResponse.json({ qrCodeUrl })
   } catch (error) {
     console.error('MFA enroll error:', error)
     return NextResponse.json({ error: 'Enrollment failed' }, { status: 500 })

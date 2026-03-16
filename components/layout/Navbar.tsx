@@ -39,13 +39,6 @@ export function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 group">
-            <Image
-              src="/GenLogoTab.png"
-              alt="GENTHRUST XVII Logo"
-              width={40}
-              height={40}
-              className="h-9 w-auto"
-            />
             <span className={cn(
               "text-lg font-bold tracking-wider transition-colors",
               "text-white"

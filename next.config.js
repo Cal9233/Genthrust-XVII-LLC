@@ -6,6 +6,14 @@ const nextConfig = {
   images: {
     remotePatterns: [],
   },
+  async rewrites() {
+    return [
+      {
+        source: '/favicon.ico',
+        destination: '/GenLogoTab.png',
+      },
+    ]
+  },
   async headers() {
     return [
       {

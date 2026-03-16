@@ -138,20 +138,17 @@ async function fetchAllPages(endpoint: string, maxPages: number = 20): Promise<a
 }
 
 // ---------------------------------------------------------------------------
-// Public API
+// Public API — types from @genthrust/shared
 // ---------------------------------------------------------------------------
 
-export interface ERPPurchaseOrder {
-  po_number: string
-  vendor: string
-  po_date: string | null
-  total: number
-  status: string
-  payment_terms: string | null
-  due_date: string | null
-  priority: string | null
-  ship_via: string | null
-}
+import type {
+  ERPPurchaseOrder,
+  ERPRepairOrder,
+  Net30Order,
+  FollowupRO,
+} from '@genthrust/shared'
+
+export type { ERPPurchaseOrder, ERPRepairOrder, Net30Order, FollowupRO }
 
 export async function getOpenPurchaseOrders(): Promise<ERPPurchaseOrder[]> {
   const items = await fetchAllPages('v1/po/list')
@@ -182,20 +179,6 @@ export async function getOpenPurchaseOrders(): Promise<ERPPurchaseOrder[]> {
   return orders
 }
 
-export interface ERPRepairOrder {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  contact: string | null
-  status: string
-  due_date: string | null
-  total: number
-  payment_terms: string | null
-  priority: string | null
-  date_received: string | null
-  last_modified: string | null
-}
-
 export async function getActiveRepairOrders(limit: number = 50): Promise<ERPRepairOrder[]> {
   const items = await fetchAllPages('v1/ro/list')
   const orders: ERPRepairOrder[] = []
@@ -221,19 +204,6 @@ export async function getActiveRepairOrders(limit: number = 50): Promise<ERPRepa
   }
 
   return orders.slice(0, limit)
-}
-
-export interface Net30Order {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  total: number
-  payment_terms: string
-  received_date: string | null
-  payment_due_date: string | null
-  status_flag: 'PAST_DUE' | 'DUE_SOON' | 'UPCOMING' | null
-  days_overdue?: number
-  days_until_due?: number
 }
 
 export async function getNet30PaymentDates(): Promise<{
@@ -308,15 +278,6 @@ export async function getNet30PaymentDates(): Promise<{
     },
     orders,
   }
-}
-
-export interface FollowupRO {
-  ro_number: string
-  ro_id: number | string
-  vendor: string
-  status: string
-  total: number
-  payment_terms: string | null
 }
 
 export async function getFollowupROs(): Promise<{

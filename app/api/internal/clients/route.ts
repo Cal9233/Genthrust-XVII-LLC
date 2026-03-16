@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
+import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
@@ -43,6 +44,18 @@ export async function PATCH(request: Request) {
       [is_active, userId]
     )
 
+    logAuditEvent({
+      action: ACTION_TYPES.UPDATE,
+      resource_type: RESOURCE_TYPES.CLIENT,
+      resource_id: String(userId),
+      user_id: session.user.id,
+      user_email: session.user.email ?? null,
+      user_role: 'internal',
+      success: true,
+      status_code: 200,
+      metadata: { is_active },
+    }).catch(() => {})
+
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Internal clients PATCH error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
@@ -67,6 +80,17 @@ export async function DELETE(request: Request) {
       `DELETE FROM portal_users WHERE id = ? AND is_active = 0`,
       [userId]
     )
+
+    logAuditEvent({
+      action: ACTION_TYPES.DELETE,
+      resource_type: RESOURCE_TYPES.CLIENT,
+      resource_id: String(userId),
+      user_id: session.user.id,
+      user_email: session.user.email ?? null,
+      user_role: 'internal',
+      success: true,
+      status_code: 200,
+    }).catch(() => {})
 
     return NextResponse.json({ success: true })
   } catch (error) {

@@ -3,6 +3,7 @@ import { auth } from '@/auth'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { BOT_REGISTRY } from '@/lib/bot-helpers'
+import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 export const dynamic = 'force-dynamic'
 
 const execFileAsync = promisify(execFile)
@@ -34,6 +35,19 @@ export async function POST(request: NextRequest) {
 
     try {
       await execFileAsync('nssm', ['restart', serviceName], { timeout: 30000 })
+
+      logAuditEvent({
+        action: ACTION_TYPES.BOT_RESTART,
+        resource_type: RESOURCE_TYPES.BOT,
+        resource_id: botName,
+        user_id: session.user.id,
+        user_email: session.user.email ?? null,
+        user_role: 'internal',
+        success: true,
+        status_code: 200,
+        metadata: { botName, serviceName },
+      }).catch(() => {})
+
       return NextResponse.json({
         action: 'restart_executed',
         bot: botName,
@@ -42,6 +56,19 @@ export async function POST(request: NextRequest) {
       })
     } catch (err: any) {
       const msg = err.message || ''
+
+      logAuditEvent({
+        action: ACTION_TYPES.BOT_RESTART,
+        resource_type: RESOURCE_TYPES.BOT,
+        resource_id: botName,
+        user_id: session.user.id,
+        user_email: session.user.email ?? null,
+        user_role: 'internal',
+        success: false,
+        error_message: msg.substring(0, 500),
+        metadata: { botName, serviceName },
+      }).catch(() => {})
+
       if (msg.includes('Access') || msg.includes('privilege') || msg.includes('denied')) {
         return NextResponse.json({
           action: 'restart_failed',

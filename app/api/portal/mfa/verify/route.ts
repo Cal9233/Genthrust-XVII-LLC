@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { decryptSecret, verifyTotpCode, generateRecoveryCodes } from '@/lib/mfa'
+import { createRateLimiter } from '@/lib/rate-limit'
+import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 import bcrypt from 'bcryptjs'
 export const dynamic = 'force-dynamic'
+
+const mfaVerifyLimiter = createRateLimiter({ maxAttempts: 5, windowMs: 5 * 60 * 1000, name: 'mfa-verify' })
 
 interface PendingFactorRow {
   id: number
@@ -25,6 +29,16 @@ export async function POST(request: Request) {
     }
 
     const userId = parseInt(session.user.id)
+    const userKey = String(userId)
+
+    // Rate limit: max 5 failed attempts per 5 minutes
+    const rl = mfaVerifyLimiter.check(userKey)
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: 'Too many attempts. Try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rl.retryAfterSeconds) } }
+      )
+    }
 
     // Get the pending factor
     const factors = await query<PendingFactorRow[]>(
@@ -43,8 +57,21 @@ export async function POST(request: Request) {
 
     // Verify the TOTP code
     if (!verifyTotpCode(secret, code)) {
+      mfaVerifyLimiter.record(userKey)
+      logAuditEvent({
+        action: ACTION_TYPES.MFA_VERIFY,
+        resource_type: RESOURCE_TYPES.MFA,
+        user_id: String(userId),
+        user_email: session.user.email ?? null,
+        user_role: 'client',
+        success: false,
+        error_message: 'Invalid TOTP code during enrollment verification',
+      }).catch(() => {})
       return NextResponse.json({ error: 'Invalid code' }, { status: 400 })
     }
+
+    // Success — reset rate limit counter
+    mfaVerifyLimiter.reset(userKey)
 
     // Mark factor as verified
     await query(
@@ -69,6 +96,16 @@ export async function POST(request: Request) {
         [userId, hash]
       )
     }
+
+    logAuditEvent({
+      action: ACTION_TYPES.MFA_VERIFY,
+      resource_type: RESOURCE_TYPES.MFA,
+      user_id: String(userId),
+      user_email: session.user.email ?? null,
+      user_role: 'client',
+      success: true,
+      status_code: 200,
+    }).catch(() => {})
 
     return NextResponse.json({ success: true, recoveryCodes })
   } catch (error) {

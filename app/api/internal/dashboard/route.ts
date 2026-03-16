@@ -7,7 +7,8 @@ async function safeCount(sql: string): Promise<Record<string, any>> {
   try {
     const rows = await query<any[]>(sql)
     return rows[0] || {}
-  } catch {
+  } catch (error) {
+    console.error('Dashboard query failed:', error)
     return {}
   }
 }
@@ -15,7 +16,8 @@ async function safeCount(sql: string): Promise<Record<string, any>> {
 async function safeQuery(sql: string): Promise<any[]> {
   try {
     return await query<any[]>(sql)
-  } catch {
+  } catch (error) {
+    console.error('Dashboard query failed:', error)
     return []
   }
 }
