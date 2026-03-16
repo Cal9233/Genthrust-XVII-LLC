@@ -53,6 +53,13 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Inventory search API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
-    return NextResponse.json({ error: 'Failed to search inventory' }, { status: 500 })
+    const isConnError = error instanceof Error && (
+      error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') ||
+      error.message.includes('connect timeout') || error.message.includes('Connection lost')
+    )
+    return NextResponse.json(
+      { error: isConnError ? 'Inventory database unavailable' : 'Failed to search inventory', details: isConnError ? 'Service unreachable' : undefined },
+      { status: isConnError ? 503 : 500 }
+    )
   }
 }

@@ -38,6 +38,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, alert_id: numericId })
   } catch (error) {
     console.error('Acknowledge alarm error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
-    return NextResponse.json({ error: 'Failed to acknowledge alarm' }, { status: 500 })
+    const isConnError = error instanceof Error && (
+      error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') ||
+      error.message.includes('connect timeout') || error.message.includes('Connection lost')
+    )
+    return NextResponse.json(
+      { error: isConnError ? 'Inventory database unavailable' : 'Failed to acknowledge alarm' },
+      { status: isConnError ? 503 : 500 }
+    )
   }
 }

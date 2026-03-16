@@ -83,6 +83,13 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     console.error('Add inventory API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
-    return NextResponse.json({ error: 'Failed to add inventory item' }, { status: 500 })
+    const isConnError = error instanceof Error && (
+      error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') ||
+      error.message.includes('connect timeout') || error.message.includes('Connection lost')
+    )
+    return NextResponse.json(
+      { error: isConnError ? 'Inventory database unavailable' : 'Failed to add inventory item' },
+      { status: isConnError ? 503 : 500 }
+    )
   }
 }

@@ -40,6 +40,7 @@ async function signin(): Promise<string> {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: body.toString(),
+    signal: AbortSignal.timeout(10000),
   })
 
   if (!resp.ok) {
@@ -89,13 +90,13 @@ async function erpGet(endpoint: string, params?: Record<string, string>): Promis
   }
 
   let headers = await getHeaders()
-  let resp = await fetch(url.toString(), { headers })
+  let resp = await fetch(url.toString(), { headers, signal: AbortSignal.timeout(10000) })
 
   // If 401, re-signin and retry once
   if (resp.status === 401) {
     cachedToken = null
     headers = await getHeaders()
-    resp = await fetch(url.toString(), { headers })
+    resp = await fetch(url.toString(), { headers, signal: AbortSignal.timeout(10000) })
   }
 
   if (!resp.ok) {

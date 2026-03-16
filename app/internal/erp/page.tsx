@@ -18,11 +18,28 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  ArrowUpDown,
 } from 'lucide-react'
 import DetailDrawer from '@/components/internal/DetailDrawer'
+import { StatCard } from '@/components/internal/StatCard'
+import { StatusBadge } from '@/components/internal/DataTable'
+import { ChartCard } from '@/components/internal/ChartCard'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/** Wraps fetch with an AbortController timeout (default 10s). */
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit & { timeoutMs?: number }): Promise<Response> {
+  const { timeoutMs = 10000, ...fetchInit } = init || {}
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(input, { ...fetchInit, signal: controller.signal })
+    .catch((err) => {
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out — service may be unavailable')
+      }
+      throw err
+    })
+    .finally(() => clearTimeout(timer))
+}
 
 function formatCurrency(val: number | null | undefined) {
   if (val === null || val === undefined) return '—'
@@ -47,30 +64,6 @@ function formatRelative(val: string | null | undefined) {
   return `${days}d ago`
 }
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-
-function StatusBadge({ status }: { status: string | null | undefined }) {
-  if (!status) return <span className="text-xs text-navy-400">—</span>
-  const map: Record<string, string> = {
-    Open:        'bg-sky-900/60 text-sky-300 border-sky-700/50',
-    Active:      'bg-sky-900/60 text-sky-300 border-sky-700/50',
-    'In Progress':'bg-amber-900/50 text-amber-300 border-amber-700/50',
-    Pending:     'bg-amber-900/50 text-amber-300 border-amber-700/50',
-    Shipped:     'bg-violet-900/50 text-violet-300 border-violet-700/50',
-    Completed:   'bg-emerald-900/50 text-emerald-300 border-emerald-700/50',
-    Paid:        'bg-emerald-900/50 text-emerald-300 border-emerald-700/50',
-    Closed:      'bg-navy-700/60 text-navy-300 border-navy-600/50',
-    Overdue:     'bg-red-900/50 text-red-300 border-red-700/50',
-    Cancelled:   'bg-red-900/50 text-red-300 border-red-700/50',
-  }
-  const cls = map[status] || 'bg-navy-700/60 text-navy-300 border-navy-600/50'
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${cls}`}>
-      {status}
-    </span>
-  )
-}
-
 // ─── Connection Health Card ────────────────────────────────────────────────────
 
 interface DiagnosticsData {
@@ -87,7 +80,7 @@ function ConnectionHealth() {
   async function load() {
     setLoading(true)
     try {
-      const res = await fetch('/api/internal/diagnostics')
+      const res = await fetchWithTimeout('/api/internal/diagnostics')
       if (!res.ok) throw new Error()
       setData(await res.json())
     } catch {
@@ -118,7 +111,7 @@ function ConnectionHealth() {
   ]
 
   return (
-    <GlassSection
+    <ChartCard
       title="Connection Health"
       icon={Activity}
       action={
@@ -126,7 +119,7 @@ function ConnectionHealth() {
           onClick={load}
           disabled={loading}
           aria-label="Refresh connections"
-          className="p-1.5 rounded text-navy-400 hover:text-white hover:bg-navy-700/50 transition-colors disabled:opacity-40"
+          className="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors disabled:opacity-40"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
@@ -140,22 +133,22 @@ function ConnectionHealth() {
           return (
             <div
               key={c.label}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-navy-800/40 border border-navy-700/40"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 border border-slate-200"
             >
-              <div className={`p-1.5 rounded-md ${isLoading ? 'bg-navy-700/50' : isOk ? 'bg-emerald-900/50' : 'bg-red-900/40'}`}>
-                <Icon className={`w-3.5 h-3.5 ${isLoading ? 'text-navy-400' : isOk ? 'text-emerald-400' : 'text-red-400'}`} />
+              <div className={`p-1.5 rounded-md ${isLoading ? 'bg-slate-200' : isOk ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                <Icon className={`w-3.5 h-3.5 ${isLoading ? 'text-slate-400' : isOk ? 'text-emerald-600' : 'text-red-500'}`} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-medium text-navy-200 truncate">{c.label}</p>
+                <p className="text-xs font-medium text-slate-700 truncate">{c.label}</p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   {isLoading ? (
-                    <Minus className="w-3 h-3 text-navy-500" />
+                    <Minus className="w-3 h-3 text-slate-400" />
                   ) : isOk ? (
-                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
                   ) : (
-                    <XCircle className="w-3 h-3 text-red-400" />
+                    <XCircle className="w-3 h-3 text-red-500" />
                   )}
-                  <span className={`text-xs ${isLoading ? 'text-navy-500' : isOk ? 'text-emerald-400' : 'text-red-400'}`}>
+                  <span className={`text-xs ${isLoading ? 'text-slate-400' : isOk ? 'text-emerald-600' : 'text-red-600'}`}>
                     {isLoading ? 'Checking…' : isOk ? 'Connected' : 'Disconnected'}
                   </span>
                 </div>
@@ -165,9 +158,9 @@ function ConnectionHealth() {
         })}
       </div>
       {data?.timestamp && (
-        <p className="mt-2 text-xs text-navy-500">Last checked {formatRelative(data.timestamp)}</p>
+        <p className="mt-3 text-xs text-slate-400">Last checked {formatRelative(data.timestamp)}</p>
       )}
-    </GlassSection>
+    </ChartCard>
   )
 }
 
@@ -182,7 +175,7 @@ function PartsSync() {
     setSyncing(true)
     setError(null)
     try {
-      const res = await fetch(`/api/internal/sync/parts${full ? '?full=true' : ''}`, { method: 'POST' })
+      const res = await fetchWithTimeout(`/api/internal/sync/parts${full ? '?full=true' : ''}`, { method: 'POST', timeoutMs: 60000 })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Sync failed')
       setResult({ count: json.count, mode: json.mode, ts: new Date().toISOString() })
@@ -194,13 +187,13 @@ function PartsSync() {
   }
 
   return (
-    <GlassSection title="Parts Sync" icon={Package}>
+    <ChartCard title="Parts Sync" icon={Package}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
         <div className="flex gap-2">
           <button
             onClick={() => triggerSync(false)}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-navy-700/60 hover:bg-navy-600/60 border border-navy-600/50 text-navy-100 transition-all disabled:opacity-40"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 transition-all disabled:opacity-40 shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             Incremental Sync
@@ -208,7 +201,7 @@ function PartsSync() {
           <button
             onClick={() => triggerSync(true)}
             disabled={syncing}
-            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-burgundy-900/50 hover:bg-burgundy-800/50 border border-burgundy-700/40 text-burgundy-300 transition-all disabled:opacity-40"
+            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-900 text-white transition-all disabled:opacity-40 shadow-sm"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
             Full Sync
@@ -216,16 +209,16 @@ function PartsSync() {
         </div>
 
         <div className="text-xs">
-          {syncing && <span className="text-sky-400 animate-pulse">Syncing parts…</span>}
+          {syncing && <span className="text-blue-600 animate-pulse">Syncing parts…</span>}
           {result && !syncing && (
-            <span className="text-emerald-400">
+            <span className="text-emerald-600">
               Synced {result.count?.toLocaleString()} parts ({result.mode}) — {formatRelative(result.ts)}
             </span>
           )}
-          {error && <span className="text-red-400">{error}</span>}
+          {error && <span className="text-red-600">{error}</span>}
         </div>
       </div>
-    </GlassSection>
+    </ChartCard>
   )
 }
 
@@ -240,58 +233,34 @@ interface DashboardStats {
   openBalance: number
 }
 
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  icon: React.ElementType
-  label: string
-  value: string | number
-  sub?: string
-  accent?: string
-}) {
+function KeyMetrics({ stats, loading }: { stats: DashboardStats | null; loading: boolean }) {
+  const cards = [
+    { icon: Package,      label: 'Parts',         color: 'blue',   value: loading ? '—' : stats?.totalParts.toLocaleString() ?? '—' },
+    { icon: Building2,    label: 'Companies',      color: 'purple', value: loading ? '—' : stats?.totalCompanies.toLocaleString() ?? '—' },
+    { icon: Wrench,       label: 'Active ROs',     color: 'yellow', value: loading ? '—' : stats?.activeROs.toLocaleString() ?? '—' },
+    { icon: ShoppingCart, label: 'Active SOs',     color: 'green',  value: loading ? '—' : stats?.activeSOs.toLocaleString() ?? '—' },
+    { icon: Receipt,      label: 'Open Invoices',  color: 'red',    value: loading ? '—' : stats?.openInvoices.toLocaleString() ?? '—' },
+    { icon: DollarSign,   label: 'AR Balance',     color: 'orange', value: loading ? '—' : formatCurrency(stats?.openBalance ?? null), subtitle: 'outstanding' },
+  ]
+
   return (
-    <div className="relative overflow-hidden rounded-xl bg-navy-800/40 border border-navy-700/40 px-5 py-4 group hover:border-navy-600/60 transition-colors">
-      <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-20 ${accent || 'bg-sky-400'}`} />
-      <div className="flex items-start justify-between relative">
-        <div>
-          <p className="text-xs text-navy-400 font-medium">{label}</p>
-          <p className="mt-1 text-xl font-bold text-white">{value}</p>
-          {sub && <p className="mt-0.5 text-xs text-navy-400">{sub}</p>}
-        </div>
-        <div className="p-2 rounded-lg bg-navy-700/60">
-          <Icon className="w-4 h-4 text-navy-300" />
-        </div>
-      </div>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {cards.map((c) => (
+        <StatCard
+          key={c.label}
+          icon={c.icon}
+          label={c.label}
+          value={c.value}
+          color={c.color}
+          subtitle={c.subtitle}
+          loading={loading}
+        />
+      ))}
     </div>
   )
 }
 
-function KeyMetrics({ stats, loading }: { stats: DashboardStats | null; loading: boolean }) {
-  const cards = [
-    { icon: Package,      label: 'Parts',          value: loading ? '—' : stats?.totalParts.toLocaleString() ?? '—',    accent: 'bg-sky-400' },
-    { icon: Building2,    label: 'Companies',       value: loading ? '—' : stats?.totalCompanies.toLocaleString() ?? '—', accent: 'bg-violet-400' },
-    { icon: Wrench,       label: 'Active ROs',      value: loading ? '—' : stats?.activeROs.toLocaleString() ?? '—',    accent: 'bg-amber-400' },
-    { icon: ShoppingCart, label: 'Active SOs',      value: loading ? '—' : stats?.activeSOs.toLocaleString() ?? '—',    accent: 'bg-emerald-400' },
-    { icon: Receipt,      label: 'Open Invoices',   value: loading ? '—' : stats?.openInvoices.toLocaleString() ?? '—', accent: 'bg-rose-400' },
-    { icon: DollarSign,   label: 'AR Balance',      value: loading ? '—' : formatCurrency(stats?.openBalance ?? null),   accent: 'bg-burgundy-400', sub: 'outstanding' },
-  ]
-
-  return (
-    <GlassSection title="Key Metrics" icon={Activity}>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {cards.map((c) => (
-          <MetricCard key={c.label} icon={c.icon} label={c.label} value={c.value} sub={c.sub} accent={c.accent} />
-        ))}
-      </div>
-    </GlassSection>
-  )
-}
-
-// ─── Data Table ───────────────────────────────────────────────────────────────
+// ─── Local Data Table (server-side pagination + search) ───────────────────────
 
 interface Column<T> {
   key: string
@@ -300,7 +269,7 @@ interface Column<T> {
   className?: string
 }
 
-interface DataTableProps<T> {
+interface LocalDataTableProps<T> {
   columns: Column<T>[]
   data: T[]
   total: number
@@ -316,59 +285,57 @@ interface DataTableProps<T> {
   emptyLabel?: string
 }
 
-function DataTable<T>({
+function LocalDataTable<T>({
   columns, data, total, page, limit, loading, search,
   onSearchChange, onPageChange, onRowClick, rowKey,
   searchPlaceholder = 'Search…', emptyLabel = 'No records',
-}: DataTableProps<T>) {
+}: LocalDataTableProps<T>) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
 
   return (
     <div>
       {/* Search */}
       <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-navy-500 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
         <input
           type="search"
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
           placeholder={searchPlaceholder}
-          className="w-full pl-9 pr-4 py-2 text-sm rounded-lg bg-navy-800/60 border border-navy-700/50 text-navy-100 placeholder-navy-500 focus:outline-none focus:ring-1 focus:ring-navy-500/50 focus:border-navy-600/60 transition-colors"
+          className="w-full pl-9 pr-4 py-2 text-sm rounded-lg bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors"
         />
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-navy-700/40 overflow-hidden">
+      <div className="rounded-lg border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-navy-800/60 border-b border-navy-700/40">
+              <tr className="bg-slate-50 border-b border-slate-200">
                 {columns.map((col) => (
                   <th
                     key={col.key}
-                    className={`px-4 py-2.5 text-left text-xs font-semibold text-navy-400 whitespace-nowrap ${col.className || ''}`}
+                    className={`px-4 py-2.5 text-left text-xs font-semibold text-slate-600 whitespace-nowrap ${col.className || ''}`}
                   >
-                    <span className="inline-flex items-center gap-1">
-                      {col.label}
-                    </span>
+                    {col.label}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-navy-800/60">
+            <tbody className="divide-y divide-slate-100">
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     {columns.map((col) => (
                       <td key={col.key} className="px-4 py-3">
-                        <div className="h-3.5 bg-navy-700/50 rounded w-3/4" />
+                        <div className="h-3.5 bg-slate-100 rounded w-3/4" />
                       </td>
                     ))}
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="px-4 py-8 text-center text-navy-500 text-xs">
+                  <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-400 text-xs">
                     {emptyLabel}
                   </td>
                 </tr>
@@ -377,7 +344,7 @@ function DataTable<T>({
                   <tr
                     key={rowKey(row)}
                     onClick={() => onRowClick(row)}
-                    className="hover:bg-navy-700/30 cursor-pointer transition-colors group"
+                    className="hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     {columns.map((col) => (
                       <td key={col.key} className={`px-4 py-3 ${col.className || ''}`}>
@@ -393,7 +360,7 @@ function DataTable<T>({
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between mt-3 text-xs text-navy-400">
+      <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
         <span>
           {loading ? 'Loading…' : `${total.toLocaleString()} record${total !== 1 ? 's' : ''}`}
         </span>
@@ -401,7 +368,7 @@ function DataTable<T>({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1 || loading}
-            className="p-1.5 rounded hover:bg-navy-700/50 disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-30 transition-colors"
             aria-label="Previous page"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -412,11 +379,102 @@ function DataTable<T>({
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages || loading}
-            className="p-1.5 rounded hover:bg-navy-700/50 disabled:opacity-30 transition-colors"
+            className="p-1.5 rounded hover:bg-slate-100 disabled:opacity-30 transition-colors"
             aria-label="Next page"
           >
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Drawer helpers ───────────────────────────────────────────────────────────
+
+function DrawerLoading({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <div className="flex items-center gap-3 text-slate-500 text-sm">
+        <RefreshCw className="w-4 h-4 animate-spin" />
+        Loading {label}…
+      </div>
+    </div>
+  )
+}
+
+function DrawerError({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 gap-3">
+      <AlertCircle className="w-8 h-8 text-red-400" />
+      <p className="text-red-600 text-sm">{label}</p>
+    </div>
+  )
+}
+
+function DrawerMetaGrid({ fields }: { fields: { label: string; value: React.ReactNode }[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-3">
+      {fields.map(({ label, value }) => (
+        <div key={label} className="bg-slate-50 rounded-lg px-3 py-2.5 border border-slate-200">
+          <p className="text-xs text-slate-500 font-medium mb-0.5">{label}</p>
+          <div className="text-sm text-slate-900">{value || '—'}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function DrawerLineItems({
+  lines,
+  columns,
+  renderRow,
+}: {
+  lines: any[]
+  columns: string[]
+  renderRow: (line: any) => React.ReactNode[]
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Line Items</h3>
+        <span className="text-xs text-slate-400">{lines.length} item{lines.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div className="rounded-lg border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                {columns.map((col) => (
+                  <th key={col} className="px-3 py-2 text-left font-semibold text-slate-600 whitespace-nowrap">
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {lines.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-3 py-5 text-center text-slate-400">
+                    No line items
+                  </td>
+                </tr>
+              ) : (
+                lines.map((line, i) => {
+                  const cells = renderRow(line)
+                  return (
+                    <tr key={line.id ?? i} className="hover:bg-slate-50">
+                      {cells.map((cell, j) => (
+                        <td key={j} className="px-3 py-2.5 text-slate-700 whitespace-nowrap">
+                          {cell}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -434,7 +492,7 @@ function RepairOrderDetail({ id }: { id: string }) {
     if (!id) return
     setLoading(true)
     setError(null)
-    fetch(`/api/internal/repair-orders/${id}`)
+    fetchWithTimeout(`/api/internal/repair-orders/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error(r.status === 404 ? 'Not found' : 'Failed to load')
         return r.json()
@@ -459,15 +517,15 @@ function RepairOrderDetail({ id }: { id: string }) {
         { label: 'Ship Via',     value: order.ship_via },
         { label: 'Ship Account', value: order.ship_account },
         { label: 'Terms',        value: order.term_sale },
-        { label: 'Total',        value: <span className="text-white font-bold">{formatCurrency(order.total)}</span> },
+        { label: 'Total',        value: <span className="text-slate-900 font-bold">{formatCurrency(order.total)}</span> },
       ]} />
       <DrawerLineItems
         lines={lines}
         columns={['#', 'Part', 'Description', 'Cond', 'Serial #', 'Qty', 'Rcvd', 'Dlvd', 'Price', 'UOM']}
         renderRow={(line) => [
           line.line_number,
-          <span className="font-medium text-white">{line.part_name || '—'}</span>,
-          <span className="text-navy-300 max-w-[160px] truncate block">{line.description || '—'}</span>,
+          <span className="font-medium text-slate-900">{line.part_name || '—'}</span>,
+          <span className="text-slate-500 max-w-[160px] truncate block">{line.description || '—'}</span>,
           line.condition_code || '—',
           line.serial_number || '—',
           line.qty ?? '—',
@@ -492,7 +550,7 @@ function SalesOrderDetail({ id }: { id: string }) {
     if (!id) return
     setLoading(true)
     setError(null)
-    fetch(`/api/internal/sales-orders/${id}`)
+    fetchWithTimeout(`/api/internal/sales-orders/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error(r.status === 404 ? 'Not found' : 'Failed to load')
         return r.json()
@@ -519,15 +577,15 @@ function SalesOrderDetail({ id }: { id: string }) {
         { label: 'Tracking #',   value: order.track_no },
         { label: 'Subtotal',     value: formatCurrency(order.subtotal) },
         { label: 'Discount',     value: formatCurrency(order.total_discount) },
-        { label: 'Total',        value: <span className="text-white font-bold">{formatCurrency(order.total)}</span> },
+        { label: 'Total',        value: <span className="text-slate-900 font-bold">{formatCurrency(order.total)}</span> },
       ]} />
       <DrawerLineItems
         lines={lines}
         columns={['#', 'Part', 'Description', 'Cond', 'Serial #', 'Qty', 'Rcvd', 'Dlvd', 'Price', 'UOM']}
         renderRow={(line) => [
           line.line_number,
-          <span className="font-medium text-white">{line.part_name || '—'}</span>,
-          <span className="text-navy-300 max-w-[160px] truncate block">{line.description || '—'}</span>,
+          <span className="font-medium text-slate-900">{line.part_name || '—'}</span>,
+          <span className="text-slate-500 max-w-[160px] truncate block">{line.description || '—'}</span>,
           line.condition_code || '—',
           line.serial_number || '—',
           line.qty ?? '—',
@@ -552,7 +610,7 @@ function InvoiceDetail({ id }: { id: string }) {
     if (!id) return
     setLoading(true)
     setError(null)
-    fetch(`/api/internal/invoices/${id}`)
+    fetchWithTimeout(`/api/internal/invoices/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error(r.status === 404 ? 'Not found' : 'Failed to load')
         return r.json()
@@ -580,11 +638,11 @@ function InvoiceDetail({ id }: { id: string }) {
         { label: 'Tracking #',   value: invoice.track_no },
         { label: 'Subtotal',     value: formatCurrency(invoice.subtotal) },
         { label: 'Discount',     value: formatCurrency(invoice.total_discount) },
-        { label: 'Total',        value: <span className="text-white font-bold">{formatCurrency(invoice.total)}</span> },
+        { label: 'Total',        value: <span className="text-slate-900 font-bold">{formatCurrency(invoice.total)}</span> },
         {
           label: 'Open Balance',
           value: invoice.open_balance
-            ? <span className="text-rose-400 font-bold">{formatCurrency(invoice.open_balance)}</span>
+            ? <span className="text-red-600 font-bold">{formatCurrency(invoice.open_balance)}</span>
             : '—',
         },
       ]} />
@@ -593,8 +651,8 @@ function InvoiceDetail({ id }: { id: string }) {
         columns={['#', 'Part', 'Description', 'Cond', 'Serial #', 'Qty', 'Price', 'UOM']}
         renderRow={(line) => [
           line.line_number,
-          <span className="font-medium text-white">{line.part_name || '—'}</span>,
-          <span className="text-navy-300 max-w-[160px] truncate block">{line.description || '—'}</span>,
+          <span className="font-medium text-slate-900">{line.part_name || '—'}</span>,
+          <span className="text-slate-500 max-w-[160px] truncate block">{line.description || '—'}</span>,
           line.condition_code || '—',
           line.serial_number || '—',
           line.qty ?? '—',
@@ -603,128 +661,6 @@ function InvoiceDetail({ id }: { id: string }) {
         ]}
       />
     </div>
-  )
-}
-
-// ─── Drawer helpers ───────────────────────────────────────────────────────────
-
-function DrawerLoading({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-center py-16">
-      <div className="flex items-center gap-3 text-navy-400 text-sm">
-        <RefreshCw className="w-4 h-4 animate-spin" />
-        Loading {label}…
-      </div>
-    </div>
-  )
-}
-
-function DrawerError({ label }: { label: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3">
-      <AlertCircle className="w-8 h-8 text-red-400" />
-      <p className="text-red-400 text-sm">{label}</p>
-    </div>
-  )
-}
-
-function DrawerMetaGrid({ fields }: { fields: { label: string; value: React.ReactNode }[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-3">
-      {fields.map(({ label, value }) => (
-        <div key={label} className="bg-navy-800/40 rounded-lg px-3 py-2.5 border border-navy-700/30">
-          <p className="text-xs text-navy-400 font-medium mb-0.5">{label}</p>
-          <div className="text-sm text-navy-200">{value || '—'}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function DrawerLineItems({
-  lines,
-  columns,
-  renderRow,
-}: {
-  lines: any[]
-  columns: string[]
-  renderRow: (line: any) => React.ReactNode[]
-}) {
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-xs font-semibold text-navy-300 uppercase tracking-wider">Line Items</h3>
-        <span className="text-xs text-navy-500">{lines.length} item{lines.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div className="rounded-lg border border-navy-700/40 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="bg-navy-800/80 border-b border-navy-700/40">
-                {columns.map((col) => (
-                  <th key={col} className="px-3 py-2 text-left font-semibold text-navy-400 whitespace-nowrap">
-                    {col}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-navy-800/60">
-              {lines.length === 0 ? (
-                <tr>
-                  <td colSpan={columns.length} className="px-3 py-5 text-center text-navy-500">
-                    No line items
-                  </td>
-                </tr>
-              ) : (
-                lines.map((line, i) => {
-                  const cells = renderRow(line)
-                  return (
-                    <tr key={line.id ?? i} className="hover:bg-navy-700/20">
-                      {cells.map((cell, j) => (
-                        <td key={j} className="px-3 py-2.5 text-navy-300 whitespace-nowrap">
-                          {cell}
-                        </td>
-                      ))}
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Glass Section ────────────────────────────────────────────────────────────
-
-function GlassSection({
-  title,
-  icon: Icon,
-  children,
-  action,
-}: {
-  title: string
-  icon: React.ElementType
-  children: React.ReactNode
-  action?: React.ReactNode
-}) {
-  return (
-    <section className="rounded-xl border border-navy-700/40 overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, rgba(19,43,81,0.8) 0%, rgba(14,32,64,0.9) 100%)' }}
-    >
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-navy-700/40">
-        <div className="flex items-center gap-2.5">
-          <div className="p-1.5 rounded-md bg-navy-700/60">
-            <Icon className="w-3.5 h-3.5 text-navy-300" />
-          </div>
-          <h2 className="text-sm font-semibold text-navy-100">{title}</h2>
-        </div>
-        {action}
-      </div>
-      <div className="px-5 py-4">{children}</div>
-    </section>
   )
 }
 
@@ -744,7 +680,7 @@ function RepairOrdersSection() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '25' })
       if (search) params.set('search', search)
-      const res = await fetch(`/api/internal/repair-orders?${params}`)
+      const res = await fetchWithTimeout(`/api/internal/repair-orders?${params}`)
       if (!res.ok) throw new Error()
       const json = await res.json()
       setData(json.data)
@@ -759,20 +695,19 @@ function RepairOrdersSection() {
   useEffect(() => { load() }, [load])
 
   // Debounce search → reset page
-  const [debouncedSearch, setDebouncedSearch] = useState('')
   useEffect(() => {
-    const t = setTimeout(() => { setDebouncedSearch(search); setPage(1) }, 300)
+    const t = setTimeout(() => { setPage(1) }, 300)
     return () => clearTimeout(t)
   }, [search])
 
   const columns = [
     {
       key: 'ro_number', label: 'RO #',
-      render: (row: any) => <span className="font-mono text-sky-300 text-xs font-medium">{row.ro_number}</span>,
+      render: (row: any) => <span className="font-mono text-blue-600 text-xs font-medium">{row.ro_number}</span>,
     },
     {
       key: 'vendor_name', label: 'Vendor',
-      render: (row: any) => <span className="text-navy-100 text-xs">{row.vendor_name || '—'}</span>,
+      render: (row: any) => <span className="text-slate-900 text-xs">{row.vendor_name || '—'}</span>,
     },
     {
       key: 'status', label: 'Status',
@@ -780,28 +715,28 @@ function RepairOrdersSection() {
     },
     {
       key: 'priority', label: 'Priority',
-      render: (row: any) => <span className="text-navy-300 text-xs">{row.priority || '—'}</span>,
+      render: (row: any) => <span className="text-slate-500 text-xs">{row.priority || '—'}</span>,
     },
     {
       key: 'due_date', label: 'Due',
-      render: (row: any) => <span className="text-navy-300 text-xs">{formatDate(row.due_date)}</span>,
+      render: (row: any) => <span className="text-slate-500 text-xs">{formatDate(row.due_date)}</span>,
     },
     {
       key: 'total', label: 'Total',
-      render: (row: any) => <span className="text-navy-100 text-xs font-medium">{formatCurrency(row.total)}</span>,
+      render: (row: any) => <span className="text-slate-900 text-xs font-medium">{formatCurrency(row.total)}</span>,
       className: 'text-right',
     },
     {
       key: 'line_count', label: 'Lines',
-      render: (row: any) => <span className="text-navy-400 text-xs">{row.line_count}</span>,
+      render: (row: any) => <span className="text-slate-400 text-xs">{row.line_count}</span>,
       className: 'text-right',
     },
   ]
 
   return (
     <>
-      <GlassSection title="Repair Orders" icon={Wrench}>
-        <DataTable
+      <ChartCard title="Repair Orders" icon={Wrench}>
+        <LocalDataTable
           columns={columns}
           data={data}
           total={total}
@@ -816,7 +751,7 @@ function RepairOrdersSection() {
           searchPlaceholder="Search by RO # or vendor…"
           emptyLabel="No repair orders found"
         />
-      </GlassSection>
+      </ChartCard>
 
       <DetailDrawer
         open={drawerOpen}
@@ -846,7 +781,7 @@ function SalesOrdersSection() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '25' })
       if (search) params.set('search', search)
-      const res = await fetch(`/api/internal/sales-orders?${params}`)
+      const res = await fetchWithTimeout(`/api/internal/sales-orders?${params}`)
       if (!res.ok) throw new Error()
       const json = await res.json()
       setData(json.data)
@@ -868,15 +803,15 @@ function SalesOrdersSection() {
   const columns = [
     {
       key: 'so_number', label: 'SO #',
-      render: (row: any) => <span className="font-mono text-sky-300 text-xs font-medium">{row.so_number}</span>,
+      render: (row: any) => <span className="font-mono text-blue-600 text-xs font-medium">{row.so_number}</span>,
     },
     {
       key: 'customer_name', label: 'Customer',
-      render: (row: any) => <span className="text-navy-100 text-xs">{row.customer_name || '—'}</span>,
+      render: (row: any) => <span className="text-slate-900 text-xs">{row.customer_name || '—'}</span>,
     },
     {
       key: 'customer_po', label: 'PO #',
-      render: (row: any) => <span className="text-navy-300 text-xs">{row.customer_po || '—'}</span>,
+      render: (row: any) => <span className="text-slate-500 text-xs">{row.customer_po || '—'}</span>,
     },
     {
       key: 'status', label: 'Status',
@@ -884,24 +819,24 @@ function SalesOrdersSection() {
     },
     {
       key: 'due_date', label: 'Due',
-      render: (row: any) => <span className="text-navy-300 text-xs">{formatDate(row.due_date)}</span>,
+      render: (row: any) => <span className="text-slate-500 text-xs">{formatDate(row.due_date)}</span>,
     },
     {
       key: 'total', label: 'Total',
-      render: (row: any) => <span className="text-navy-100 text-xs font-medium">{formatCurrency(row.total)}</span>,
+      render: (row: any) => <span className="text-slate-900 text-xs font-medium">{formatCurrency(row.total)}</span>,
       className: 'text-right',
     },
     {
       key: 'line_count', label: 'Lines',
-      render: (row: any) => <span className="text-navy-400 text-xs">{row.line_count}</span>,
+      render: (row: any) => <span className="text-slate-400 text-xs">{row.line_count}</span>,
       className: 'text-right',
     },
   ]
 
   return (
     <>
-      <GlassSection title="Sales Orders" icon={ShoppingCart}>
-        <DataTable
+      <ChartCard title="Sales Orders" icon={ShoppingCart}>
+        <LocalDataTable
           columns={columns}
           data={data}
           total={total}
@@ -916,7 +851,7 @@ function SalesOrdersSection() {
           searchPlaceholder="Search by SO #, customer, or PO #…"
           emptyLabel="No sales orders found"
         />
-      </GlassSection>
+      </ChartCard>
 
       <DetailDrawer
         open={drawerOpen}
@@ -946,7 +881,7 @@ function InvoicesSection() {
     try {
       const params = new URLSearchParams({ page: String(page), limit: '25' })
       if (search) params.set('search', search)
-      const res = await fetch(`/api/internal/invoices?${params}`)
+      const res = await fetchWithTimeout(`/api/internal/invoices?${params}`)
       if (!res.ok) throw new Error()
       const json = await res.json()
       setData(json.data)
@@ -968,11 +903,11 @@ function InvoicesSection() {
   const columns = [
     {
       key: 'invoice_no', label: 'Invoice #',
-      render: (row: any) => <span className="font-mono text-sky-300 text-xs font-medium">{row.invoice_no}</span>,
+      render: (row: any) => <span className="font-mono text-blue-600 text-xs font-medium">{row.invoice_no}</span>,
     },
     {
       key: 'account_name', label: 'Account',
-      render: (row: any) => <span className="text-navy-100 text-xs">{row.account_name || '—'}</span>,
+      render: (row: any) => <span className="text-slate-900 text-xs">{row.account_name || '—'}</span>,
     },
     {
       key: 'status', label: 'Status',
@@ -980,21 +915,21 @@ function InvoicesSection() {
     },
     {
       key: 'invoice_date', label: 'Invoice Date',
-      render: (row: any) => <span className="text-navy-300 text-xs">{formatDate(row.invoice_date)}</span>,
+      render: (row: any) => <span className="text-slate-500 text-xs">{formatDate(row.invoice_date)}</span>,
     },
     {
       key: 'due_date', label: 'Due',
-      render: (row: any) => <span className="text-navy-300 text-xs">{formatDate(row.due_date)}</span>,
+      render: (row: any) => <span className="text-slate-500 text-xs">{formatDate(row.due_date)}</span>,
     },
     {
       key: 'total', label: 'Total',
-      render: (row: any) => <span className="text-navy-100 text-xs font-medium">{formatCurrency(row.total)}</span>,
+      render: (row: any) => <span className="text-slate-900 text-xs font-medium">{formatCurrency(row.total)}</span>,
       className: 'text-right',
     },
     {
       key: 'open_balance', label: 'Open Bal.',
       render: (row: any) => (
-        <span className={`text-xs font-medium ${row.open_balance ? 'text-rose-400' : 'text-navy-500'}`}>
+        <span className={`text-xs font-medium ${row.open_balance ? 'text-red-600' : 'text-slate-400'}`}>
           {row.open_balance ? formatCurrency(row.open_balance) : '—'}
         </span>
       ),
@@ -1004,8 +939,8 @@ function InvoicesSection() {
 
   return (
     <>
-      <GlassSection title="Invoices" icon={Receipt}>
-        <DataTable
+      <ChartCard title="Invoices" icon={Receipt}>
+        <LocalDataTable
           columns={columns}
           data={data}
           total={total}
@@ -1020,7 +955,7 @@ function InvoicesSection() {
           searchPlaceholder="Search by invoice #, account, or PO #…"
           emptyLabel="No invoices found"
         />
-      </GlassSection>
+      </ChartCard>
 
       <DetailDrawer
         open={drawerOpen}
@@ -1041,7 +976,7 @@ export default function ERPPage() {
   const [statsLoading, setStatsLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/internal/dashboard')
+    fetchWithTimeout('/api/internal/dashboard')
       .then((r) => r.ok ? r.json() : null)
       .then((json) => {
         if (json?.stats) setStats(json.stats)
@@ -1051,20 +986,11 @@ export default function ERPPage() {
   }, [])
 
   return (
-    <div
-      className="space-y-6 min-h-screen pb-12"
-      style={{ background: 'linear-gradient(160deg, #0d2244 0%, #0a1a30 40%, #080f1e 100%)' }}
-    >
+    <div className="space-y-6 pb-12">
       {/* Page header */}
-      <div
-        className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]"
-        style={{ animationDelay: '0ms' }}
-      >
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-1 h-6 rounded-full bg-burgundy-600" aria-hidden="true" />
-          <h1 className="text-xl font-bold text-white">ERP</h1>
-        </div>
-        <p className="text-xs text-navy-400 ml-4">Connection status, sync, and order management</p>
+      <div className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]" style={{ animationDelay: '0ms' }}>
+        <h1 className="text-3xl font-extrabold text-slate-900">ERP</h1>
+        <p className="text-slate-500 mt-1 text-sm">Connection status, sync, and order management</p>
       </div>
 
       {/* Row 1: Health + Sync */}
@@ -1077,34 +1003,22 @@ export default function ERPPage() {
       </div>
 
       {/* Row 2: Key Metrics */}
-      <div
-        className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]"
-        style={{ animationDelay: '120ms' }}
-      >
+      <div className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]" style={{ animationDelay: '120ms' }}>
         <KeyMetrics stats={stats} loading={statsLoading} />
       </div>
 
       {/* Row 3: Repair Orders */}
-      <div
-        className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]"
-        style={{ animationDelay: '180ms' }}
-      >
+      <div className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]" style={{ animationDelay: '180ms' }}>
         <RepairOrdersSection />
       </div>
 
       {/* Row 4: Sales Orders */}
-      <div
-        className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]"
-        style={{ animationDelay: '220ms' }}
-      >
+      <div className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]" style={{ animationDelay: '220ms' }}>
         <SalesOrdersSection />
       </div>
 
       {/* Row 5: Invoices */}
-      <div
-        className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]"
-        style={{ animationDelay: '260ms' }}
-      >
+      <div className="opacity-0 animate-[fadeInUp_0.35s_ease_forwards]" style={{ animationDelay: '260ms' }}>
         <InvoicesSection />
       </div>
     </div>

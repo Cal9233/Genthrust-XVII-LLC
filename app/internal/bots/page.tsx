@@ -201,6 +201,25 @@ function stripHtml(html: string): string {
 }
 
 // =============================================================================
+// FETCH WITH TIMEOUT HELPER
+// =============================================================================
+
+/** Wraps fetch with an AbortController timeout (default 10s). */
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit & { timeoutMs?: number }): Promise<Response> {
+  const { timeoutMs = 10000, ...fetchInit } = init || {}
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(input, { ...fetchInit, signal: controller.signal })
+    .catch((err) => {
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out — service may be unavailable')
+      }
+      throw err
+    })
+    .finally(() => clearTimeout(timer))
+}
+
+// =============================================================================
 // SHARED MICRO-COMPONENTS
 // =============================================================================
 
@@ -417,7 +436,7 @@ function AddInventorySection({ onAdded }: { onAdded: () => void }) {
         certificate_type: form.certificate_type.trim() || null,
         trace: form.trace.trim() || null,
       }
-      const res = await fetch('/api/internal/inventory-intelligence/add', {
+      const res = await fetchWithTimeout('/api/internal/inventory-intelligence/add', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
       })
       if (!res.ok) {
@@ -555,8 +574,8 @@ function FleetTab() {
     setLoading(true); setError(null)
     try {
       const [botsRes, invRes] = await Promise.all([
-        fetch('/api/internal/bots'),
-        fetch('/api/internal/bots/inventory'),
+        fetchWithTimeout('/api/internal/bots'),
+        fetchWithTimeout('/api/internal/bots/inventory'),
       ])
       if (!botsRes.ok) throw new Error('Failed to load bot data')
       setData(await botsRes.json())
@@ -570,7 +589,7 @@ function FleetTab() {
   async function loadLogs(botKey: string) {
     setLogLoading(true)
     try {
-      const res = await fetch(`/api/internal/bots/logs?bot=${botKey}&lines=100`)
+      const res = await fetchWithTimeout(`/api/internal/bots/logs?bot=${botKey}&lines=100`)
       if (res.ok) { const json = await res.json(); setLogContent(json.content || 'No log content') }
     } catch { setLogContent('Failed to load logs') } finally { setLogLoading(false) }
   }
@@ -579,9 +598,10 @@ function FleetTab() {
     if (!confirm(`Are you sure you want to restart ${botKey.toUpperCase()}?`)) return
     setRestartingBot(botKey); setRestartResult(null)
     try {
-      const res = await fetch('/api/internal/bots/restart', {
+      const res = await fetchWithTimeout('/api/internal/bots/restart', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ botName: botKey, confirm: true }),
+        timeoutMs: 35000,
       })
       const json = await res.json()
       setRestartResult(json.message || (json.success ? 'Restarted' : 'Failed'))
@@ -826,7 +846,7 @@ function InventoryIntelTab() {
   async function loadData() {
     setLoading(true); setError(null)
     try {
-      const res = await fetch('/api/internal/inventory-intelligence')
+      const res = await fetchWithTimeout('/api/internal/inventory-intelligence')
       if (!res.ok) throw new Error('Failed to load inventory intelligence')
       setData(await res.json()); setLastRefresh(new Date())
     } catch (err) {
@@ -840,7 +860,7 @@ function InventoryIntelTab() {
     try {
       const params = new URLSearchParams({ q })
       if (cond) params.set('condition', cond)
-      const res = await fetch(`/api/internal/inventory-intelligence/search?${params}`)
+      const res = await fetchWithTimeout(`/api/internal/inventory-intelligence/search?${params}`)
       if (res.ok) { const json = await res.json(); setSearchResults(json.results || []) }
     } catch { setSearchResults([]) } finally { setSearchLoading(false) }
   }, [])
@@ -858,7 +878,7 @@ function InventoryIntelTab() {
       for (const row of selectedRows) {
         if (row.altPartNumbers.length > 0) includeAlts[row.partNumber] = row.altPartNumbers
       }
-      const res = await fetch('/api/internal/inventory-intelligence/batch-search', {
+      const res = await fetchWithTimeout('/api/internal/inventory-intelligence/batch-search', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ partNumbers, includeAlts }),
       })
@@ -1141,7 +1161,7 @@ function AlarmsTab() {
   async function loadData() {
     setLoading(true); setError(null)
     try {
-      const res = await fetch('/api/internal/inventory-alarms')
+      const res = await fetchWithTimeout('/api/internal/inventory-alarms')
       if (!res.ok) throw new Error('Failed to load alarm data')
       setData(await res.json()); setLastRefresh(new Date())
     } catch (err) {
@@ -1152,7 +1172,7 @@ function AlarmsTab() {
   async function runCheck() {
     setChecking(true); setCheckResult(null)
     try {
-      const res = await fetch('/api/internal/inventory-alarms/check', { method: 'POST' })
+      const res = await fetchWithTimeout('/api/internal/inventory-alarms/check', { method: 'POST' })
       if (!res.ok) throw new Error('Check failed')
       setCheckResult(await res.json()); await loadData()
     } catch (err) {
@@ -1163,7 +1183,7 @@ function AlarmsTab() {
   async function acknowledgeAlarm(alertId: number) {
     setActionLoading(`ack-${alertId}`)
     try {
-      const res = await fetch('/api/internal/inventory-alarms/acknowledge', {
+      const res = await fetchWithTimeout('/api/internal/inventory-alarms/acknowledge', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ alert_id: alertId }),
       })
       if (res.ok) await loadData()
@@ -1173,7 +1193,7 @@ function AlarmsTab() {
   async function removeFromWatchlist(id: number) {
     setActionLoading(`rm-${id}`)
     try {
-      const res = await fetch('/api/internal/inventory-alarms/watchlist', {
+      const res = await fetchWithTimeout('/api/internal/inventory-alarms/watchlist', {
         method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
       })
       if (res.ok) await loadData()
@@ -1184,7 +1204,7 @@ function AlarmsTab() {
     if (!part.condition) return
     setActionLoading(`add-${part.part_number}-${part.condition}`)
     try {
-      const res = await fetch('/api/internal/inventory-alarms/watchlist', {
+      const res = await fetchWithTimeout('/api/internal/inventory-alarms/watchlist', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ part_number: part.part_number, condition_code: part.condition, description: part.description || null }),
       })
@@ -1196,7 +1216,7 @@ function AlarmsTab() {
     if (!q.trim()) { setSearchResults([]); return }
     setSearchLoading(true)
     try {
-      const res = await fetch(`/api/internal/inventory-alarms/search?${new URLSearchParams({ q })}`)
+      const res = await fetchWithTimeout(`/api/internal/inventory-alarms/search?${new URLSearchParams({ q })}`)
       if (res.ok) { const json = await res.json(); setSearchResults(json.parts || []) }
     } catch { setSearchResults([]) } finally { setSearchLoading(false) }
   }, [])
@@ -1523,7 +1543,7 @@ function QuotesTab() {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
       if (searchQuery) params.set('search', searchQuery)
-      const res = await fetch(`/api/internal/quotes?${params.toString()}`)
+      const res = await fetchWithTimeout(`/api/internal/quotes?${params.toString()}`)
       if (!res.ok) throw new Error('Failed to load quotes')
       const data = await res.json()
       setQuotes(data.quotes || [])
@@ -1539,7 +1559,7 @@ function QuotesTab() {
   async function handleSync() {
     setSyncing(true)
     try {
-      const res = await fetch('/api/internal/quotes/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      const res = await fetchWithTimeout('/api/internal/quotes/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
       if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Sync failed') }
       await fetchQuotes()
     } catch (e) { setError(e instanceof Error ? e.message : 'Sync failed') } finally { setSyncing(false) }
@@ -1553,7 +1573,7 @@ function QuotesTab() {
 
   async function handleStatusChange(quoteId: number, newStatus: string) {
     try {
-      await fetch(`/api/internal/quotes/${quoteId}`, {
+      await fetchWithTimeout(`/api/internal/quotes/${quoteId}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       })
@@ -1565,7 +1585,7 @@ function QuotesTab() {
   async function openDetail(quote: QuoteRequest) {
     setSelectedQuote(quote); setDetailLoading(true)
     try {
-      const res = await fetch(`/api/internal/quotes/${quote.id}`)
+      const res = await fetchWithTimeout(`/api/internal/quotes/${quote.id}`)
       if (res.ok) { const data = await res.json(); setQuoteResponses(data.responses || []) }
     } finally { setDetailLoading(false) }
   }
@@ -1574,7 +1594,7 @@ function QuotesTab() {
     if (!selectedQuote) return
     setSending(true)
     try {
-      const res = await fetch(`/api/internal/quotes/${selectedQuote.id}/send`, {
+      const res = await fetchWithTimeout(`/api/internal/quotes/${selectedQuote.id}/send`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ template: composeTemplate, customMessage: composeMessage, customSubject: composeSubject || `Re: ${selectedQuote.subject}` }),
       })
@@ -1896,7 +1916,7 @@ export default function BotsPage() {
 
         {/* Sub-tab nav */}
         <nav
-          className="border-b border-navy-700 flex items-center gap-0 overflow-x-auto"
+          className="border-b border-slate-200 flex items-center gap-0 overflow-x-auto"
           aria-label="Bot sub-navigation"
         >
           {SUB_TABS.map((tab) => {
@@ -1908,14 +1928,14 @@ export default function BotsPage() {
                 aria-current={isActive ? 'page' : undefined}
                 className={`relative flex items-center px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all duration-150 ${
                   isActive
-                    ? 'text-white'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'text-navy-700'
+                    : 'text-slate-500 hover:text-navy-600'
                 }`}
               >
                 {tab.label}
                 {isActive && (
                   <span
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-horizon-blue"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-navy-600"
                     aria-hidden="true"
                   />
                 )}

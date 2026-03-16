@@ -190,9 +190,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response)
   } catch (error) {
     console.error('Batch search failed:', error)
+    const isConnError = error instanceof Error && (
+      error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') ||
+      error.message.includes('connect timeout') || error.message.includes('Connection lost') ||
+      error.message.includes('AbortError') || error.message.includes('timeout')
+    )
     return NextResponse.json(
-      { error: 'Batch search failed' },
-      { status: 500 }
+      { error: isConnError ? 'Service unavailable' : 'Batch search failed' },
+      { status: isConnError ? 503 : 500 }
     )
   }
 }

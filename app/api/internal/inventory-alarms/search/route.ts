@@ -23,6 +23,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     console.error('ERP search proxy error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
-    return NextResponse.json({ error: 'Failed to search ERP parts' }, { status: 500 })
+    const isConnError = error instanceof Error && (
+      error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') ||
+      error.message.includes('connect timeout') || error.message.includes('AbortError') ||
+      error.message.includes('timeout')
+    )
+    return NextResponse.json(
+      { error: isConnError ? 'ERP service unavailable' : 'Failed to search ERP parts' },
+      { status: isConnError ? 503 : 500 }
+    )
   }
 }

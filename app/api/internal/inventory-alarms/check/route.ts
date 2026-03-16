@@ -77,6 +77,13 @@ export async function POST() {
     })
   } catch (error) {
     console.error('Alarm check error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
-    return NextResponse.json({ error: 'Failed to run alarm check' }, { status: 500 })
+    const isConnError = error instanceof Error && (
+      error.message.includes('ECONNREFUSED') || error.message.includes('ETIMEDOUT') ||
+      error.message.includes('connect timeout') || error.message.includes('Connection lost')
+    )
+    return NextResponse.json(
+      { error: isConnError ? 'Inventory database unavailable' : 'Failed to run alarm check' },
+      { status: isConnError ? 503 : 500 }
+    )
   }
 }

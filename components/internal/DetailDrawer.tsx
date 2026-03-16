@@ -38,7 +38,7 @@ export default function DetailDrawer({ open, onClose, title, subtitle, children 
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-40 bg-navy-900/60 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm transition-opacity duration-300 ${
           open ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={onClose}
@@ -52,29 +52,23 @@ export default function DetailDrawer({ open, onClose, title, subtitle, children 
         aria-modal="true"
         aria-label={title}
         className={`fixed top-0 right-0 h-full w-full sm:w-[600px] z-50 flex flex-col
-          bg-navy-900 border-l border-navy-700/60
-          shadow-[−20px_0_60px_rgba(0,0,0,0.5)]
+          bg-white border-l border-slate-200
+          shadow-xl
           transition-transform duration-300 ease-out
           ${open ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{
-          background: 'linear-gradient(180deg, #132b51 0%, #0e2040 60%, #0a1a30 100%)',
-        }}
       >
         {/* Header */}
-        <div className="flex items-start justify-between px-6 py-5 border-b border-navy-700/50 flex-shrink-0">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-slate-200 flex-shrink-0">
           <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <span className="block w-1 h-5 rounded-full bg-burgundy-600" aria-hidden="true" />
-              <h2 className="text-base font-bold text-white tracking-wide">{title}</h2>
-            </div>
+            <h2 className="text-base font-bold text-slate-900 tracking-tight">{title}</h2>
             {subtitle && (
-              <p className="text-xs text-navy-300 ml-3">{subtitle}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
             )}
           </div>
           <button
             onClick={onClose}
             aria-label="Close drawer"
-            className="p-1.5 rounded text-navy-400 hover:text-white hover:bg-navy-700/60 transition-colors flex-shrink-0 mt-0.5"
+            className="p-1.5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors flex-shrink-0 mt-0.5"
           >
             <X className="w-4 h-4" />
           </button>

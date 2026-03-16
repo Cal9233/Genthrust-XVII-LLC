@@ -15,6 +15,7 @@ globalForRawDb.rawMysqlPool ??= mysql.createPool({
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
+  connectTimeout: 5000,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
 })

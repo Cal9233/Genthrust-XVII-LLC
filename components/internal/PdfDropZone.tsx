@@ -32,10 +32,13 @@ export function PdfDropZone({ onParsed }: PdfDropZoneProps) {
       const formData = new FormData()
       formData.append('file', file)
 
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), 30000)
       const res = await fetch('/api/internal/inventory-intelligence/parse-pdf', {
         method: 'POST',
         body: formData,
-      })
+        signal: controller.signal,
+      }).finally(() => clearTimeout(timer))
 
       if (!res.ok) {
         const json = await res.json().catch(() => ({}))

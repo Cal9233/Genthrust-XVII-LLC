@@ -5,6 +5,21 @@ import { AlertCircle, RefreshCw } from 'lucide-react'
 import StatusOverviewGrid from '@/components/internal/StatusOverviewGrid'
 import type { StatusOverviewData } from '@/components/internal/StatusOverviewGrid'
 
+/** Wraps fetch with an AbortController timeout (default 10s). */
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit & { timeoutMs?: number }): Promise<Response> {
+  const { timeoutMs = 10000, ...fetchInit } = init || {}
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  return fetch(input, { ...fetchInit, signal: controller.signal })
+    .catch((err) => {
+      if (err.name === 'AbortError') {
+        throw new Error('Request timed out — service may be unavailable')
+      }
+      throw err
+    })
+    .finally(() => clearTimeout(timer))
+}
+
 interface DashboardClientProps {
   userName: string
 }
@@ -19,7 +34,7 @@ export default function DashboardClient({ userName }: DashboardClientProps) {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/internal/status-overview')
+      const res = await fetchWithTimeout('/api/internal/status-overview')
       if (!res.ok) throw new Error('Failed to load overview')
       const json = await res.json()
       setData(json)
