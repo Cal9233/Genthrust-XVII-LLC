@@ -34,15 +34,15 @@ The Email Intelligence System monitors all `@genthrust.net` mailboxes, cross-ref
 
 - [x] **Azure Entra ID daemon app registration created**
   - App Name: `Genthrust Email Monitor (Daemon)`
-  - Client ID: `6c4838d0-e1ac-4780-a251-e271b9bbf79c`
-  - Tenant ID: `ddb0202c-cb5f-425e-891a-5666e58d9ad5`
+  - Client ID: `<your-daemon-app-client-id>`
+  - Tenant ID: `<your-tenant-id>`
 - [x] **Self-signed certificate generated** (valid 1 year from 2026-03-17)
-  - Thumbprint: `401DACC3EE8B0AE63DF5E54A3F60078CB644A241`
+  - Thumbprint: `<your-cert-thumbprint>`
   - Files: `~/monitor-cert.pem` (public), `~/monitor-key.pem` (private)
   - **IMPORTANT: Regenerate before 2027-03-17**
 - [x] **Mail.Read application permission** granted + admin consent
 - [x] **Exchange ServicePrincipal registered**
-  - Object ID: `eba281a2-c630-4d11-bd63-8a0d8004aa24`
+  - Object ID: `<your-service-principal-object-id>`
 - [x] **Teams Workflows webhook** created
 - [x] **Healthchecks.io check** created (5 min period, 25 min grace)
 - [ ] **RBAC scoping** — SKIPPED
@@ -82,13 +82,13 @@ Go to your Trigger.dev project dashboard → **Settings → Environment Variable
 **Required vars** (Trigger.dev runtime ONLY — NOT in `.env.local`):
 
 ```
-MONITOR_APP_CLIENT_ID=6c4838d0-e1ac-4780-a251-e271b9bbf79c
-MONITOR_APP_TENANT_ID=ddb0202c-cb5f-425e-891a-5666e58d9ad5
-MONITOR_APP_CERT_THUMBPRINT=401DACC3EE8B0AE63DF5E54A3F60078CB644A241
+MONITOR_APP_CLIENT_ID=<your-daemon-app-client-id>
+MONITOR_APP_TENANT_ID=<your-tenant-id>
+MONITOR_APP_CERT_THUMBPRINT=<your-cert-thumbprint>
 MONITOR_APP_CERT_PEM=<base64-encoded contents of ~/monitor-key-b64.txt>
 MONITORED_MAILBOXES=cmalagon@genthrust.net,info@genthrust.net
 TEAMS_WORKFLOW_WEBHOOK_URL=<your Teams Workflows webhook URL>
-HEALTHCHECKS_IO_URL=https://hc-ping.com/2dbd2b6d-1fd2-482a-95b6-3c54cb5bccf6
+HEALTHCHECKS_IO_URL=https://hc-ping.com/<your-check-uuid>
 EMAIL_SCORE_URGENT_THRESHOLD=7
 ```
 

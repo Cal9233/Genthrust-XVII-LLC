@@ -46,3 +46,8 @@ __pycache__/
 *.pyc
 mcp-servers/
 export-erp.js
+
+# Certificates and keys
+*.pem
+*.key
+*-b64.txt
