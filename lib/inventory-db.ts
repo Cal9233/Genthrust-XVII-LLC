@@ -24,6 +24,8 @@ export function getInventoryPool(): mysql.Pool {
       connectionLimit: 10,
       queueLimit: 0,
       connectTimeout: 5000,
+      enableKeepAlive: true,
+      keepAliveInitialDelay: 0,
     })
   }
   return globalForInventoryDb.inventoryMysqlPool
@@ -41,4 +43,13 @@ export async function inventoryQuery<T = any>(
     console.error('Inventory DB query error:', error)
     throw error
   }
+}
+
+// Graceful shutdown — drain pool on process exit
+if (typeof process !== 'undefined') {
+  const shutdown = () => {
+    globalForInventoryDb.inventoryMysqlPool?.end().catch(() => {})
+  }
+  process.once('SIGTERM', shutdown)
+  process.once('SIGINT', shutdown)
 }

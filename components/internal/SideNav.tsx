@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -33,6 +33,10 @@ interface SideNavProps {
   userInitials?: string
   collapsed?: boolean
   onCollapse?: (collapsed: boolean) => void
+  /** Mobile drawer open state — controlled by InternalShell */
+  mobileOpen?: boolean
+  /** Called when the mobile drawer should close (nav item clicked, etc.) */
+  onMobileClose?: () => void
 }
 
 export default function SideNav({
@@ -42,28 +46,108 @@ export default function SideNav({
   userInitials = 'GT',
   collapsed: collapsedProp,
   onCollapse,
+  mobileOpen = false,
+  onMobileClose,
 }: SideNavProps) {
   const pathname = usePathname()
-  const [internalCollapsed, setInternalCollapsed] = useState(false)
 
-  // If external state control is provided, use it; otherwise use internal state
-  const collapsed = collapsedProp !== undefined ? collapsedProp : internalCollapsed
-  const setCollapsed = onCollapse !== undefined
-    ? onCollapse
-    : setInternalCollapsed
+  // Close mobile drawer on route change
+  useEffect(() => {
+    onMobileClose?.()
+  }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Uncontrolled internal state — used when collapsedProp is not provided
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+  const isControlled = collapsedProp !== undefined
+  const collapsed = isControlled ? collapsedProp! : internalCollapsed
+  const setCollapsed = (next: boolean) => {
+    if (!isControlled) setInternalCollapsed(next)
+    onCollapse?.(next)
+  }
 
   function isActive(item: (typeof navItems)[0]) {
     return item.exact ? pathname === item.href : pathname.startsWith(item.href)
   }
 
   return (
-    <aside
-      aria-label="Main navigation"
-      style={{ width: collapsed ? 64 : 220 }}
-      className="fixed left-0 top-0 h-full z-40 flex flex-col
-        bg-[#111827] border-r border-white/[0.06]
-        transition-[width] duration-200 ease-in-out overflow-hidden"
-    >
+    <>
+      {/* ── Desktop sidebar (md+) ── */}
+      <aside
+        aria-label="Main navigation"
+        style={{ width: collapsed ? 64 : 220 }}
+        className="
+          hidden md:flex fixed left-0 top-0 h-full z-40 flex-col
+          bg-[#111827] border-r border-white/[0.06]
+          transition-[width] duration-200 ease-in-out overflow-hidden
+        "
+      >
+        <SideNavContents
+          collapsed={collapsed}
+          setCollapsed={setCollapsed}
+          navItems={navItems}
+          isActive={isActive}
+          userName={userName}
+          userEmail={userEmail}
+          userImage={userImage}
+          userInitials={userInitials}
+        />
+      </aside>
+
+      {/* ── Mobile drawer (< md) ── always full-width (220px), slides in/out */}
+      <aside
+        aria-label="Main navigation"
+        aria-hidden={!mobileOpen}
+        style={{ width: 220 }}
+        className={`
+          flex md:hidden fixed left-0 top-0 h-full z-40 flex-col
+          bg-[#111827] border-r border-white/[0.06]
+          transition-transform duration-200 ease-in-out overflow-hidden
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Only render contents when the drawer is open to avoid duplicate DOM nodes */}
+        {mobileOpen && (
+          <SideNavContents
+            collapsed={false}
+            setCollapsed={setCollapsed}
+            navItems={navItems}
+            isActive={isActive}
+            userName={userName}
+            userEmail={userEmail}
+            userImage={userImage}
+            userInitials={userInitials}
+            onNavClick={onMobileClose}
+          />
+        )}
+      </aside>
+    </>
+  )
+}
+
+// ── Shared inner contents ─────────────────────────────────────────────────────
+function SideNavContents({
+  collapsed,
+  setCollapsed,
+  navItems: items,
+  isActive,
+  userName,
+  userEmail,
+  userImage,
+  userInitials = 'GT',
+  onNavClick,
+}: {
+  collapsed: boolean
+  setCollapsed: (v: boolean) => void
+  navItems: typeof navItems
+  isActive: (item: (typeof navItems)[0]) => boolean
+  userName?: string | null
+  userEmail?: string | null
+  userImage?: string | null
+  userInitials?: string
+  onNavClick?: (() => void) | undefined
+}) {
+  return (
+    <>
       {/* Logo zone */}
       <div className="h-16 flex items-center gap-2.5 px-4 flex-shrink-0 border-b border-white/[0.06]">
         <Image
@@ -90,7 +174,7 @@ export default function SideNav({
 
       {/* Nav items */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5" aria-label="Dashboard navigation">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon
           const active = isActive(item)
           return (
@@ -99,6 +183,7 @@ export default function SideNav({
               href={item.href}
               aria-current={active ? 'page' : undefined}
               title={collapsed ? item.label : undefined}
+              onClick={onNavClick}
               className={`
                 relative flex items-center gap-3 px-3 py-2.5 rounded-md text-sm
                 font-medium transition-all duration-150 cursor-pointer w-full
@@ -126,11 +211,11 @@ export default function SideNav({
 
       {/* Bottom zone */}
       <div className="flex-shrink-0 border-t border-white/[0.06] p-2 space-y-0.5">
-        {/* Collapse toggle */}
+        {/* Collapse toggle — desktop only */}
         <button
           onClick={() => setCollapsed(!collapsed)}
           aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="flex items-center justify-center w-full px-3 py-2 rounded-md text-sm
+          className="hidden md:flex items-center justify-center w-full px-3 py-2 rounded-md text-sm
             text-[#8b949e] hover:text-[#f0f6fc] hover:bg-white/[0.04]
             transition-all duration-150"
         >
@@ -145,7 +230,7 @@ export default function SideNav({
         </button>
 
         {/* Divider */}
-        <div className="h-px bg-white/[0.06] mx-1" />
+        <div className="h-px bg-white/[0.06] mx-1" aria-hidden="true" />
 
         {/* User pill */}
         <div
@@ -156,6 +241,7 @@ export default function SideNav({
           <div
             className="w-7 h-7 rounded-full bg-[#9c2a3e] flex items-center justify-center
               font-bold text-xs text-white flex-shrink-0 overflow-hidden"
+            aria-label={userName ? `Signed in as ${userName}` : 'User avatar'}
           >
             {userImage ? (
               <img
@@ -196,6 +282,6 @@ export default function SideNav({
           {!collapsed && <span className="text-xs truncate">Sign out</span>}
         </button>
       </div>
-    </aside>
+    </>
   )
 }

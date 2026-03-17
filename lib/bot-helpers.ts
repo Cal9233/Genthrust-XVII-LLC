@@ -199,7 +199,8 @@ const METRIC_PATTERNS: Record<string, { label: string; pattern: RegExp }[]> = {
 }
 
 /**
- * Get today's metrics for a bot by parsing its log.
+ * Get today's metrics for a bot by parsing the tail of its log.
+ * Reads only the last 512KB to avoid memory issues with large log files.
  */
 export function getBotMetrics(botKey: string): Record<string, number> {
   const patterns = METRIC_PATTERNS[botKey]
@@ -211,7 +212,21 @@ export function getBotMetrics(botKey: string): Record<string, number> {
 
   let content = ''
   try {
-    content = fs.readFileSync(logPath, 'utf-8')
+    const stat = fs.statSync(logPath)
+    const MAX_READ = 512 * 1024 // 512KB tail
+    if (stat.size <= MAX_READ) {
+      content = fs.readFileSync(logPath, 'utf-8')
+    } else {
+      // Read only the tail of the file
+      const buf = Buffer.alloc(MAX_READ)
+      const fd = fs.openSync(logPath, 'r')
+      try {
+        fs.readSync(fd, buf, 0, MAX_READ, stat.size - MAX_READ)
+        content = buf.toString('utf-8')
+      } finally {
+        fs.closeSync(fd)
+      }
+    }
   } catch {
     return Object.fromEntries(patterns.map(p => [p.label, 0]))
   }
@@ -260,7 +275,20 @@ export function getNotificationFeed(limit: number = 20): NotificationItem[] {
     const logPath = path.join(BOT_LOG_DIR, bot.logFile)
     let content = ''
     try {
-      content = fs.readFileSync(logPath, 'utf-8')
+      const stat = fs.statSync(logPath)
+      const MAX_READ = 512 * 1024 // 512KB tail
+      if (stat.size <= MAX_READ) {
+        content = fs.readFileSync(logPath, 'utf-8')
+      } else {
+        const buf = Buffer.alloc(MAX_READ)
+        const fd = fs.openSync(logPath, 'r')
+        try {
+          fs.readSync(fd, buf, 0, MAX_READ, stat.size - MAX_READ)
+          content = buf.toString('utf-8')
+        } finally {
+          fs.closeSync(fd)
+        }
+      }
     } catch {
       continue
     }

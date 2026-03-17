@@ -7,6 +7,7 @@ async function erpFetch(path: string, retried = false): Promise<any> {
 
   const res = await fetch(`${baseUrl.replace(/\/+$/, '')}${path}`, {
     headers,
+    signal: AbortSignal.timeout(15000),
   })
 
   if (res.status === 401 && !retried) {

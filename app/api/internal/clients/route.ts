@@ -2,7 +2,17 @@ import { NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
+import { z } from 'zod'
 export const dynamic = 'force-dynamic'
+
+const PatchClientSchema = z.object({
+  userId: z.number().int().positive(),
+  is_active: z.number().int().min(0).max(1),
+})
+
+const DeleteClientSchema = z.object({
+  userId: z.number().int().positive(),
+})
 
 export async function GET() {
   try {
@@ -33,11 +43,12 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { userId, is_active } = await request.json()
-
-    if (!userId || typeof is_active !== 'number') {
-      return NextResponse.json({ error: 'userId and is_active are required' }, { status: 400 })
+    const body = await request.json()
+    const parsed = PatchClientSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'userId and is_active (0 or 1) are required' }, { status: 400 })
     }
+    const { userId, is_active } = parsed.data
 
     await query(
       `UPDATE portal_users SET is_active = ?, updated_at = NOW() WHERE id = ?`,
@@ -70,11 +81,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { userId } = await request.json()
-
-    if (!userId) {
+    const body = await request.json()
+    const parsed = DeleteClientSchema.safeParse(body)
+    if (!parsed.success) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 })
     }
+    const { userId } = parsed.data
 
     await query(
       `DELETE FROM portal_users WHERE id = ? AND is_active = 0`,

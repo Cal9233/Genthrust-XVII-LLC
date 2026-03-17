@@ -38,3 +38,12 @@ export async function query<T = any>(
     throw error
   }
 }
+
+// Graceful shutdown — drain pool on process exit
+if (typeof process !== 'undefined') {
+  const shutdown = () => {
+    pool.end().catch(() => {})
+  }
+  process.once('SIGTERM', shutdown)
+  process.once('SIGINT', shutdown)
+}

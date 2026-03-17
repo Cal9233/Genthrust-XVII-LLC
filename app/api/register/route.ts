@@ -1,7 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
+import { z } from 'zod'
 export const dynamic = 'force-dynamic'
+
+const RegisterSchema = z.object({
+  email: z.string().email().max(255).transform(v => v.toLowerCase().trim()),
+  password: z.string().min(8).max(128),
+  contact_name: z.string().min(1).max(255).transform(v => v.trim()),
+  company_name: z.string().max(255).optional(),
+})
 
 // In-memory rate limiter: 3 registrations per hour per IP
 const registerAttempts = new Map<string, { count: number; resetAt: number }>()
@@ -27,18 +35,16 @@ export async function POST(request: NextRequest) {
   }
   try {
     const body = await request.json()
-    const { email, password, contact_name, company_name } = body
+    const parsed = RegisterSchema.safeParse(body)
 
-    // Validation
-    if (!email || typeof email !== 'string') {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
-    if (!password || typeof password !== 'string' || password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
-    }
-    if (!contact_name || typeof contact_name !== 'string') {
-      return NextResponse.json({ error: 'Contact name is required' }, { status: 400 })
-    }
+
+    const { email, password, contact_name, company_name } = parsed.data
 
     // Look up company
     let companyId: number | null = null
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
     await query(
       `INSERT INTO portal_users (email, password_hash, contact_name, company_id, is_active, created_at, updated_at)
        VALUES (?, ?, ?, ?, 0, NOW(), NOW())`,
-      [email.toLowerCase().trim(), passwordHash, contact_name.trim(), companyId]
+      [email, passwordHash, contact_name, companyId]
     )
 
     return NextResponse.json(

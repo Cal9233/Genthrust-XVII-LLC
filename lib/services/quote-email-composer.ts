@@ -11,6 +11,15 @@ interface PartInfo {
 
 // ─── Email Templates ──────────────────────────────────────────────
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function partFoundTemplate(data: {
   parts: PartInfo[]
   senderName: string
@@ -19,9 +28,9 @@ function partFoundTemplate(data: {
     .map(
       (p) => `
     <tr>
-      <td style="border:1px solid #dee2e6;padding:8px">${p.part_number}</td>
-      <td style="border:1px solid #dee2e6;padding:8px">${p.description || 'N/A'}</td>
-      <td style="border:1px solid #dee2e6;padding:8px">${p.location || 'N/A'}</td>
+      <td style="border:1px solid #dee2e6;padding:8px">${escapeHtml(p.part_number)}</td>
+      <td style="border:1px solid #dee2e6;padding:8px">${escapeHtml(p.description || 'N/A')}</td>
+      <td style="border:1px solid #dee2e6;padding:8px">${escapeHtml(p.location || 'N/A')}</td>
       <td style="border:1px solid #dee2e6;padding:8px;text-align:right">${p.quantity ?? 'N/A'}</td>
     </tr>`
     )
@@ -29,7 +38,7 @@ function partFoundTemplate(data: {
 
   return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
   <h2 style="color:#333">Parts Availability Report</h2>
-  <p>Dear ${data.senderName || 'Customer'},</p>
+  <p>Dear ${escapeHtml(data.senderName || 'Customer')},</p>
   <p>Thank you for your inquiry. Below is the availability information for the requested parts:</p>
   <table style="width:100%;border-collapse:collapse;margin:20px 0">
     <thead>
@@ -51,11 +60,11 @@ function partNotFoundTemplate(data: {
   notFoundParts: string[]
   senderName: string
 }): string {
-  const items = data.notFoundParts.map((p) => `<li style="padding:5px 0">&#10060; ${p}</li>`).join('')
+  const items = data.notFoundParts.map((p) => `<li style="padding:5px 0">&#10060; ${escapeHtml(p)}</li>`).join('')
 
   return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
   <h2 style="color:#333">Parts Availability Update</h2>
-  <p>Dear ${data.senderName || 'Customer'},</p>
+  <p>Dear ${escapeHtml(data.senderName || 'Customer')},</p>
   <p>Thank you for your inquiry. Unfortunately, the following parts are not currently in our inventory:</p>
   <ul style="list-style-type:none;padding:0">${items}</ul>
   <p>We can check with our suppliers for availability or suggest alternative solutions. Please let us know how you would like to proceed.</p>
@@ -72,21 +81,21 @@ function mixedResultsTemplate(data: {
     .map(
       (p) => `
     <tr>
-      <td style="border:1px solid #c3e6cb;padding:8px">${p.part_number}</td>
-      <td style="border:1px solid #c3e6cb;padding:8px">${p.description || 'N/A'}</td>
-      <td style="border:1px solid #c3e6cb;padding:8px">${p.location || 'N/A'}</td>
+      <td style="border:1px solid #c3e6cb;padding:8px">${escapeHtml(p.part_number)}</td>
+      <td style="border:1px solid #c3e6cb;padding:8px">${escapeHtml(p.description || 'N/A')}</td>
+      <td style="border:1px solid #c3e6cb;padding:8px">${escapeHtml(p.location || 'N/A')}</td>
       <td style="border:1px solid #c3e6cb;padding:8px;text-align:right">${p.quantity ?? 'N/A'}</td>
     </tr>`
     )
     .join('')
 
   const notFoundItems = data.notFoundParts
-    .map((p) => `<li style="padding:5px 0;color:#dc3545">&bull; ${p}</li>`)
+    .map((p) => `<li style="padding:5px 0;color:#dc3545">&bull; ${escapeHtml(p)}</li>`)
     .join('')
 
   return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
   <h2 style="color:#333">Parts Availability Report</h2>
-  <p>Dear ${data.senderName || 'Customer'},</p>
+  <p>Dear ${escapeHtml(data.senderName || 'Customer')},</p>
   <p>Thank you for your inquiry. Here's the availability status for your requested parts:</p>
   <h3 style="color:#28a745;margin-top:20px">&#10003; Available Parts:</h3>
   <table style="width:100%;border-collapse:collapse;margin:10px 0">
@@ -111,8 +120,10 @@ function customTemplate(data: {
   content: string
   senderName: string
 }): string {
+  // Note: content is expected to be HTML from internal users (admins).
+  // senderName is user-provided and must be escaped.
   return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-  <p>Dear ${data.senderName || 'Customer'},</p>
+  <p>Dear ${escapeHtml(data.senderName || 'Customer')},</p>
   ${data.content}
   <p>Best regards,<br>Genthrust XVII LLC</p>
 </div>`

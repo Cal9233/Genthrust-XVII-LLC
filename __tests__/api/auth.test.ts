@@ -264,7 +264,7 @@ describe('authConfig.callbacks.jwt — token building', () => {
   })
 
   it('preserves existing token fields when no user present', async () => {
-    const token = { role: 'client', id: '99' }
+    const token = { role: 'client' as const, id: '99' }
     const result = await authConfig.callbacks.jwt!({
       token,
       user: undefined as any,

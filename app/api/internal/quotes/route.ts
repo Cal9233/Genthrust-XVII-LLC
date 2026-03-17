@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
+import { z } from 'zod'
 export const dynamic = 'force-dynamic'
+
+const CreateQuoteSchema = z.object({
+  senderEmail: z.string().email().max(255),
+  senderName: z.string().max(255).optional().default(''),
+  subject: z.string().min(1).max(500),
+  bodyText: z.string().max(50000).optional().default(''),
+  partNumbers: z.array(z.string().max(100)).max(100).optional().default([]),
+})
 
 // GET /api/internal/quotes — list with search/filter/pagination
 export async function GET(request: NextRequest) {
@@ -82,21 +91,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { senderEmail, senderName, subject, bodyText, partNumbers } = body
+    const parsed = CreateQuoteSchema.safeParse(body)
 
-    if (!senderEmail || !subject) {
-      return NextResponse.json({ error: 'senderEmail and subject are required' }, { status: 400 })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      )
     }
+
+    const { senderEmail, senderName, subject, bodyText, partNumbers } = parsed.data
 
     const result = await query<any>(
       `INSERT INTO quote_requests (sender_email, sender_name, subject, body, part_numbers, status, received_at)
        VALUES (?, ?, ?, ?, ?, 'pending', NOW())`,
       [
         senderEmail,
-        senderName || '',
+        senderName,
         subject,
-        bodyText || '',
-        JSON.stringify(partNumbers || []),
+        bodyText,
+        JSON.stringify(partNumbers),
       ]
     )
 

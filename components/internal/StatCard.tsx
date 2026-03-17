@@ -30,22 +30,21 @@ export function StatCard({ icon: Icon, label, value, trend, subtitle, onClick, l
 
   return (
     <div
-      className={`bg-[#161b22] border border-white/[0.06] rounded-lg p-4
-        hover:border-white/[0.12] transition-colors duration-150
+      className={`auto-stat-card
         ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
       {/* Label row */}
-      <div className="flex items-center gap-1.5 mb-2">
-        <Icon className="w-4 h-4 text-[#8b949e] flex-shrink-0" />
-        <p className="text-[10px] font-medium text-[#8b949e] uppercase tracking-wider truncate">
+      <div className="flex items-center gap-1.5">
+        <Icon className="w-3.5 h-3.5 text-[#484f58] flex-shrink-0" />
+        <p className="text-[0.625rem] font-bold text-[#484f58] uppercase tracking-widest truncate leading-none">
           {label}
         </p>
       </div>
 
       {/* Value row */}
       <div className="flex items-baseline gap-2">
-        <p className="text-2xl font-semibold font-mono text-[#f0f6fc] leading-none">
+        <p className="text-[1.625rem] font-semibold font-mono text-[#f0f6fc] leading-none tabular-nums">
           {typeof value === 'number' ? (
             <AnimatedCounter value={value} duration={600} />
           ) : (
@@ -73,7 +72,7 @@ export function StatCard({ icon: Icon, label, value, trend, subtitle, onClick, l
 
       {/* Subtitle / trend label */}
       {(subtitle || trend?.label) && (
-        <p className="text-[10px] text-[#8b949e] mt-1">
+        <p className="text-[0.6875rem] text-[#8b949e] leading-none">
           {subtitle || trend?.label}
         </p>
       )}

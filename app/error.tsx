@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function Error({
   error,
@@ -17,6 +18,19 @@ export default function Error({
   return (
     <div className="min-h-screen bg-white flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl shadow-card p-8 text-center animate-fade-in">
+
+        {/* Branded logo — muted */}
+        <div className="mb-4">
+          <Image
+            src="/GenLogoNoBackground.png"
+            alt="GENTHRUST XVII"
+            width={120}
+            height={69}
+            className="mx-auto opacity-25"
+          />
+        </div>
+
+        {/* Error icon */}
         <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-burgundy-100 flex items-center justify-center">
           <svg
             className="w-6 h-6 text-burgundy-600"
@@ -38,6 +52,10 @@ export default function Error({
           Something went wrong
         </h1>
 
+        <p className="text-sm text-slate-500 mb-4">
+          An unexpected error occurred. Our team has been notified.
+        </p>
+
         {error.message && (
           <p className="text-sm text-slate-500 font-mono bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 mb-6 text-left break-words">
             {error.message}
@@ -58,6 +76,13 @@ export default function Error({
             Go Home
           </Link>
         </div>
+
+        {/* Error digest for support tracing */}
+        {error.digest && (
+          <p className="mt-6 text-[10px] font-mono text-slate-300 tabular-nums">
+            Ref: {error.digest}
+          </p>
+        )}
       </div>
     </div>
   )

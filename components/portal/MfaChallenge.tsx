@@ -57,7 +57,7 @@ export default function MfaChallenge({ onSubmit, error }: MfaChallengeProps) {
         </div>
 
         {error && (
-          <div className="p-3 rounded-lg bg-red-50 border-2 border-red-200">
+          <div className="p-3 rounded-lg bg-red-50 border-2 border-red-200" role="alert" aria-live="assertive">
             <p className="text-sm font-semibold text-red-800">{error}</p>
           </div>
         )}
@@ -82,9 +82,10 @@ export default function MfaChallenge({ onSubmit, error }: MfaChallengeProps) {
           setUseRecovery(!useRecovery)
           setCode('')
         }}
-        className="w-full text-sm text-slate-500 hover:text-navy-700 transition-colors flex items-center justify-center gap-1"
+        aria-pressed={useRecovery}
+        className="w-full text-sm text-slate-500 hover:text-navy-700 transition-colors flex items-center justify-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:ring-offset-2 rounded"
       >
-        <KeyRound className="w-4 h-4" />
+        <KeyRound className="w-4 h-4" aria-hidden="true" />
         {useRecovery ? 'Use authenticator app instead' : 'Use a recovery code'}
       </button>
     </div>

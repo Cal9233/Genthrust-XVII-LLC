@@ -97,13 +97,14 @@ export default function MfaEnrollment({ onComplete }: MfaEnrollmentProps) {
 
         <div className="bg-slate-100 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-semibold text-navy-900">Recovery Codes</span>
+            <span className="text-sm font-semibold text-navy-900" id="recovery-codes-label">Recovery Codes</span>
             <button
               onClick={copyCodes}
-              className="inline-flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 transition-colors"
+              aria-label={codesCopied ? 'Recovery codes copied to clipboard' : 'Copy all recovery codes to clipboard'}
+              className="inline-flex items-center gap-1 text-xs text-navy-600 hover:text-navy-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 rounded"
             >
-              {codesCopied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-              {codesCopied ? 'Copied!' : 'Copy all'}
+              {codesCopied ? <Check className="w-3 h-3" aria-hidden="true" /> : <Copy className="w-3 h-3" aria-hidden="true" />}
+              <span aria-live="polite">{codesCopied ? 'Copied!' : 'Copy all'}</span>
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2">
@@ -147,17 +148,32 @@ export default function MfaEnrollment({ onComplete }: MfaEnrollmentProps) {
       {qrCodeUrl && (
         <div className="flex justify-center">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-            <img src={qrCodeUrl} alt="TOTP QR Code" className="w-48 h-48" />
+            {/* role="img" ensures screen readers announce this as an image */}
+            <img
+              src={qrCodeUrl}
+              alt="TOTP QR Code — scan with your authenticator app to link this account"
+              className="w-48 h-48"
+              role="img"
+            />
           </div>
         </div>
       )}
 
       <div className="bg-slate-100 rounded-lg p-3">
-        <p className="text-xs text-slate-500 mb-1">Can&apos;t scan? Enter this key manually:</p>
+        <p className="text-xs text-slate-500 mb-1" id="manual-key-label">Can&apos;t scan? Enter this key manually:</p>
         <div className="flex items-center gap-2">
-          <code className="flex-1 text-sm font-mono text-navy-900 break-all">{manualSecret}</code>
-          <button onClick={copySecret} className="shrink-0 p-1 text-slate-500 hover:text-navy-700">
-            {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+          <code
+            className="flex-1 text-sm font-mono text-navy-900 break-all"
+            aria-labelledby="manual-key-label"
+          >
+            {manualSecret}
+          </code>
+          <button
+            onClick={copySecret}
+            aria-label={copied ? 'Secret key copied to clipboard' : 'Copy secret key to clipboard'}
+            className="shrink-0 p-1.5 rounded text-slate-500 hover:text-navy-700 hover:bg-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-navy-500"
+          >
+            {copied ? <Check className="w-4 h-4" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
           </button>
         </div>
       </div>

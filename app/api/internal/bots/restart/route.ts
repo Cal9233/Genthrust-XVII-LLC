@@ -4,9 +4,15 @@ import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { BOT_REGISTRY } from '@/lib/bot-helpers'
 import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
+import { z } from 'zod'
 export const dynamic = 'force-dynamic'
 
 const execFileAsync = promisify(execFile)
+
+const RestartBotSchema = z.object({
+  botName: z.string().min(1).max(50),
+  confirm: z.boolean().optional().default(false),
+})
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,9 +22,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { botName, confirm } = body
+    const parsed = RestartBotSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
+    }
+    const { botName, confirm } = parsed.data
 
-    if (!botName || !BOT_REGISTRY[botName]) {
+    if (!BOT_REGISTRY[botName]) {
       return NextResponse.json({ error: `Invalid bot: ${botName}` }, { status: 400 })
     }
 

@@ -90,7 +90,17 @@ export async function POST(req: Request) {
   }
   chatLimiter.record(userId);
 
-  const { messages } = await req.json();
+  const body = await req.json();
+
+  // Validate messages array structure
+  if (!body.messages || !Array.isArray(body.messages) || body.messages.length === 0) {
+    return NextResponse.json({ error: "messages array is required" }, { status: 400 });
+  }
+  if (body.messages.length > 100) {
+    return NextResponse.json({ error: "Too many messages in conversation" }, { status: 400 });
+  }
+
+  const { messages } = body;
   const modelMessages = convertToModelMessages(messages);
 
   // Audit: log AI chat invocation (fire-and-forget)

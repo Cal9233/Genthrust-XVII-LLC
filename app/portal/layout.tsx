@@ -56,10 +56,10 @@ export default async function PortalLayout({ children }: { children: React.React
 
             <Link
               href="/portal/settings"
-              className="p-2 text-slate-300 hover:text-white hover:bg-navy-800 rounded-lg transition-colors"
-              title="Settings"
+              className="p-2 text-slate-300 hover:text-white hover:bg-navy-800 rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              aria-label="Account settings"
             >
-              <Settings className="w-5 h-5" />
+              <Settings className="w-5 h-5" aria-hidden="true" />
             </Link>
 
             <form
@@ -70,9 +70,10 @@ export default async function PortalLayout({ children }: { children: React.React
             >
               <button
                 type="submit"
-                className="p-2 text-slate-300 hover:text-white hover:bg-navy-800 rounded-lg transition-colors flex items-center gap-2"
+                aria-label="Sign out of portal"
+                className="p-2 text-slate-300 hover:text-white hover:bg-navy-800 rounded-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-5 h-5" aria-hidden="true" />
                 <span className="text-sm font-medium hidden sm:inline-block">Sign Out</span>
               </button>
             </form>

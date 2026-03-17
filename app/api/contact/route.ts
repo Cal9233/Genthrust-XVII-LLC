@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 export const dynamic = 'force-dynamic'
+
+const ContactSchema = z.object({
+  name: z.string().min(1).max(200).transform(v => v.trim()),
+  email: z.string().email().max(255),
+  phone: z.string().max(30).optional().default(''),
+  company: z.string().max(200).optional().default(''),
+  subject: z.string().min(1).max(300).transform(v => v.trim()),
+  message: z.string().min(1).max(5000).transform(v => v.trim()),
+})
 
 // ---------------------------------------------------------------------------
 // In-memory rate limiter: 3 requests per 10 minutes per IP
@@ -49,24 +59,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { name, email, phone, company, subject, message } = body
+    const parsed = ContactSchema.safeParse(body)
 
-    // Validate required fields
-    if (!name || !email || !subject || !message) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
         { status: 400 }
       )
     }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      )
-    }
+    const { name, email, phone, company, subject, message } = parsed.data
 
     // TODO: Configure email service (Resend, SendGrid, Nodemailer, etc.)
     // For now, this is a placeholder that logs the email

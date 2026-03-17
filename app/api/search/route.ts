@@ -32,7 +32,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([])
     }
 
-    const searchPattern = `%${searchQuery.trim()}%`
+    // Limit search query length to prevent abuse
+    const trimmed = searchQuery.trim().substring(0, 200)
+    const searchPattern = `%${trimmed}%`
 
     // Query the parts table from the ERP cache
     // Uses LIKE for flexible matching (FULLTEXT requires 3+ char minimum)

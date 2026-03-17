@@ -184,6 +184,11 @@
     @apply animate-pulse bg-[#1a2233] rounded;
   }
 
+  /* Light skeleton — for public/portal pages */
+  .skeleton-light {
+    @apply animate-pulse bg-slate-100 rounded;
+  }
+
   /* 2% Noise Grain for cinematic texture */
   .bg-noise {
     position: relative;
@@ -207,6 +212,430 @@
       transparent 70%
     );
   }
+}
+
+/* ─── Internal Dashboard Responsive Main Content ─── */
+/* On mobile: sidebar is an overlay, so main needs zero left indent.
+   On desktop (md+): sidebar is fixed — shift content by --sidebar-offset. */
+
+.internal-main {
+  padding-left: 0;
+}
+
+@media (min-width: 768px) {
+  .internal-main {
+    padding-left: var(--sidebar-offset, 220px);
+    transition: padding-left 200ms ease-in-out;
+  }
+}
+
+/* ─── Automation Page: RAM stat card grid ─── */
+/* repeat(auto-fit, minmax(220px, 1fr)) — fluid, no media query needed */
+.auto-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.875rem;
+}
+
+/* ─── Automation Page: Follow-up sub-grid (2-col) ─── */
+.auto-followup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.875rem;
+}
+
+/* ─── Automation Page: Section divider — aerospace instrument panel style ─── */
+.auto-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.125rem 0;
+  position: relative;
+}
+
+.auto-section-label::before {
+  content: '';
+  display: block;
+  width: 2px;
+  height: 1.125rem;
+  background: var(--accent-blue);
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.auto-section-label-text {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  line-height: 1;
+}
+
+.auto-section-label-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.auto-section-label-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, rgba(255,255,255,0.07) 0%, transparent 80%);
+}
+
+/* ─── Automation Page: Stat card — improved visual hierarchy ─── */
+.auto-stat-card {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.625rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.auto-stat-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #1d2535;
+}
+
+/* Subtle top-edge accent line on each stat card */
+.auto-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 1rem;
+  right: 1rem;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(255,255,255,0.06), transparent);
+}
+
+/* ─── Automation Page: Progress distribution bar container ─── */
+.auto-progress-panel {
+  background: var(--bg-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.625rem;
+  padding: 1rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle scan-line texture */
+.auto-progress-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(255,255,255,0.008) 3px,
+    rgba(255,255,255,0.008) 4px
+  );
+  border-radius: inherit;
+}
+
+/* ─── Automation Page: Chart card — improved header ─── */
+.auto-card {
+  background: #161b22;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 0.625rem;
+  overflow: hidden;
+}
+
+.auto-card-header {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0,0,0,0.15);
+}
+
+.auto-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.auto-card-title-text {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.auto-card-subtitle {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  margin-top: 0.125rem;
+}
+
+/* ─── Automation Page: Form input dark style ─── */
+.auto-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.4375rem;
+  background: var(--bg-void);
+  color: var(--text-primary);
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+  font-family: inherit;
+}
+
+.auto-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.auto-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.15);
+}
+
+.auto-input-mono {
+  font-family: var(--font-mono, 'IBM Plex Mono', ui-monospace, monospace);
+}
+
+/* ─── Automation Page: Toggle switch ─── */
+.auto-toggle-track {
+  display: inline-block;
+  position: relative;
+  width: 2.25rem;
+  height: 1.25rem;
+}
+
+.auto-toggle-track input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.auto-toggle-thumb-rail {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+  transition: background 150ms ease;
+  cursor: pointer;
+}
+
+.auto-toggle-track input:checked + .auto-toggle-thumb-rail {
+  background: var(--accent-blue);
+}
+
+.auto-toggle-thumb-rail::after {
+  content: '';
+  position: absolute;
+  top: 0.125rem;
+  left: 0.125rem;
+  width: 1rem;
+  height: 1rem;
+  background: white;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  transition: transform 150ms ease;
+}
+
+.auto-toggle-track input:checked + .auto-toggle-thumb-rail::after {
+  transform: translateX(1rem);
+}
+
+/* ─── Automation Page: Button variants ─── */
+.auto-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 0.4375rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, opacity 150ms ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.auto-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.auto-btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: rgba(255,255,255,0.1);
+}
+
+.auto-btn-primary:not(:disabled):hover {
+  background: #388bfd;
+}
+
+.auto-btn-preview {
+  background: rgba(163, 113, 247, 0.15);
+  color: #c4a2ff;
+  border-color: rgba(163, 113, 247, 0.25);
+}
+
+.auto-btn-preview:not(:disabled):hover {
+  background: rgba(163, 113, 247, 0.25);
+  border-color: rgba(163, 113, 247, 0.4);
+}
+
+.auto-btn-burgundy {
+  background: rgba(156, 42, 62, 0.8);
+  color: #fff;
+  border-color: rgba(156, 42, 62, 0.4);
+}
+
+.auto-btn-burgundy:not(:disabled):hover {
+  background: #9c2a3e;
+}
+
+.auto-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: rgba(255,255,255,0.06);
+}
+
+.auto-btn-ghost:not(:disabled):hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* ─── Automation Page: Form label ─── */
+.auto-label {
+  display: block;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.375rem;
+}
+
+/* ─── Automation Page: Alert / status banner ─── */
+.auto-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.4375rem;
+  border: 1px solid transparent;
+  font-size: 0.8125rem;
+}
+
+.auto-alert-success {
+  background: rgba(63, 185, 80, 0.08);
+  border-color: rgba(63, 185, 80, 0.2);
+  color: var(--status-ok);
+}
+
+.auto-alert-error {
+  background: rgba(248, 81, 73, 0.08);
+  border-color: rgba(248, 81, 73, 0.2);
+  color: var(--status-err);
+}
+
+.auto-alert-info {
+  background: rgba(31, 111, 235, 0.08);
+  border-color: rgba(31, 111, 235, 0.2);
+  color: var(--status-info);
+}
+
+/* ─── Automation Page: Empty state ─── */
+.auto-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2.5rem 1rem;
+  color: var(--text-tertiary);
+  font-size: 0.8125rem;
+}
+
+/* ─── Automation Page: JSON viewer ─── */
+.auto-json-viewer {
+  background: var(--bg-void);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 0.4375rem;
+  padding: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ─── Automation Page: Thread message item ─── */
+.auto-thread-item {
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 0.4375rem;
+  overflow: hidden;
+  background: rgba(255,255,255,0.015);
+  transition: border-color 150ms ease;
+}
+
+.auto-thread-item:hover {
+  border-color: rgba(255,255,255,0.1);
+}
+
+.auto-thread-item-trigger {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.auto-thread-item-trigger:hover {
+  background: rgba(255,255,255,0.025);
+}
+
+/* ─── Automation Page: Spinner ─── */
+.auto-spinner {
+  position: relative;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex-shrink: 0;
+}
+
+.auto-spinner-track {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  border: 2px solid rgba(255,255,255,0.08);
+}
+
+.auto-spinner-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  border-top-color: var(--status-info);
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 /* ─── Internal Dashboard Dark Theme ─── */
