@@ -56,7 +56,7 @@ export async function POST(request: Request) {
     const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
 
     // Verify the TOTP code
-    if (!verifyTotpCode(secret, code)) {
+    if (!verifyTotpCode(secret, code, userKey)) {
       mfaVerifyLimiter.record(userKey)
       logAuditEvent({
         action: ACTION_TYPES.MFA_VERIFY,

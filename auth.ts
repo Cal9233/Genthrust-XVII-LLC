@@ -109,7 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
 
           // Try TOTP code first
-          let codeValid = verifyTotpCode(secret, totpCode)
+          let codeValid = verifyTotpCode(secret, totpCode, String(user.id))
 
           // If TOTP failed, try as recovery code
           if (!codeValid) {

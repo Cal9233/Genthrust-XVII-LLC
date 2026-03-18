@@ -48,12 +48,12 @@ function makeGraphEmail(overrides: Partial<GraphEmail> = {}): GraphEmail {
       },
     },
     bodyPreview: "Email body preview text",
-    body: { content: "<p>Email body</p>", contentType: "html" },
     importance: "normal",
     receivedDateTime: "2026-03-17T14:30:00Z",
     webLink: "https://outlook.office.com/mail/test",
     hasAttachments: false,
     conversationId: "conv-id-1",
+    internetMessageId: "<test-message-id-1@mail.genthrust.net>",
     ...overrides,
   };
 }

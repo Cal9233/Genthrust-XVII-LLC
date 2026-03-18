@@ -50,6 +50,12 @@ export async function PATCH(request: Request) {
     }
     const { userId, is_active } = parsed.data
 
+    // Verify target user exists before operating — prevents blind writes on arbitrary IDs
+    const targets = await query<any[]>(`SELECT id FROM portal_users WHERE id = ?`, [userId])
+    if (!targets || targets.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
     await query(
       `UPDATE portal_users SET is_active = ?, updated_at = NOW() WHERE id = ?`,
       [is_active, userId]
@@ -88,10 +94,23 @@ export async function DELETE(request: Request) {
     }
     const { userId } = parsed.data
 
-    await query(
+    // Verify target user exists before operating — prevents blind deletes on arbitrary IDs
+    const targets = await query<any[]>(`SELECT id FROM portal_users WHERE id = ?`, [userId])
+    if (!targets || targets.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const result = await query<import('mysql2').ResultSetHeader>(
       `DELETE FROM portal_users WHERE id = ? AND is_active = 0`,
       [userId]
     )
+
+    if (result.affectedRows === 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete an active user. Deactivate first.' },
+        { status: 409 }
+      )
+    }
 
     logAuditEvent({
       action: ACTION_TYPES.DELETE,

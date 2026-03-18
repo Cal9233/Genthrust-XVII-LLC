@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/auth'
 import { query } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
+import { z } from 'zod'
 export const dynamic = 'force-dynamic'
+
+const CreateClientSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(255),
+  password: z.string().min(8).max(72), // bcrypt silently truncates beyond 72 bytes
+  contact_name: z.string().min(1).max(255).transform(v => v.trim()),
+  company_id: z.number().int().positive().optional(),
+})
 
 export async function POST(request: NextRequest) {
   const session = await auth()
@@ -13,21 +21,16 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json()
-  const { email, password, contact_name, company_id } = body
+  const parsed = CreateClientSchema.safeParse(body)
 
-  if (!email || !password || !contact_name) {
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Email, password, and contact_name are required.' },
+      { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
       { status: 400 }
     )
   }
 
-  if (password.length < 8) {
-    return NextResponse.json(
-      { error: 'Password must be at least 8 characters.' },
-      { status: 400 }
-    )
-  }
+  const { email, password, contact_name, company_id } = parsed.data
 
   try {
     const passwordHash = await hashPassword(password)

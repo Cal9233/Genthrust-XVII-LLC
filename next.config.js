@@ -17,6 +17,10 @@ const nextConfig = {
     ]
   },
   async headers() {
+    // unsafe-eval is required for Next.js HMR in development only; omit in production
+    const scriptSrc = process.env.NODE_ENV === 'development'
+      ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
+      : "script-src 'self' 'unsafe-inline'";
     return [
       {
         source: '/(.*)',
@@ -26,8 +30,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              // Next.js requires unsafe-eval for HMR in dev; unsafe-inline for inline scripts
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              scriptSrc,
               // Tailwind injects inline styles
               "style-src 'self' 'unsafe-inline'",
               // QR codes may be data: URIs; blob: for canvas-generated images

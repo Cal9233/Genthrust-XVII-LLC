@@ -5,6 +5,7 @@
  * No DB or network required.
  */
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
+import { TOTP, Secret } from 'otpauth'
 
 // Set the required env vars before importing the module
 const VALID_KEY = 'a'.repeat(64) // 64-char hex string
@@ -140,7 +141,7 @@ describe('generateTotpSecret', () => {
 describe('verifyTotpCode', () => {
   it('returns false for a clearly wrong code', () => {
     const { secret } = generateTotpSecret('test@test.com')
-    const result = verifyTotpCode(secret, '000000')
+    const result = verifyTotpCode(secret, '000000', 'test-user-1')
     // 000000 is almost certainly not the current TOTP code
     // (1 in 1,000,000 chance of a false positive — acceptable)
     expect(typeof result).toBe('boolean')
@@ -159,12 +160,46 @@ describe('verifyTotpCode', () => {
       secret: Secret.fromBase32(secret),
     })
     const currentCode = totp.generate()
-    expect(verifyTotpCode(secret, currentCode)).toBe(true)
+    expect(verifyTotpCode(secret, currentCode, 'test-user-2')).toBe(true)
   })
 
   it('returns false for a 7-digit code (invalid length)', () => {
     const { secret } = generateTotpSecret('test@test.com')
-    expect(verifyTotpCode(secret, '1234567')).toBe(false)
+    expect(verifyTotpCode(secret, '1234567', 'test-user-3')).toBe(false)
+  })
+
+  it('rejects the same valid code on second use (replay protection)', () => {
+    const { secret } = generateTotpSecret('replay@test.com')
+    const totp = new TOTP({
+      issuer: 'GENTHRUST Portal',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: Secret.fromBase32(secret),
+    })
+    const currentCode = totp.generate()
+
+    // First use should succeed
+    expect(verifyTotpCode(secret, currentCode, 'replay-user-1')).toBe(true)
+    // Second use with SAME userId should be rejected (replay)
+    expect(verifyTotpCode(secret, currentCode, 'replay-user-1')).toBe(false)
+  })
+
+  it('allows the same code for a different user (no cross-user blocking)', () => {
+    const { secret } = generateTotpSecret('crossuser@test.com')
+    const totp = new TOTP({
+      issuer: 'GENTHRUST Portal',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: Secret.fromBase32(secret),
+    })
+    const currentCode = totp.generate()
+
+    // User A uses the code
+    expect(verifyTotpCode(secret, currentCode, 'user-A')).toBe(true)
+    // User B should still be able to use it (different userId key)
+    expect(verifyTotpCode(secret, currentCode, 'user-B')).toBe(true)
   })
 })
 

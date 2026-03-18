@@ -41,6 +41,25 @@ export function decryptSecret(encrypted: string, iv: string, authTag: string): s
   return decrypted
 }
 
+// --- TOTP replay protection ---
+// Stores `${userId}:${code}` -> expiry timestamp (ms). Scoped to server process lifetime.
+const usedTotpCodes = new Map<string, number>()
+
+function markTotpCodeUsed(userId: string, code: string): void {
+  const key = `${userId}:${code}`
+  usedTotpCodes.set(key, Date.now() + 90_000) // 90s = 3 × 30s TOTP windows
+  // Prune expired entries to prevent unbounded growth
+  for (const [k, expiry] of usedTotpCodes) {
+    if (Date.now() > expiry) usedTotpCodes.delete(k)
+  }
+}
+
+function isTotpCodeUsed(userId: string, code: string): boolean {
+  const key = `${userId}:${code}`
+  const expiry = usedTotpCodes.get(key)
+  return expiry !== undefined && Date.now() <= expiry
+}
+
 // --- TOTP generation & verification ---
 
 export function generateTotpSecret(email: string): { secret: string; uri: string } {
@@ -59,7 +78,8 @@ export function generateTotpSecret(email: string): { secret: string; uri: string
   }
 }
 
-export function verifyTotpCode(secretBase32: string, code: string): boolean {
+export function verifyTotpCode(secretBase32: string, code: string, userId: string): boolean {
+  if (isTotpCodeUsed(userId, code)) return false
   const totp = new TOTP({
     issuer: 'GENTHRUST Portal',
     algorithm: 'SHA1',
@@ -68,7 +88,9 @@ export function verifyTotpCode(secretBase32: string, code: string): boolean {
     secret: Secret.fromBase32(secretBase32),
   })
   const delta = totp.validate({ token: code, window: 1 })
-  return delta !== null
+  if (delta === null) return false
+  markTotpCodeUsed(userId, code)
+  return true
 }
 
 // --- QR code ---

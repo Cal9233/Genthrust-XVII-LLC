@@ -22,7 +22,7 @@ export function getInventoryPool(): mysql.Pool {
       database: process.env.BOT_DB_NAME || 'genthrust_inventory',
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0,
+      queueLimit: 50,
       connectTimeout: 5000,
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,

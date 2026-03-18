@@ -7,14 +7,14 @@ const globalForRawDb = globalThis as unknown as {
 }
 
 globalForRawDb.rawMysqlPool ??= mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'genthrust',
-  password: process.env.DB_PASSWORD || '',
-  database: process.env.DB_NAME || 'genthrust',
+  host: process.env.DB_HOST || process.env.DATABASE_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || process.env.DATABASE_PORT || '3306'),
+  user: process.env.DB_USER || process.env.DATABASE_USER || 'genthrust',
+  password: process.env.DB_PASSWORD || process.env.DATABASE_PASSWORD || '',
+  database: process.env.DB_NAME || process.env.DATABASE_NAME || 'genthrust',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
+  queueLimit: 50,
   connectTimeout: 5000,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,

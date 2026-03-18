@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
 
     // Verify with TOTP code first
-    let codeValid = verifyTotpCode(secret, code)
+    let codeValid = verifyTotpCode(secret, code, userKey)
 
     // Try as recovery code
     let usedRecoveryCodeId: number | null = null

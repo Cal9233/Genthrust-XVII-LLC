@@ -33,7 +33,6 @@
     "@auth/core": "^0.41.1",
     "@auth/drizzle-adapter": "^1.11.1",
     "@azure/msal-node": "^5.1.0",
-    "@genthrust/shared": "file:../genthrust-shared",
     "@microsoft/microsoft-graph-client": "^3.0.7",
     "@react-three/drei": "^9.92.7",
     "@react-three/fiber": "^8.15.12",
@@ -59,6 +58,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^3.8.0",
+    "sanitize-html": "^2.17.1",
     "tailwind-merge": "^3.4.0",
     "three": "^0.160.0",
     "zod": "^3.25.76"
@@ -71,6 +71,7 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/sanitize-html": "^2.16.1",
     "@types/three": "^0.160.0",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.23",

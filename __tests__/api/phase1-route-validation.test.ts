@@ -24,15 +24,15 @@ const ContactSchema = z.object({
 })
 
 const RegisterSchema = z.object({
-  email: z.string().email().max(255).transform(v => v.toLowerCase().trim()),
+  email: z.string().trim().toLowerCase().email().max(255),
   password: z.string().min(8).max(128),
   contact_name: z.string().min(1).max(255).transform(v => v.trim()),
   company_name: z.string().max(255).optional(),
 })
 
 const CreateClientSchema = z.object({
-  email: z.string().email().max(255).transform(v => v.toLowerCase().trim()),
-  password: z.string().min(8).max(128),
+  email: z.string().trim().toLowerCase().email().max(255),
+  password: z.string().min(8).max(72), // bcrypt silently truncates beyond 72 bytes
   contact_name: z.string().min(1).max(255).transform(v => v.trim()),
   company_id: z.number().int().positive().optional(),
 })
@@ -252,6 +252,14 @@ describe('CreateClientSchema validation', () => {
 
   it('rejects password under 8 chars', () => {
     expect(CreateClientSchema.safeParse({ ...valid, password: 'short' }).success).toBe(false)
+  })
+
+  it('rejects password over 72 chars (bcrypt truncation limit)', () => {
+    expect(CreateClientSchema.safeParse({ ...valid, password: 'p'.repeat(73) }).success).toBe(false)
+  })
+
+  it('accepts password of exactly 72 chars', () => {
+    expect(CreateClientSchema.safeParse({ ...valid, password: 'p'.repeat(72) }).success).toBe(true)
   })
 
   it('rejects empty contact_name', () => {

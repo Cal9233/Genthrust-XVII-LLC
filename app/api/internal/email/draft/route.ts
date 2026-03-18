@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { createDraftEmail } from "@/lib/graph/productivity";
 import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from "@/lib/audit-logger";
+import { sanitizeEmailBody } from "@/lib/sanitize-html-body";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -46,10 +47,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // Sanitize HTML body — strip <script> tags and on* event handlers
-  const sanitizedBody = body
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/\s+on\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]*)/gi, '');
+  // Sanitize HTML body — strip dangerous tags, URIs, and event handlers
+  const sanitizedBody = sanitizeEmailBody(body);
 
   try {
     const result = await createDraftEmail(session.user.id, to, subject, sanitizedBody);

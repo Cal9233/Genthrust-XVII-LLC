@@ -64,7 +64,12 @@ export const active = mysqlTable(
     ),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.id], name: "active_id" })]
+  (table) => [
+    primaryKey({ columns: [table.id], name: "active_id" }),
+    index("idx_active_status").on(table.currentStatus),
+    index("idx_active_ro").on(table.ro),
+    index("idx_active_shop_name").on(table.shopName),
+  ]
 );
 
 export const net = mysqlTable(
@@ -96,7 +101,12 @@ export const net = mysqlTable(
     nextDateToUpdate: varchar("NEXT_DATE_TO_UPDATE", { length: 500 }),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.id], name: "net_id" })]
+  (table) => [
+    primaryKey({ columns: [table.id], name: "net_id" }),
+    index("idx_net_status").on(table.currentStatus),
+    index("idx_net_ro").on(table.ro),
+    index("idx_net_shop_name").on(table.shopName),
+  ]
 );
 
 export const paid = mysqlTable(
@@ -128,7 +138,12 @@ export const paid = mysqlTable(
     nextDateToUpdate: varchar("NEXT_DATE_TO_UPDATE", { length: 500 }),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.id], name: "paid_id" })]
+  (table) => [
+    primaryKey({ columns: [table.id], name: "paid_id" }),
+    index("idx_paid_status").on(table.currentStatus),
+    index("idx_paid_ro").on(table.ro),
+    index("idx_paid_shop_name").on(table.shopName),
+  ]
 );
 
 export const returns = mysqlTable(
@@ -160,7 +175,12 @@ export const returns = mysqlTable(
     nextDateToUpdate: varchar("NEXT_DATE_TO_UPDATE", { length: 500 }),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.id], name: "returns_id" })]
+  (table) => [
+    primaryKey({ columns: [table.id], name: "returns_id" }),
+    index("idx_returns_status").on(table.currentStatus),
+    index("idx_returns_ro").on(table.ro),
+    index("idx_returns_shop_name").on(table.shopName),
+  ]
 );
 
 // ==========================================
@@ -216,7 +236,10 @@ export const shops = mysqlTable(
     ytdSales: double("YTD_Sales"),
     createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   },
-  (table) => [primaryKey({ columns: [table.id], name: "shops_id" })]
+  (table) => [
+    primaryKey({ columns: [table.id], name: "shops_id" }),
+    index("idx_shops_email").on(table.email),
+  ]
 );
 
 // ==========================================

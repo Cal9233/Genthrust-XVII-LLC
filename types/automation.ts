@@ -3,7 +3,7 @@ import type {
   FollowupRO,
   ERPPurchaseOrder,
   ERPRepairOrder,
-} from '@genthrust/shared'
+} from '@/lib/types/erp-shared'
 
 export type { Net30Order, FollowupRO, ERPPurchaseOrder }
 

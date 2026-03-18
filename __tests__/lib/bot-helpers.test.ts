@@ -2,11 +2,11 @@
  * Tests for lib/bot-helpers.ts — Phase 1 changes:
  * 1. getBotMetrics: reads max 512KB to prevent OOM on large log files
  * 2. getLogTail: pure Node.js tail implementation (no `tail` binary)
- * 3. getAllBotStatusesAsync: parallel checks with 30s cache
+ * 3. getAllBotStatuses: async parallel checks via promisify(execFile)
  *
  * Uses mocked fs and child_process to avoid Windows-only dependencies.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // ---------------------------------------------------------------------------
 // Mock fs and child_process before importing bot-helpers
@@ -16,6 +16,14 @@ vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>()
   return {
     ...actual,
+    default: {
+      ...actual,
+      statSync: vi.fn(),
+      readFileSync: vi.fn(),
+      openSync: vi.fn(),
+      readSync: vi.fn(),
+      closeSync: vi.fn(),
+    },
     statSync: vi.fn(),
     readFileSync: vi.fn(),
     openSync: vi.fn(),
@@ -25,21 +33,21 @@ vi.mock('fs', async (importOriginal) => {
 })
 
 vi.mock('child_process', () => ({
-  execFileSync: vi.fn(),
   execFile: vi.fn(),
+  execFileSync: vi.fn(),
 }))
 
 // Import after mocks
-import * as fs from 'fs'
-import { execFileSync } from 'child_process'
-import { getBotMetrics, getLogTail, BOT_REGISTRY } from '@/lib/bot-helpers'
+import fs from 'fs'
+import { execFile } from 'child_process'
+import { getBotMetrics, getLogTail, getAllBotStatuses, BOT_REGISTRY } from '@/lib/bot-helpers'
 
 const mockedStat = vi.mocked(fs.statSync)
 const mockedReadFile = vi.mocked(fs.readFileSync)
 const mockedOpen = vi.mocked(fs.openSync)
 const mockedRead = vi.mocked(fs.readSync)
 const mockedClose = vi.mocked(fs.closeSync)
-const mockedExecFileSync = vi.mocked(execFileSync)
+const mockedExecFile = vi.mocked(execFile)
 
 // ---------------------------------------------------------------------------
 // getBotMetrics — 512KB memory cap
@@ -218,7 +226,7 @@ describe('BOT_REGISTRY', () => {
 })
 
 // ---------------------------------------------------------------------------
-// getAllBotStatuses — Windows sc query parsing
+// getAllBotStatuses — async Windows sc query parsing
 // ---------------------------------------------------------------------------
 
 describe('getAllBotStatuses — status detection', () => {
@@ -226,31 +234,43 @@ describe('getAllBotStatuses — status detection', () => {
     vi.clearAllMocks()
   })
 
-  it('returns RUNNING when sc query output contains RUNNING', () => {
-    mockedExecFileSync.mockReturnValue('STATE : 4  RUNNING\r\n' as any)
-    const { getAllBotStatuses } = require('@/lib/bot-helpers')
-    const statuses = getAllBotStatuses()
-    expect(statuses.every((s: any) => s.status === 'RUNNING')).toBe(true)
+  it('returns RUNNING when sc query output contains RUNNING', async () => {
+    mockedExecFile.mockImplementation((_cmd: any, _args: any, _opts: any, cb: any) => {
+      cb(null, { stdout: 'STATE : 4  RUNNING\r\n' })
+      return undefined as any
+    })
+
+    const statuses = await getAllBotStatuses()
+    expect(statuses.every((s) => s.status === 'RUNNING')).toBe(true)
   })
 
-  it('returns STOPPED when sc query output contains STOPPED', () => {
-    mockedExecFileSync.mockReturnValue('STATE : 1  STOPPED\r\n' as any)
-    const { getAllBotStatuses } = require('@/lib/bot-helpers')
-    const statuses = getAllBotStatuses()
-    expect(statuses.every((s: any) => s.status === 'STOPPED')).toBe(true)
+  it('returns STOPPED when sc query output contains STOPPED', async () => {
+    mockedExecFile.mockImplementation((_cmd: any, _args: any, _opts: any, cb: any) => {
+      cb(null, { stdout: 'STATE : 1  STOPPED\r\n' })
+      return undefined as any
+    })
+
+    const statuses = await getAllBotStatuses()
+    expect(statuses.every((s) => s.status === 'STOPPED')).toBe(true)
   })
 
-  it('returns UNKNOWN when sc query throws (service not found)', () => {
-    mockedExecFileSync.mockImplementation(() => { throw new Error('service not found') })
-    const { getAllBotStatuses } = require('@/lib/bot-helpers')
-    const statuses = getAllBotStatuses()
-    expect(statuses.every((s: any) => s.status === 'UNKNOWN')).toBe(true)
+  it('returns UNKNOWN when sc query throws (service not found)', async () => {
+    mockedExecFile.mockImplementation((_cmd: any, _args: any, _opts: any, cb: any) => {
+      cb(new Error('service not found'))
+      return undefined as any
+    })
+
+    const statuses = await getAllBotStatuses()
+    expect(statuses.every((s) => s.status === 'UNKNOWN')).toBe(true)
   })
 
-  it('includes key, displayName, serviceName, and description for each bot', () => {
-    mockedExecFileSync.mockReturnValue('STATE : 4  RUNNING\r\n' as any)
-    const { getAllBotStatuses } = require('@/lib/bot-helpers')
-    const statuses = getAllBotStatuses()
+  it('includes key, displayName, serviceName, and description for each bot', async () => {
+    mockedExecFile.mockImplementation((_cmd: any, _args: any, _opts: any, cb: any) => {
+      cb(null, { stdout: 'STATE : 4  RUNNING\r\n' })
+      return undefined as any
+    })
+
+    const statuses = await getAllBotStatuses()
     expect(statuses).toHaveLength(5)
     for (const s of statuses) {
       expect(s.key).toBeTruthy()

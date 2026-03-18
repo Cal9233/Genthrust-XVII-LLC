@@ -1,4 +1,7 @@
-import { execFileSync } from 'child_process'
+import { execFile } from 'child_process'
+import { promisify } from 'util'
+
+const execFileAsync = promisify(execFile)
 import fs from 'fs'
 import path from 'path'
 
@@ -54,16 +57,15 @@ export interface BotStatusResult {
 }
 
 /**
- * Check Windows service status via `sc query`.
+ * Check Windows service status via `sc query` (async, non-blocking).
  */
-function queryServiceStatus(serviceName: string): BotStatus {
+async function queryServiceStatus(serviceName: string): Promise<BotStatus> {
   try {
-    const output = execFileSync('sc', ['query', serviceName], {
-      encoding: 'utf-8',
+    const { stdout } = await execFileAsync('sc', ['query', serviceName], {
       timeout: 5000,
     })
-    if (output.includes('RUNNING')) return 'RUNNING'
-    if (output.includes('STOPPED')) return 'STOPPED'
+    if (stdout.includes('RUNNING')) return 'RUNNING'
+    if (stdout.includes('STOPPED')) return 'STOPPED'
     return 'UNKNOWN'
   } catch {
     return 'UNKNOWN'
@@ -71,16 +73,18 @@ function queryServiceStatus(serviceName: string): BotStatus {
 }
 
 /**
- * Get status of all 5 bot Windows services (synchronous, sequential).
+ * Get status of all 5 bot Windows services (async, parallel).
  */
-export function getAllBotStatuses(): BotStatusResult[] {
-  return Object.entries(BOT_REGISTRY).map(([key, bot]) => ({
-    key,
-    displayName: bot.displayName,
-    serviceName: bot.serviceName,
-    status: queryServiceStatus(bot.serviceName),
-    description: bot.description,
-  }))
+export async function getAllBotStatuses(): Promise<BotStatusResult[]> {
+  return Promise.all(
+    Object.entries(BOT_REGISTRY).map(async ([key, bot]) => ({
+      key,
+      displayName: bot.displayName,
+      serviceName: bot.serviceName,
+      status: await queryServiceStatus(bot.serviceName),
+      description: bot.description,
+    }))
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -93,8 +97,6 @@ const STATUS_CACHE_TTL_MS = 30_000
 
 /**
  * Async version: checks all bot services in parallel with a 30s cache.
- * Falls back to the sync version for each individual check but runs them
- * concurrently via Promise.all to avoid blocking sequentially.
  */
 export async function getAllBotStatusesAsync(): Promise<BotStatusResult[]> {
   const now = Date.now()
@@ -102,22 +104,7 @@ export async function getAllBotStatusesAsync(): Promise<BotStatusResult[]> {
     return cachedStatuses
   }
 
-  const entries = Object.entries(BOT_REGISTRY)
-  const results = await Promise.all(
-    entries.map(([key, bot]) =>
-      new Promise<BotStatusResult>((resolve) => {
-        // Run each sc query in a microtask to parallelize
-        const status = queryServiceStatus(bot.serviceName)
-        resolve({
-          key,
-          displayName: bot.displayName,
-          serviceName: bot.serviceName,
-          status,
-          description: bot.description,
-        })
-      })
-    )
-  )
+  const results = await getAllBotStatuses()
 
   cachedStatuses = results
   cacheExpiresAt = now + STATUS_CACHE_TTL_MS
