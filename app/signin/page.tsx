@@ -46,7 +46,7 @@ export default function SignInPage({
         <form
           action={async () => {
             'use server'
-            await signIn('microsoft-entra-id', { redirectTo: '/internal' })
+            await signIn('microsoft-entra-id', { redirectTo: '/api/internal/sso/flightdeck' })
           }}
         >
           <button

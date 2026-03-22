@@ -42,9 +42,9 @@ export const authConfig = {
       } else if (isOnSignIn) {
         if (isLoggedIn) {
           const role = (auth as any)?.user?.role
-          // Only internal users should be redirected to /internal from /signin
+          // Internal users go straight to FlightDeck via SSO
           // Client users who somehow land here go to /portal
-          return Response.redirect(new URL(role === 'internal' ? '/internal' : '/portal', nextUrl))
+          return Response.redirect(new URL(role === 'internal' ? '/api/internal/sso/flightdeck' : '/portal', nextUrl))
         }
         return true
       } else if (isOnLogin) {
