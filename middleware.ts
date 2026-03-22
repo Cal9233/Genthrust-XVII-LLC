@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server'
 export default NextAuth(authConfig).auth(function middleware(req) {
   const { pathname } = req.nextUrl
   const isProtectedApi =
-    pathname.startsWith('/api/internal') || pathname.startsWith('/api/portal')
+    pathname.startsWith('/api/internal') || pathname.startsWith('/api/portal') || pathname.startsWith('/api/admin')
 
   // For unauthenticated API route requests, return 401 JSON instead of redirecting to login
   if (!req.auth && isProtectedApi) {
@@ -24,5 +24,6 @@ export const config = {
     '/register',
     '/api/internal/:path*',
     '/api/portal/:path*',
+    '/api/admin/:path*',
   ],
 }

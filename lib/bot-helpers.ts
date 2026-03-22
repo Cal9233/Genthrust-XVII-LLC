@@ -111,6 +111,33 @@ export async function getAllBotStatusesAsync(): Promise<BotStatusResult[]> {
   return results
 }
 
+// ---------------------------------------------------------------------------
+// PII / Secret scrubbing for log output (MED-07)
+// ---------------------------------------------------------------------------
+
+/**
+ * Scrub a single log line of PII and secrets before sending to the browser.
+ * Applies in order: email addresses, auth tokens, long hex strings (32+ chars).
+ * Truncates lines to 500 chars max.
+ */
+export function sanitizeLogLine(line: string): string {
+  let s = line
+  // Email addresses
+  s = s.replace(/\S+@\S+\.\S+/g, '[EMAIL REDACTED]')
+  // Bearer tokens
+  s = s.replace(/Bearer\s+\S+/gi, 'Bearer [REDACTED]')
+  // token= / api_key= / key= style query params / env values
+  s = s.replace(/(?:token|api[_-]?key|secret|password|passwd|pwd|auth)=\S+/gi, (m) => {
+    const eqIdx = m.indexOf('=')
+    return m.substring(0, eqIdx + 1) + '[REDACTED]'
+  })
+  // Long hex strings (32+ hex chars) — API keys, JWT segments, hashes
+  s = s.replace(/\b[0-9a-f]{32,}\b/gi, '[REDACTED]')
+  // Truncate to 500 chars
+  if (s.length > 500) s = s.substring(0, 500) + '…'
+  return s
+}
+
 /**
  * Get tail of a bot's log file using pure Node.js (no external `tail` binary).
  * Reads from the end of the file to find the last N lines efficiently.
@@ -147,9 +174,13 @@ export function getLogTail(botKey: string, lines: number = 100): { content: stri
         }
       }
 
-      // Trim to requested number of lines
+      // Trim to requested number of lines, then scrub each line for PII/secrets
       const allLines = tailContent.split('\n')
-      const result = allLines.slice(-lines - 1).join('\n').trimStart()
+      const result = allLines
+        .slice(-lines - 1)
+        .map(sanitizeLogLine)
+        .join('\n')
+        .trimStart()
 
       return { content: result, sizeBytes: stat.size }
     } finally {

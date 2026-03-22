@@ -16,11 +16,13 @@ const mockAuth = vi.mocked(auth)
 describe('GET /api/internal/sso/flightdeck', () => {
   beforeEach(() => {
     process.env.SSO_REDIRECT_SECRET = TEST_SECRET
+    process.env.ENTRA_TENANT_ID = 'test-tenant-id'
     mockAuth.mockReset()
   })
 
   afterEach(() => {
     delete process.env.SSO_REDIRECT_SECRET
+    delete process.env.ENTRA_TENANT_ID
   })
 
   it('returns 401 when not authenticated', async () => {
@@ -86,7 +88,7 @@ describe('GET /api/internal/sso/flightdeck', () => {
     const location = res.headers.get('location')
     expect(location).toBeTruthy()
     expect(location).toContain(
-      'https://workspace-cals-projects-8137565b.vercel.app/api/auth/sso-redirect?token='
+      'https://app.genthrust.org/api/auth/sso-redirect?token='
     )
   })
 
@@ -109,7 +111,7 @@ describe('GET /api/internal/sso/flightdeck', () => {
     expect(payload.email).toBe('cal@genthrust.net')
     expect(payload.name).toBe('Cal Malagon')
     expect(payload.role).toBe('owner')
-    expect(payload.tenantId).toBe('52596c51-0a48-402a-9c2f-1ae331b2af36')
+    expect(payload.tenantId).toBe('test-tenant-id')
     expect(typeof payload.iat).toBe('number')
   })
 

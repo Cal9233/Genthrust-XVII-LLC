@@ -80,11 +80,14 @@ export const emailDigest = schedules.task({
     }
 
     // Mark all as dispatched
+    // H-4: Guard IN (?) against empty arrays — mysql2 throws on IN (())
     const ids = pendingEmails.map((e) => e.id);
-    await query(
-      "UPDATE email_monitor_log SET dispatched_at = NOW() WHERE id IN (?)",
-      [ids]
-    );
+    if (ids.length > 0) {
+      await query(
+        "UPDATE email_monitor_log SET dispatched_at = NOW() WHERE id IN (?)",
+        [ids]
+      );
+    }
 
     logger.info(`Dispatched digest with ${pendingEmails.length} emails`);
 

@@ -98,12 +98,28 @@ describe('generateSsoToken', () => {
     expect(payload.iat).toBeGreaterThan(0)
   })
 
-  // Security: note that expiry enforcement is on the FlightDeck receiver side.
-  // This JWT intentionally has no `exp` claim — FlightDeck checks iat + 60s window.
-  it('does not include exp claim (expiry enforced by receiver)', () => {
+  it('includes exp claim set to iat + 60 seconds', () => {
     const token = generateSsoToken(TEST_CLAIMS)
     const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
-    expect(payload.exp).toBeUndefined()
+    expect(typeof payload.exp).toBe('number')
+    expect(payload.exp).toBe(payload.iat + 60)
+  })
+
+  it('uses generated exp even if claims object has extra exp property', () => {
+    const claimsWithExp = { ...TEST_CLAIMS, exp: 0 } as any
+    const token = generateSsoToken(claimsWithExp)
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+    expect(payload.exp).toBeGreaterThan(0)
+    expect(payload.exp).toBe(payload.iat + 60)
+  })
+
+  it('sets exp approximately 60 seconds from now', () => {
+    const before = Math.floor(Date.now() / 1000)
+    const token = generateSsoToken(TEST_CLAIMS)
+    const after = Math.floor(Date.now() / 1000)
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString())
+    expect(payload.exp).toBeGreaterThanOrEqual(before + 60)
+    expect(payload.exp).toBeLessThanOrEqual(after + 60)
   })
 
   it('handles long email and name strings', () => {
@@ -125,14 +141,14 @@ describe('buildFlightDeckSsoUrl', () => {
   it('builds correct URL with default redirect', () => {
     const url = buildFlightDeckSsoUrl('test-token')
     expect(url).toBe(
-      'https://workspace-cals-projects-8137565b.vercel.app/api/auth/sso-redirect?token=test-token&redirect=%2F'
+      'https://app.genthrust.org/api/auth/sso-redirect?token=test-token&redirect=%2F'
     )
   })
 
   it('builds correct URL with custom redirect', () => {
     const url = buildFlightDeckSsoUrl('test-token', '/dashboard')
     expect(url).toBe(
-      'https://workspace-cals-projects-8137565b.vercel.app/api/auth/sso-redirect?token=test-token&redirect=%2Fdashboard'
+      'https://app.genthrust.org/api/auth/sso-redirect?token=test-token&redirect=%2Fdashboard'
     )
   })
 

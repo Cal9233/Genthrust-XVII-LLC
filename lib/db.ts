@@ -34,9 +34,22 @@ export async function query<T = any>(
     const [results] = await pool.query(sql, params || [])
     return results as T
   } catch (error) {
-    console.error('Database query error:', error)
+    console.error('Database query error:', error instanceof Error ? error.message : String(error))
     throw error
   }
+}
+
+// H-6: MySQL advisory lock helpers for single-instance job guards
+export async function acquireLock(lockName: string, timeoutSec: number = 30): Promise<boolean> {
+  const rows = await query<{ acquired: number }[]>(
+    'SELECT GET_LOCK(?, ?) as acquired',
+    [lockName, timeoutSec]
+  )
+  return rows[0]?.acquired === 1
+}
+
+export async function releaseLock(lockName: string): Promise<void> {
+  await query('SELECT RELEASE_LOCK(?)', [lockName])
 }
 
 // Graceful shutdown — drain pool on process exit

@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const userKey = String(userId)
 
     // Rate limit: max 5 failed attempts per 5 minutes
-    const rl = mfaVerifyLimiter.check(userKey)
+    const rl = await mfaVerifyLimiter.check(userKey)
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many attempts. Try again later.' },
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
     const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
 
     // Verify the TOTP code
-    if (!verifyTotpCode(secret, code, userKey)) {
-      mfaVerifyLimiter.record(userKey)
+    if (!(await verifyTotpCode(secret, code, userKey))) {
+      await mfaVerifyLimiter.record(userKey)
       logAuditEvent({
         action: ACTION_TYPES.MFA_VERIFY,
         resource_type: RESOURCE_TYPES.MFA,
@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     }
 
     // Success — reset rate limit counter
-    mfaVerifyLimiter.reset(userKey)
+    await mfaVerifyLimiter.reset(userKey)
 
     // Mark factor as verified
     await query(
@@ -89,13 +89,13 @@ export async function POST(request: Request) {
     await query(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`, [userId])
 
     const recoveryCodes = generateRecoveryCodes(10)
-    for (const code of recoveryCodes) {
-      const hash = await bcrypt.hash(code, 12)
-      await query(
-        `INSERT INTO mfa_recovery_codes (user_id, code_hash) VALUES (?, ?)`,
-        [userId, hash]
-      )
-    }
+    const hashes = await Promise.all(recoveryCodes.map(code => bcrypt.hash(code, 12)))
+    const placeholders = hashes.map(() => '(?, ?)').join(', ')
+    const values = hashes.flatMap((hash) => [userId, hash])
+    await query(
+      `INSERT INTO mfa_recovery_codes (user_id, code_hash) VALUES ${placeholders}`,
+      values
+    )
 
     logAuditEvent({
       action: ACTION_TYPES.MFA_VERIFY,

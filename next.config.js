@@ -2,8 +2,8 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['mysql2'],
-    // OPT-023: tree-shake large icon/chart libraries at compile time
-    optimizePackageImports: ['recharts', 'lucide-react'],
+    // OPT-023: tree-shake large icon/chart/3D libraries at compile time
+    optimizePackageImports: ['recharts', 'lucide-react', 'three', '@react-three/fiber', '@react-three/drei'],
   },
   images: {
     remotePatterns: [],
@@ -20,7 +20,7 @@ const nextConfig = {
     // unsafe-eval is required for Next.js HMR in development only; omit in production
     const scriptSrc = process.env.NODE_ENV === 'development'
       ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-      : "script-src 'self' 'unsafe-inline'";
+      : "script-src 'self'";
     return [
       {
         source: '/(.*)',
@@ -39,8 +39,8 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com",
               // Google Maps embed on contact page
               "frame-src 'self' https://www.google.com",
-              // ERP API and Microsoft Graph API calls
-              "connect-src 'self' https://wapi.erp.aero https://graph.microsoft.com",
+              // ERP API, Microsoft Graph/Entra, and Upstash Redis (rate-limiting)
+              "connect-src 'self' https://wapi.erp.aero https://graph.microsoft.com https://login.microsoftonline.com https://*.upstash.io",
               // Prevent this page from being embedded in iframes
               "frame-ancestors 'none'",
               "base-uri 'self'",

@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const userKey = String(userId)
 
     // Rate limit: max 5 failed attempts per 5 minutes
-    const rl = mfaDisableLimiter.check(userKey)
+    const rl = await mfaDisableLimiter.check(userKey)
     if (!rl.allowed) {
       return NextResponse.json(
         { error: 'Too many attempts. Try again later.' },
@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
 
     // Verify with TOTP code first
-    let codeValid = verifyTotpCode(secret, code, userKey)
+    let codeValid = await verifyTotpCode(secret, code, userKey)
 
     // Try as recovery code
     let usedRecoveryCodeId: number | null = null
@@ -78,12 +78,12 @@ export async function POST(request: Request) {
     }
 
     if (!codeValid) {
-      mfaDisableLimiter.record(userKey)
+      await mfaDisableLimiter.record(userKey)
       return NextResponse.json({ error: 'Invalid code' }, { status: 400 })
     }
 
     // Success — reset rate limit counter
-    mfaDisableLimiter.reset(userKey)
+    await mfaDisableLimiter.reset(userKey)
 
     // Mark the used recovery code before bulk delete
     if (usedRecoveryCodeId !== null) {

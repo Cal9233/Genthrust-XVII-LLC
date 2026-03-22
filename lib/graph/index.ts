@@ -11,6 +11,12 @@ import { eq, and } from "drizzle-orm";
 import type { TokenResponse, ExcelSession } from "@/lib/types/graph";
 import { UserNotConnectedError, TokenRefreshError } from "@/lib/types/graph";
 
+// ---------------------------------------------------------------------------
+// Per-user refresh mutex: prevents concurrent callers from consuming the same
+// rotating Microsoft refresh token. Pattern mirrors erp-client.ts.
+// ---------------------------------------------------------------------------
+const graphRefreshPromises = new Map<string, Promise<TokenResponse>>();
+
 /**
  * Build the Graph API base path for the workbook
  */
@@ -76,7 +82,16 @@ async function refreshAccessToken(
 }
 
 /**
- * Get a Microsoft Graph client for a specific user
+ * Get a Microsoft Graph client for a specific user.
+ *
+ * Race-condition fix: Microsoft Entra rotates refresh tokens on each use.
+ * Under concurrent load, multiple callers would each try to refresh the same
+ * refresh token simultaneously, causing all but one to receive an invalidated
+ * token. This implementation:
+ *   1. Skips refresh entirely when the stored access token is still valid
+ *      (with a 5-minute buffer).
+ *   2. Coalesces concurrent refresh requests for the same user into a single
+ *      network call using a per-user Promise mutex (same pattern as erp-client.ts).
  */
 export async function getGraphClient(userId: string): Promise<Client> {
   const [account] = await db
@@ -98,22 +113,62 @@ export async function getGraphClient(userId: string): Promise<Client> {
     throw new UserNotConnectedError(userId);
   }
 
-  const tokenResponse = await refreshAccessToken(account.refreshToken);
+  // If the stored token is still valid with 5-minute buffer, reuse it
+  const now = Math.floor(Date.now() / 1000);
+  if (account.accessToken && account.expiresAt && account.expiresAt > now + 300) {
+    return Client.init({
+      authProvider: (done) => {
+        done(null, account.accessToken!);
+      },
+    });
+  }
 
-  // Update stored tokens (Microsoft rotates refresh_tokens)
-  await db
-    .update(accounts)
-    .set({
-      access_token: tokenResponse.access_token,
-      refresh_token: tokenResponse.refresh_token ?? account.refreshToken,
-      expires_at: Math.floor(Date.now() / 1000) + tokenResponse.expires_in,
+  // Token expired or expiring soon — refresh, coalescing concurrent callers
+  const existingPromise = graphRefreshPromises.get(userId);
+  if (existingPromise) {
+    // Another caller is already refreshing for this user — wait for their result
+    const tokenResponse = await existingPromise;
+    return Client.init({
+      authProvider: (done) => {
+        done(null, tokenResponse.access_token);
+      },
+    });
+  }
+
+  // We are the first caller — own the refresh for this user.
+  //
+  // IMPORTANT: the DB write is part of the promise chain, NOT after it.
+  // This ensures that concurrent waiters (the `await existingPromise` branch
+  // above) only receive the resolved TokenResponse after the new tokens have
+  // already been persisted to the database. If the DB write were placed after
+  // `await refreshPromise`, waiters would resolve with an in-memory token that
+  // is not yet in the DB — causing the next serverless invocation to find the
+  // old (invalidated) refresh token and permanently lock out the account.
+  const storedRefreshToken = account.refreshToken;
+  const refreshPromise = refreshAccessToken(storedRefreshToken)
+    .then(async (tokenResponse) => {
+      // Persist new tokens BEFORE resolving to waiters
+      await db
+        .update(accounts)
+        .set({
+          access_token: tokenResponse.access_token,
+          refresh_token: tokenResponse.refresh_token ?? storedRefreshToken,
+          expires_at: Math.floor(Date.now() / 1000) + tokenResponse.expires_in,
+        })
+        .where(
+          and(
+            eq(accounts.userId, userId),
+            eq(accounts.provider, "microsoft-entra-id")
+          )
+        );
+      return tokenResponse;
     })
-    .where(
-      and(
-        eq(accounts.userId, userId),
-        eq(accounts.provider, "microsoft-entra-id")
-      )
-    );
+    .finally(() => {
+      graphRefreshPromises.delete(userId);
+    });
+  graphRefreshPromises.set(userId, refreshPromise);
+
+  const tokenResponse = await refreshPromise;
 
   return Client.init({
     authProvider: (done) => {

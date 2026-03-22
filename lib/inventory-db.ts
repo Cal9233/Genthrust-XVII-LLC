@@ -40,7 +40,7 @@ export async function inventoryQuery<T = any>(
     const [results] = await connectionPool.query(sql, params || [])
     return results as T
   } catch (error) {
-    console.error('Inventory DB query error:', error)
+    console.error('Inventory DB query error:', error instanceof Error ? error.message : String(error))
     throw error
   }
 }

@@ -2,7 +2,7 @@ import { loadEnvConfig } from '@next/env'
 loadEnvConfig(process.cwd())
 
 import { getPartsList, type ErpPartItem } from '../lib/erp-aero'
-import { query, getPool } from '../lib/db'
+import { query, getPool, acquireLock, releaseLock } from '../lib/db'
 
 const PAGE_SIZE = 100
 const BATCH_SIZE = 100
@@ -66,80 +66,88 @@ async function upsertBatch(rows: any[][]) {
   await pool.query(UPSERT_SQL, [rows])
 }
 
-async function syncParts(fullSync = false) {
-  console.log(`Starting ${fullSync ? 'full' : 'incremental'} parts sync...`)
+async function syncParts(fullSync = false): Promise<number> {
+  // H-6: Prevent concurrent sync runs using MySQL advisory lock
+  const locked = await acquireLock('parts_sync', 10)
+  if (!locked) throw new Error('Another parts sync is already in progress')
 
-  let lastSyncedTime: string | null = null
-  if (!fullSync) {
-    const [row] = await query<any[]>(
-      'SELECT MAX(erp_modified_at) as last_modified FROM parts'
-    )
-    lastSyncedTime = row?.last_modified || null
-    if (lastSyncedTime) {
-      console.log(`Incremental sync from: ${lastSyncedTime}`)
-    } else {
-      console.log('No existing data found, doing full sync')
-    }
-  }
+  try {
+    console.log(`Starting ${fullSync ? 'full' : 'incremental'} parts sync...`)
 
-  let page = 1
-  let totalSynced = 0
-  let totalPages = 1
-  let batch: any[][] = []
-
-  while (page <= totalPages) {
-    try {
-      const response = await getPartsList(page, PAGE_SIZE)
-      const { list, total } = response.data
-      totalPages = Math.ceil(total / PAGE_SIZE)
-
-      if (page === 1) {
-        console.log(`Total parts in ERP: ${total} (${totalPages} pages)`)
+    let lastSyncedTime: string | null = null
+    if (!fullSync) {
+      const [row] = await query<any[]>(
+        'SELECT MAX(erp_modified_at) as last_modified FROM parts'
+      )
+      lastSyncedTime = row?.last_modified || null
+      if (lastSyncedTime) {
+        console.log(`Incremental sync from: ${lastSyncedTime}`)
+      } else {
+        console.log('No existing data found, doing full sync')
       }
+    }
 
-      for (const item of list) {
-        // For incremental sync, stop if we've reached already-synced data
-        if (!fullSync && lastSyncedTime && item.body.modified_time) {
-          if (new Date(item.body.modified_time) <= new Date(lastSyncedTime)) {
-            console.log(`Reached already-synced data at page ${page}, stopping`)
-            // Flush remaining batch
-            if (batch.length > 0) {
-              await upsertBatch(batch)
-              totalSynced += batch.length
+    let page = 1
+    let totalSynced = 0
+    let totalPages = 1
+    let batch: any[][] = []
+
+    while (page <= totalPages) {
+      try {
+        const response = await getPartsList(page, PAGE_SIZE)
+        const { list, total } = response.data
+        totalPages = Math.ceil(total / PAGE_SIZE)
+
+        if (page === 1) {
+          console.log(`Total parts in ERP: ${total} (${totalPages} pages)`)
+        }
+
+        for (const item of list) {
+          // For incremental sync, stop if we've reached already-synced data
+          if (!fullSync && lastSyncedTime && item.body.modified_time) {
+            if (new Date(item.body.modified_time) <= new Date(lastSyncedTime)) {
+              console.log(`Reached already-synced data at page ${page}, stopping`)
+              // Flush remaining batch
+              if (batch.length > 0) {
+                await upsertBatch(batch)
+                totalSynced += batch.length
+              }
+              console.log(`Sync complete. ${totalSynced} parts synced.`)
+              return totalSynced
             }
-            console.log(`Sync complete. ${totalSynced} parts synced.`)
-            return totalSynced
+          }
+
+          batch.push(mapPartToRow(item))
+
+          if (batch.length >= BATCH_SIZE) {
+            await upsertBatch(batch)
+            totalSynced += batch.length
+            batch = []
           }
         }
 
-        batch.push(mapPartToRow(item))
-
-        if (batch.length >= BATCH_SIZE) {
-          await upsertBatch(batch)
-          totalSynced += batch.length
-          batch = []
+        if (page % 10 === 0 || page === totalPages) {
+          console.log(`Progress: page ${page}/${totalPages} (${totalSynced} parts synced)`)
         }
-      }
 
-      if (page % 10 === 0 || page === totalPages) {
-        console.log(`Progress: page ${page}/${totalPages} (${totalSynced} parts synced)`)
+        page++
+      } catch (error) {
+        console.error(`Error on page ${page}:`, error)
+        throw error
       }
-
-      page++
-    } catch (error) {
-      console.error(`Error on page ${page}:`, error)
-      throw error
     }
-  }
 
-  // Flush remaining batch
-  if (batch.length > 0) {
-    await upsertBatch(batch)
-    totalSynced += batch.length
-  }
+    // Flush remaining batch
+    if (batch.length > 0) {
+      await upsertBatch(batch)
+      totalSynced += batch.length
+    }
 
-  console.log(`Sync complete. ${totalSynced} parts synced.`)
-  return totalSynced
+    console.log(`Sync complete. ${totalSynced} parts synced.`)
+    return totalSynced
+  } finally {
+    await releaseLock('parts_sync')
+  }
 }
 
 // Export for use by API route

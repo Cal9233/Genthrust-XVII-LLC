@@ -15,7 +15,7 @@ import { describe, it, expect } from 'vitest'
 // ---------------------------------------------------------------------------
 
 function isProtectedApi(pathname: string): boolean {
-  return pathname.startsWith('/api/internal') || pathname.startsWith('/api/portal')
+  return pathname.startsWith('/api/internal') || pathname.startsWith('/api/portal') || pathname.startsWith('/api/admin')
 }
 
 // ---------------------------------------------------------------------------
@@ -32,6 +32,11 @@ describe('middleware: protected API route detection', () => {
   it('marks /api/portal routes as protected', () => {
     expect(isProtectedApi('/api/portal/user')).toBe(true)
     expect(isProtectedApi('/api/portal/mfa/verify')).toBe(true)
+  })
+
+  it('marks /api/admin routes as protected', () => {
+    expect(isProtectedApi('/api/admin/create-client')).toBe(true)
+    expect(isProtectedApi('/api/admin')).toBe(true)
   })
 
   it('does not mark public API routes as protected', () => {
@@ -70,6 +75,7 @@ describe('middleware: matcher config coverage', () => {
     '/api/internal/repair-orders/1',
     '/api/portal/user',
     '/api/portal/mfa/verify',
+    '/api/admin/create-client',
   ]
 
   const unmatchedRoutes = [
@@ -90,6 +96,7 @@ describe('middleware: matcher config coverage', () => {
       /^\/register$/,
       /^\/api\/internal(\/.*)?$/,
       /^\/api\/portal(\/.*)?$/,
+      /^\/api\/admin(\/.*)?$/,
     ]
     return patterns.some(p => p.test(pathname))
   }
@@ -147,6 +154,10 @@ describe('middleware: role-based access scenarios', () => {
 
     return 'allowed'
   }
+
+  it('unauthenticated request to /api/admin returns unauthorized', () => {
+    expect(simulateAccess('/api/admin/create-client', null)).toBe('unauthorized')
+  })
 
   it('unauthenticated request to /api/internal returns unauthorized', () => {
     expect(simulateAccess('/api/internal/quotes', null)).toBe('unauthorized')

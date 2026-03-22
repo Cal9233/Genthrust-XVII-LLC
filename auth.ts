@@ -95,6 +95,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!rows.length) return null
           const user = rows[0]
 
+          // H-2: Cross-check token email against DB email to prevent token reuse across accounts
+          if (challenge.email.toLowerCase() !== user.email.toLowerCase()) return null
+
           // Get the verified TOTP factor
           const factors = await query<MfaFactorRow[]>(
             `SELECT secret_encrypted, secret_iv, secret_auth_tag
@@ -109,7 +112,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const secret = decryptSecret(factor.secret_encrypted, factor.secret_iv, factor.secret_auth_tag)
 
           // Try TOTP code first
-          let codeValid = verifyTotpCode(secret, totpCode, String(user.id))
+          let codeValid = await verifyTotpCode(secret, totpCode, String(user.id))
 
           // If TOTP failed, try as recovery code
           if (!codeValid) {
@@ -121,12 +124,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             for (const rc of recoveryCodes) {
               if (await bcrypt.compare(totpCode.toUpperCase(), rc.code_hash)) {
-                // Mark recovery code as used
-                await query(
-                  `UPDATE mfa_recovery_codes SET used_at = NOW() WHERE id = ?`,
+                // Atomic mark-as-used: only succeeds if not already consumed by a concurrent request
+                const result = await query(
+                  `UPDATE mfa_recovery_codes SET used_at = NOW() WHERE id = ? AND used_at IS NULL`,
                   [rc.id]
                 )
-                codeValid = true
+                // mysql2 returns ResultSetHeader with affectedRows for UPDATE statements
+                if ((result as any).affectedRows === 1) {
+                  codeValid = true
+                }
                 break
               }
             }

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 const RegisterSchema = z.object({
   email: z.string().trim().toLowerCase().email().max(255),
-  password: z.string().min(8).max(128),
+  password: z.string().min(8).max(72),
   contact_name: z.string().min(1).max(255).transform(v => v.trim()),
   company_name: z.string().max(255).optional(),
 })

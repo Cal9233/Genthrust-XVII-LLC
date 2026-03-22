@@ -20,7 +20,7 @@ git push -u origin ecosystem-audit-security-hardening
 
 ## Azure AD / Microsoft SSO (Blocking for Internal Login)
 
-- [ ] **Verify Azure App Registration** for "Genthrust Website" (App ID: `1691ded4-0ed5-4308-8d8a-9da781a985a9`):
+- [ ] **Verify Azure App Registration** for "Genthrust Website" (App ID: `REDACTED_ENTRA_APP_ID`):
   - Redirect URI must include: `http://localhost:3000/api/auth/callback/microsoft-entra-id`
   - For production: `https://yourdomain.com/api/auth/callback/microsoft-entra-id`
 - [ ] **Verify .env.local** has correct values:

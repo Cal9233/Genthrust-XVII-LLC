@@ -228,6 +228,82 @@ describe('diffObjects', () => {
 })
 
 // ---------------------------------------------------------------------------
+// diffObjects — credential redaction (H-9 regression)
+// ---------------------------------------------------------------------------
+
+describe('diffObjects — credential redaction (H-9 regression)', () => {
+  it('redacts password_hash changes', () => {
+    const result = diffObjects(
+      { password_hash: '$2b$12$old' },
+      { password_hash: '$2b$12$new' }
+    )
+    expect(result).not.toHaveProperty('password_hash')
+    expect(Object.keys(result)).toHaveLength(0)
+  })
+
+  it('redacts secret_encrypted changes', () => {
+    const result = diffObjects(
+      { secret_encrypted: 'aaa' },
+      { secret_encrypted: 'bbb' }
+    )
+    expect(result).not.toHaveProperty('secret_encrypted')
+  })
+
+  it('redacts secret_iv changes', () => {
+    const result = diffObjects(
+      { secret_iv: 'iv1' },
+      { secret_iv: 'iv2' }
+    )
+    expect(result).not.toHaveProperty('secret_iv')
+  })
+
+  it('redacts secret_auth_tag changes', () => {
+    const result = diffObjects(
+      { secret_auth_tag: 'tag1' },
+      { secret_auth_tag: 'tag2' }
+    )
+    expect(result).not.toHaveProperty('secret_auth_tag')
+  })
+
+  it('redacts code_hash changes', () => {
+    const result = diffObjects(
+      { code_hash: 'hash1' },
+      { code_hash: 'hash2' }
+    )
+    expect(result).not.toHaveProperty('code_hash')
+  })
+
+  it('still diffs non-redacted fields alongside redacted ones', () => {
+    const result = diffObjects(
+      { status: 'active', password_hash: '$2b$12$old', email: 'a@b.com' },
+      { status: 'inactive', password_hash: '$2b$12$new', email: 'a@b.com' }
+    )
+    expect(result).toHaveProperty('status')
+    expect(result.status).toEqual({ old: 'active', new: 'inactive' })
+    expect(result).not.toHaveProperty('password_hash')
+    expect(Object.keys(result)).toHaveLength(1)
+  })
+
+  it('redacts even when field is newly added', () => {
+    const result = diffObjects({}, { password_hash: '$2b$12$new' })
+    expect(result).not.toHaveProperty('password_hash')
+  })
+
+  it('redacts even when field is removed', () => {
+    const result = diffObjects({ code_hash: 'oldhash' }, {})
+    expect(result).not.toHaveProperty('code_hash')
+  })
+
+  it('handles multiple redacted fields changing at once', () => {
+    const result = diffObjects(
+      { password_hash: 'a', secret_encrypted: 'b', secret_iv: 'c', secret_auth_tag: 'd', code_hash: 'e' },
+      { password_hash: 'f', secret_encrypted: 'g', secret_iv: 'h', secret_auth_tag: 'i', code_hash: 'j' }
+    )
+    expect(Object.keys(result)).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // logAuditEvent — fire-and-forget (never throws)
 // ---------------------------------------------------------------------------
 

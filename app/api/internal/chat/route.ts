@@ -10,7 +10,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { db } from "@/lib/db/index";
 import { active, inventoryindex } from "@/lib/db/schema";
-import { eq, like, or } from "drizzle-orm";
+import { and, eq, inArray, like, lte, or, sql } from "drizzle-orm";
 import { isOverdue, daysSince } from "@/lib/date-utils";
 import { tasks } from "@trigger.dev/sdk/v3";
 import { z } from "zod";
@@ -81,14 +81,14 @@ export async function POST(req: Request) {
   const userId = session.user.id;
 
   // Rate limit: max 20 requests per minute per user
-  const rl = chatLimiter.check(userId);
+  const rl = await chatLimiter.check(userId);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Try again later." },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
     );
   }
-  chatLimiter.record(userId);
+  await chatLimiter.record(userId);
 
   const body = await req.json();
 
@@ -208,34 +208,31 @@ export async function POST(req: Request) {
             "NET",
           ];
 
-          const allROs = shopName
-            ? await db
-                .select()
-                .from(active)
-                .where(like(active.shopName, `%${shopName}%`))
-            : await db.select().from(active);
+          // Build WHERE conditions and push all filters to SQL — no JS post-filtering
+          const conditions = [];
 
-          let filteredROs = allROs;
-          if (status === "overdue") {
-            filteredROs = allROs.filter((ro) => {
-              const isIncomplete = INCOMPLETE_STATUSES.some((s) =>
-                ro.currentStatus?.toUpperCase().includes(s)
-              );
-              return isIncomplete && isOverdue(ro.estimatedDeliveryDate);
-            });
-          } else if (status === "active") {
-            filteredROs = allROs.filter((ro) =>
-              INCOMPLETE_STATUSES.some((s) =>
-                ro.currentStatus?.toUpperCase().includes(s)
-              )
-            );
-          } else if (status === "completed") {
-            filteredROs = allROs.filter((ro) =>
-              COMPLETE_STATUSES.some((s) =>
-                ro.currentStatus?.toUpperCase().includes(s)
-              )
-            );
+          if (shopName) {
+            conditions.push(like(active.shopName, `%${shopName}%`));
           }
+
+          if (status === "overdue") {
+            conditions.push(
+              inArray(active.currentStatus, INCOMPLETE_STATUSES),
+              lte(active.estimatedDeliveryDate, sql`DATE_SUB(NOW(), INTERVAL 1 DAY)`)
+            );
+          } else if (status === "active") {
+            conditions.push(inArray(active.currentStatus, INCOMPLETE_STATUSES));
+          } else if (status === "completed") {
+            conditions.push(inArray(active.currentStatus, COMPLETE_STATUSES));
+          }
+          // status === "all": no status condition
+
+          const filteredROs = await db
+            .select()
+            .from(active)
+            .where(conditions.length > 0 ? and(...conditions) : undefined)
+            .orderBy(active.estimatedDeliveryDate)
+            .limit(limit);
 
           const results = filteredROs
             .map((ro) => ({
@@ -251,8 +248,7 @@ export async function POST(req: Request) {
                 : 0,
               nextFollowUp: ro.nextDateToUpdate,
             }))
-            .sort((a, b) => b.daysOverdue - a.daysOverdue)
-            .slice(0, limit);
+            .sort((a, b) => b.daysOverdue - a.daysOverdue);
 
           if (results.length === 0) {
             return `No repair orders found matching filter: ${status}${shopName ? `, shop: "${shopName}"` : ""}`;

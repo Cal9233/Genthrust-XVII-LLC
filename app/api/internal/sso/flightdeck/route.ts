@@ -5,6 +5,10 @@ import { generateSsoToken, buildFlightDeckSsoUrl } from '@/lib/sso-redirect'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
+  if (!process.env.ENTRA_TENANT_ID) {
+    return NextResponse.json({ error: 'SSO not configured' }, { status: 500 })
+  }
+
   const session = await auth()
   if (!session?.user || (session.user as any).role !== 'internal') {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -18,7 +22,7 @@ export async function GET() {
     email: session.user.email,
     name: session.user.name,
     role: 'owner',
-    tenantId: '52596c51-0a48-402a-9c2f-1ae331b2af36',
+    tenantId: process.env.ENTRA_TENANT_ID!,
   })
 
   return NextResponse.redirect(buildFlightDeckSsoUrl(token))

@@ -1,31 +1,14 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
+import { getPortalContext } from '@/lib/portal-auth'
 import { query } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const session = await auth()
+    const ctx = await getPortalContext()
+    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    if ((session.user as any).role !== 'client') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const companyName = (session.user as any).companyName
-    if (!companyName) {
-      return NextResponse.json({
-        companyName: null,
-        stats: { activeSOs: 0, openInvoices: 0, openBalance: 0, activeROs: 0 },
-        recentSalesOrders: [],
-        recentInvoices: [],
-        recentRepairOrders: [],
-        noCompany: true,
-      })
-    }
+    const { companyName } = ctx
 
     const [
       [{ activeSOs }],

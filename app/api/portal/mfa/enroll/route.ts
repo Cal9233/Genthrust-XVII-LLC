@@ -58,7 +58,10 @@ export async function POST() {
       status_code: 200,
     }).catch(() => {})
 
-    return NextResponse.json({ qrCodeUrl, secret })
+    // Return only the QR code — the otpauth URI embedded in it contains the
+    // secret, so authenticator apps that support manual entry can decode it.
+    // Never expose the raw TOTP secret in the JSON response.
+    return NextResponse.json({ qrCodeUrl })
   } catch (error) {
     console.error('MFA enroll error:', error)
     return NextResponse.json({ error: 'Enrollment failed' }, { status: 500 })

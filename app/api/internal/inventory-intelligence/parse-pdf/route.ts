@@ -33,6 +33,14 @@ export async function POST(request: NextRequest) {
 
     // Read file into buffer
     const arrayBuffer = await file.arrayBuffer()
+
+    // Validate PDF magic bytes (%PDF-) to prevent disguised file uploads
+    const header = new Uint8Array(arrayBuffer.slice(0, 5))
+    const pdfMagic = [0x25, 0x50, 0x44, 0x46, 0x2D] // %PDF-
+    if (!pdfMagic.every((b, i) => header[i] === b)) {
+      return NextResponse.json({ error: 'Invalid PDF file' }, { status: 400 })
+    }
+
     const data = new Uint8Array(arrayBuffer)
 
     // Dynamic import avoids Next.js static-analysis ESM interop issues.

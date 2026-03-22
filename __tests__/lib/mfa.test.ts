@@ -2,10 +2,15 @@
  * Tests for lib/mfa.ts
  * Covers AES-256-GCM encryption/decryption, TOTP generation/verification,
  * recovery code generation, and MFA challenge token creation/verification.
- * No DB or network required.
+ *
+ * C-3 regression: verifyTotpCode is now async (DB-backed replay protection).
  */
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest'
-import { TOTP, Secret } from 'otpauth'
+import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest'
+
+// Mock @/lib/db before importing mfa module (verifyTotpCode now uses MySQL)
+vi.mock('@/lib/db', () => ({
+  query: vi.fn(),
+}))
 
 // Set the required env vars before importing the module
 const VALID_KEY = 'a'.repeat(64) // 64-char hex string
@@ -21,6 +26,7 @@ afterAll(() => {
   delete process.env.AUTH_SECRET
 })
 
+import { query } from '@/lib/db'
 import {
   encryptSecret,
   decryptSecret,
@@ -30,6 +36,18 @@ import {
   createMfaChallengeToken,
   verifyMfaChallengeToken,
 } from '@/lib/mfa'
+import { TOTP, Secret } from 'otpauth'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  // Default: code not used, insert succeeds, cleanup is fire-and-forget
+  vi.mocked(query).mockImplementation((sql: string) => {
+    if (sql.includes('SELECT COUNT')) return Promise.resolve([{ cnt: 0 }])
+    if (sql.includes('INSERT IGNORE')) return Promise.resolve({ affectedRows: 1 })
+    if (sql.includes('DELETE FROM totp_used_codes')) return Promise.resolve({ affectedRows: 0 })
+    return Promise.resolve([])
+  })
+})
 
 // ---------------------------------------------------------------------------
 // encryptSecret / decryptSecret
@@ -135,23 +153,21 @@ describe('generateTotpSecret', () => {
 })
 
 // ---------------------------------------------------------------------------
-// verifyTotpCode
+// verifyTotpCode — async with DB-backed replay protection (C-3)
 // ---------------------------------------------------------------------------
 
 describe('verifyTotpCode', () => {
-  it('returns false for a clearly wrong code', () => {
+  it('returns false for a clearly wrong code', async () => {
     const { secret } = generateTotpSecret('test@test.com')
-    const result = verifyTotpCode(secret, '000000', 'test-user-1')
+    const result = await verifyTotpCode(secret, '000000', 'test-user-1')
     // 000000 is almost certainly not the current TOTP code
     // (1 in 1,000,000 chance of a false positive — acceptable)
     expect(typeof result).toBe('boolean')
   })
 
-  it('returns true for the current valid TOTP code', () => {
+  it('returns true for the current valid TOTP code', async () => {
     // Generate a secret, derive the current code, verify it
     const { secret } = generateTotpSecret('live-test@test.com')
-    // Import TOTP inline to generate the current token for verification
-    const { TOTP, Secret } = require('otpauth')
     const totp = new TOTP({
       issuer: 'GENTHRUST Portal',
       algorithm: 'SHA1',
@@ -160,15 +176,15 @@ describe('verifyTotpCode', () => {
       secret: Secret.fromBase32(secret),
     })
     const currentCode = totp.generate()
-    expect(verifyTotpCode(secret, currentCode, 'test-user-2')).toBe(true)
+    expect(await verifyTotpCode(secret, currentCode, 'test-user-2')).toBe(true)
   })
 
-  it('returns false for a 7-digit code (invalid length)', () => {
+  it('returns false for a 7-digit code (invalid length)', async () => {
     const { secret } = generateTotpSecret('test@test.com')
-    expect(verifyTotpCode(secret, '1234567', 'test-user-3')).toBe(false)
+    expect(await verifyTotpCode(secret, '1234567', 'test-user-3')).toBe(false)
   })
 
-  it('rejects the same valid code on second use (replay protection)', () => {
+  it('rejects the same valid code on second use (replay protection)', async () => {
     const { secret } = generateTotpSecret('replay@test.com')
     const totp = new TOTP({
       issuer: 'GENTHRUST Portal',
@@ -179,13 +195,20 @@ describe('verifyTotpCode', () => {
     })
     const currentCode = totp.generate()
 
-    // First use should succeed
-    expect(verifyTotpCode(secret, currentCode, 'replay-user-1')).toBe(true)
-    // Second use with SAME userId should be rejected (replay)
-    expect(verifyTotpCode(secret, currentCode, 'replay-user-1')).toBe(false)
+    // First use: code not in DB
+    expect(await verifyTotpCode(secret, currentCode, 'replay-user-1')).toBe(true)
+
+    // After first use, mock DB to show code is now used
+    vi.mocked(query).mockImplementation((sql: string) => {
+      if (sql.includes('SELECT COUNT')) return Promise.resolve([{ cnt: 1 }])
+      return Promise.resolve([])
+    })
+
+    // Second use should be rejected
+    expect(await verifyTotpCode(secret, currentCode, 'replay-user-1')).toBe(false)
   })
 
-  it('allows the same code for a different user (no cross-user blocking)', () => {
+  it('allows the same code for a different user (no cross-user blocking)', async () => {
     const { secret } = generateTotpSecret('crossuser@test.com')
     const totp = new TOTP({
       issuer: 'GENTHRUST Portal',
@@ -197,9 +220,57 @@ describe('verifyTotpCode', () => {
     const currentCode = totp.generate()
 
     // User A uses the code
-    expect(verifyTotpCode(secret, currentCode, 'user-A')).toBe(true)
-    // User B should still be able to use it (different userId key)
-    expect(verifyTotpCode(secret, currentCode, 'user-B')).toBe(true)
+    expect(await verifyTotpCode(secret, currentCode, 'user-A')).toBe(true)
+
+    // Reset mock for user-B (different user, code not used for them)
+    vi.mocked(query).mockImplementation((sql: string) => {
+      if (sql.includes('SELECT COUNT')) return Promise.resolve([{ cnt: 0 }])
+      if (sql.includes('INSERT IGNORE')) return Promise.resolve({ affectedRows: 1 })
+      if (sql.includes('DELETE')) return Promise.resolve({ affectedRows: 0 })
+      return Promise.resolve([])
+    })
+    expect(await verifyTotpCode(secret, currentCode, 'user-B')).toBe(true)
+  })
+
+  // --- C-3 DB-backed replay regression tests ---
+
+  it('calls INSERT IGNORE to mark code as used after successful verification', async () => {
+    const { secret } = generateTotpSecret('insert-test@test.com')
+    const totp = new TOTP({
+      issuer: 'GENTHRUST Portal',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: Secret.fromBase32(secret),
+    })
+    const code = totp.generate()
+
+    await verifyTotpCode(secret, code, 'db-user-1')
+
+    // Should have called: 1) SELECT COUNT for isTotpCodeUsed, 2) INSERT IGNORE for markTotpCodeUsed, 3) DELETE for cleanup
+    const calls = vi.mocked(query).mock.calls
+    expect(calls.some(([sql]) => (sql as string).includes('INSERT IGNORE INTO totp_used_codes'))).toBe(true)
+  })
+
+  it('checks DB for used code before validating TOTP', async () => {
+    // Simulate code already used in DB
+    vi.mocked(query).mockImplementation((sql: string) => {
+      if (sql.includes('SELECT COUNT')) return Promise.resolve([{ cnt: 1 }])
+      return Promise.resolve([])
+    })
+
+    const { secret } = generateTotpSecret('used-code@test.com')
+    const totp = new TOTP({
+      issuer: 'GENTHRUST Portal',
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: Secret.fromBase32(secret),
+    })
+    const code = totp.generate()
+
+    const result = await verifyTotpCode(secret, code, 'db-replay-user')
+    expect(result).toBe(false) // rejected because DB says code is already used
   })
 })
 
@@ -219,15 +290,15 @@ describe('generateRecoveryCodes', () => {
     expect(generateRecoveryCodes(20)).toHaveLength(20)
   })
 
-  it('each code is exactly 8 characters', () => {
+  it('each code is exactly 14 characters (XXXX-XXXX-XXXX format)', () => {
     const codes = generateRecoveryCodes(10)
-    codes.forEach(code => expect(code).toHaveLength(8))
+    codes.forEach(code => expect(code).toHaveLength(14))
   })
 
-  it('each code uses only unambiguous alphanumeric chars', () => {
+  it('each code matches XXXX-XXXX-XXXX format with unambiguous alphanumeric chars', () => {
     const codes = generateRecoveryCodes(50)
-    const validChars = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]+$/
-    codes.forEach(code => expect(code).toMatch(validChars))
+    const validFormat = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$/
+    codes.forEach(code => expect(code).toMatch(validFormat))
   })
 
   it('codes are unique (no duplicates in a batch of 10)', () => {

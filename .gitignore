@@ -51,3 +51,7 @@ export-erp.js
 *.pem
 *.key
 *-b64.txt
+
+# Agent ecosystem artifacts
+.task-runner/
+.git.backup/

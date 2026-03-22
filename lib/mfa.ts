@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 import { TOTP, Secret } from 'otpauth'
 import QRCode from 'qrcode'
+import { query } from '@/lib/db'
 
 const ENCRYPTION_KEY = () => {
   const key = process.env.MFA_ENCRYPTION_KEY
@@ -41,23 +42,26 @@ export function decryptSecret(encrypted: string, iv: string, authTag: string): s
   return decrypted
 }
 
-// --- TOTP replay protection ---
-// Stores `${userId}:${code}` -> expiry timestamp (ms). Scoped to server process lifetime.
-const usedTotpCodes = new Map<string, number>()
+// --- TOTP replay protection (MySQL-backed, works across Vercel instances) ---
 
-function markTotpCodeUsed(userId: string, code: string): void {
-  const key = `${userId}:${code}`
-  usedTotpCodes.set(key, Date.now() + 90_000) // 90s = 3 × 30s TOTP windows
-  // Prune expired entries to prevent unbounded growth
-  for (const [k, expiry] of usedTotpCodes) {
-    if (Date.now() > expiry) usedTotpCodes.delete(k)
-  }
+async function markTotpCodeUsed(userId: string, code: string): Promise<void> {
+  await query(
+    'INSERT IGNORE INTO totp_used_codes (user_id, code) VALUES (?, ?)',
+    [userId, code]
+  )
+  // Prune expired entries (older than 90 seconds) — fire-and-forget
+  query(
+    'DELETE FROM totp_used_codes WHERE used_at < DATE_SUB(NOW(), INTERVAL 90 SECOND)',
+    []
+  ).catch(() => {})
 }
 
-function isTotpCodeUsed(userId: string, code: string): boolean {
-  const key = `${userId}:${code}`
-  const expiry = usedTotpCodes.get(key)
-  return expiry !== undefined && Date.now() <= expiry
+async function isTotpCodeUsed(userId: string, code: string): Promise<boolean> {
+  const rows = await query<{ cnt: number }[]>(
+    'SELECT COUNT(*) as cnt FROM totp_used_codes WHERE user_id = ? AND code = ? AND used_at >= DATE_SUB(NOW(), INTERVAL 90 SECOND)',
+    [userId, code]
+  )
+  return rows[0]?.cnt > 0
 }
 
 // --- TOTP generation & verification ---
@@ -78,8 +82,8 @@ export function generateTotpSecret(email: string): { secret: string; uri: string
   }
 }
 
-export function verifyTotpCode(secretBase32: string, code: string, userId: string): boolean {
-  if (isTotpCodeUsed(userId, code)) return false
+export async function verifyTotpCode(secretBase32: string, code: string, userId: string): Promise<boolean> {
+  if (await isTotpCodeUsed(userId, code)) return false
   const totp = new TOTP({
     issuer: 'GENTHRUST Portal',
     algorithm: 'SHA1',
@@ -89,7 +93,7 @@ export function verifyTotpCode(secretBase32: string, code: string, userId: strin
   })
   const delta = totp.validate({ token: code, window: 1 })
   if (delta === null) return false
-  markTotpCodeUsed(userId, code)
+  await markTotpCodeUsed(userId, code)
   return true
 }
 
@@ -105,11 +109,13 @@ export function generateRecoveryCodes(count: number = 10): string[] {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // no ambiguous chars
   const codes: string[] = []
   for (let i = 0; i < count; i++) {
-    let code = ''
-    for (let j = 0; j < 8; j++) {
-      code += chars[crypto.randomInt(chars.length)]
+    // 12 characters from a 32-char alphabet = 32^12 ≈ 2^60 bits of entropy.
+    // Formatted as XXXX-XXXX-XXXX for readability.
+    let raw = ''
+    for (let j = 0; j < 12; j++) {
+      raw += chars[crypto.randomInt(chars.length)]
     }
-    codes.push(code)
+    codes.push(`${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8, 12)}`)
   }
   return codes
 }

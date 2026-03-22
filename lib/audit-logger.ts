@@ -126,6 +126,14 @@ export function createAuditContext(
 // Diff helper — computes changed fields for mutation metadata
 // ---------------------------------------------------------------------------
 
+const REDACTED_FIELDS = new Set([
+  'password_hash',
+  'secret_encrypted',
+  'secret_iv',
+  'secret_auth_tag',
+  'code_hash',
+])
+
 export function diffObjects(
   before: Record<string, any>,
   after: Record<string, any>
@@ -134,6 +142,7 @@ export function diffObjects(
   const allKeys = new Set([...Object.keys(before), ...Object.keys(after)])
 
   for (const key of allKeys) {
+    if (REDACTED_FIELDS.has(key)) continue
     const oldVal = before[key]
     const newVal = after[key]
     // Stringify for deep comparison of objects/arrays

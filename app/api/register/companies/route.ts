@@ -1,45 +1,33 @@
 import { NextResponse } from 'next/server'
 import { query } from '@/lib/db'
+import { createRateLimiter } from '@/lib/rate-limit'
 export const dynamic = 'force-dynamic'
 
 // ---------------------------------------------------------------------------
-// In-memory rate limiter: 5 requests per minute per IP (no external deps)
+// Rate limiter: 5 requests per minute per IP
+// Counter incremented on every request (not just failures).
 // ---------------------------------------------------------------------------
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT_WINDOW_MS = 60_000
-const RATE_LIMIT_MAX = 5
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-  if (!entry || now >= entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
-    return true
-  }
-  if (entry.count >= RATE_LIMIT_MAX) return false
-  entry.count++
-  return true
-}
-
-// Periodic cleanup to prevent memory leak
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, entry] of rateLimitMap) {
-    if (now >= entry.resetAt) rateLimitMap.delete(key)
-  }
-}, 60_000).unref?.()
+const companySearchLimiter = createRateLimiter({
+  maxAttempts: 5,
+  windowMs: 60_000,
+  name: 'company-search',
+})
 
 export async function GET(request: Request) {
   try {
     // Rate limit by IP
     const forwarded = request.headers.get('x-forwarded-for')
     const ip = forwarded ? forwarded.split(',')[0].trim() : 'unknown'
-    if (!checkRateLimit(ip)) {
+
+    const result = await companySearchLimiter.check(ip)
+    if (!result.allowed) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         { status: 429 }
       )
     }
+    // Record on every request (search volume limiter, not just failures)
+    await companySearchLimiter.record(ip)
 
     const { searchParams } = new URL(request.url)
     const q = searchParams.get('q') || ''

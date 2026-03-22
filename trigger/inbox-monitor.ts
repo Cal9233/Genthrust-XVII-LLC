@@ -210,14 +210,19 @@ export const inboxMonitor = schedules.task({
         const graphIds = emails.map((e) => e.id);
         const hashes = emails.map((e) => contentHash(e));
 
-        const existingIds = await query<{ email_graph_id: string }[]>(
-          "SELECT email_graph_id FROM email_monitor_log WHERE email_graph_id IN (?)",
-          [graphIds]
-        );
-        const existingHashes = await query<{ content_hash: string }[]>(
-          "SELECT DISTINCT content_hash FROM email_monitor_log WHERE content_hash IN (?)",
-          [hashes]
-        );
+        // H-4: Guard IN (?) against empty arrays — mysql2 throws on IN (())
+        const existingIds = graphIds.length > 0
+          ? await query<{ email_graph_id: string }[]>(
+              "SELECT email_graph_id FROM email_monitor_log WHERE email_graph_id IN (?)",
+              [graphIds]
+            )
+          : [];
+        const existingHashes = hashes.length > 0
+          ? await query<{ content_hash: string }[]>(
+              "SELECT DISTINCT content_hash FROM email_monitor_log WHERE content_hash IN (?)",
+              [hashes]
+            )
+          : [];
 
         const seenIds = new Set(existingIds.map((r) => r.email_graph_id));
         const seenHashes = new Set(

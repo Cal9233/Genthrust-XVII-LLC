@@ -1,38 +1,26 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
 import { query } from '@/lib/db'
 import { verifyPassword } from '@/lib/password'
 import { createMfaChallengeToken } from '@/lib/mfa'
+import { createRateLimiter } from '@/lib/rate-limit'
 export const dynamic = 'force-dynamic'
 
+const VerifyCredentialsSchema = z.object({
+  email: z.string().trim().toLowerCase().email().max(255),
+  password: z.string().min(1).max(72),
+})
+
 // ---------------------------------------------------------------------------
-// In-memory rate limiter: 5 attempts per 60 seconds per IP
+// Rate limiter: 5 failed attempts per 60 seconds per IP
+// Counter is only incremented on failure; reset on success.
 // ---------------------------------------------------------------------------
 
-interface RateLimitEntry {
-  count: number
-  resetAt: number
-}
-
-const rateLimitMap = new Map<string, RateLimitEntry>()
-const RATE_LIMIT_MAX = 5
-const RATE_LIMIT_WINDOW_MS = 60_000
-
-function isRateLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = rateLimitMap.get(ip)
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
-    return false
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX) {
-    return true
-  }
-
-  entry.count++
-  return false
-}
+const loginLimiter = createRateLimiter({
+  maxAttempts: 5,
+  windowMs: 60_000,
+  name: 'verify-credentials',
+})
 
 interface PortalUserRow {
   id: number
@@ -48,17 +36,24 @@ export async function POST(request: Request) {
       request.headers.get('x-real-ip') ||
       'unknown'
 
-    if (isRateLimited(ip)) {
+    // Parse and validate body first so we can key the rate limiter on ip:email.
+    // This prevents both IP spoofing bypasses and cross-account brute-force from
+    // a single IP.
+    const body = await request.json()
+    const parsed = VerifyCredentialsSchema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid credentials format' }, { status: 400 })
+    }
+    const { email, password } = parsed.data
+
+    // Rate limiter key: ip:email — binds both dimensions simultaneously
+    const rateLimitKey = `${ip}:${email}`
+    const rateCheck = await loginLimiter.check(rateLimitKey)
+    if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: 'Too many attempts. Please try again later.' },
         { status: 429 }
       )
-    }
-
-    const { email, password } = await request.json()
-
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
     }
 
     const rows = await query<PortalUserRow[]>(
@@ -69,6 +64,7 @@ export async function POST(request: Request) {
     )
 
     if (!rows.length) {
+      await loginLimiter.record(rateLimitKey)
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
 
@@ -76,8 +72,12 @@ export async function POST(request: Request) {
     const isValid = await verifyPassword(password, user.password_hash)
 
     if (!isValid) {
+      await loginLimiter.record(rateLimitKey)
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 })
     }
+
+    // Credentials verified — clear any accumulated failure count
+    await loginLimiter.reset(rateLimitKey)
 
     if (user.mfa_enabled === 0) {
       // No MFA enrolled — allow direct login, portal layout will force enrollment

@@ -22,6 +22,13 @@ export async function POST(request: NextRequest) {
       mode: fullSync ? 'full' : 'incremental',
     })
   } catch (error) {
+    // H-6: Return 409 when advisory lock is held by a concurrent sync
+    if (error instanceof Error && error.message === 'Another parts sync is already in progress') {
+      return NextResponse.json(
+        { error: 'Conflict', details: 'A parts sync is already in progress' },
+        { status: 409 }
+      )
+    }
     console.error('Parts sync API error:', error instanceof Error ? { message: error.message, stack: error.stack } : error)
     return NextResponse.json(
       { error: 'Parts sync failed', details: 'Internal sync error' },
