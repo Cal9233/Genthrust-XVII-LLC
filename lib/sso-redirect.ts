@@ -1,6 +1,6 @@
 import crypto from 'crypto'
 
-const FLIGHTDECK_URL = 'https://workspace-cals-projects-8137565b.vercel.app'
+const FLIGHTDECK_URL = 'https://app.genthrust.org'
 
 export function generateSsoToken(claims: {
   email: string
