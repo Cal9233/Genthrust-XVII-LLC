@@ -1,6 +1,6 @@
 import { auth, signOut } from '@/auth'
 import { redirect } from 'next/navigation'
-import { LogOut, Settings } from 'lucide-react'
+import { LogOut, Settings, Rocket } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -53,6 +53,15 @@ export default async function PortalLayout({ children }: { children: React.React
             </div>
 
             <div className="w-px h-6 bg-navy-700 mx-2" />
+
+            <Link
+              href="/portal/flightdeck"
+              className="p-2 text-slate-300 hover:text-white hover:bg-navy-800 rounded-lg transition-colors flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              aria-label="FlightDeck"
+            >
+              <Rocket className="w-5 h-5" aria-hidden="true" />
+              <span className="text-sm font-medium hidden sm:inline-block">FlightDeck</span>
+            </Link>
 
             <Link
               href="/portal/settings"

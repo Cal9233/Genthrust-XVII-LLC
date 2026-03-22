@@ -47,6 +47,14 @@ const contactCards = [
             {CONTACT_INFO.generalEmail}
           </a>
         </li>
+        <li>
+          <a
+            href={`mailto:${CONTACT_INFO.repairsEmail}`}
+            className="hover:text-white transition-colors py-1.5 block"
+          >
+            {CONTACT_INFO.repairsEmail}
+          </a>
+        </li>
       </ul>
     ),
   },

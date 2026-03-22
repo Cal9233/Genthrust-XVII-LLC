@@ -122,17 +122,18 @@ export const FOOTER_LINKS = {
   ],
   contact: {
     address: '9565 NW 40 St Road, Doral, FL 33178',
-    phone: '+1 (305) 450-0191',
+    phone: '+1 (786) 409-3897',
     email: 'sales@genthrust.net',
   },
 }
 
 export const CONTACT_INFO = {
   team: [
-    { name: 'Jose Malagon', phone: '(305) 450-0191', email: 'jose@genthrust.net' },
-    { name: 'Sandra Gallagher', phone: '(305) 797-9169', email: 'sandra@genthrust.net' },
+    { name: 'Jose Malagon', phone: '(786) 409-3897', email: 'jmalagon@genthrust.net' },
+    { name: 'Sandra Gallagher', phone: '(786) 409-3897', email: 'sgallagher@genthrust.net' },
   ],
   generalEmail: 'sales@genthrust.net',
+  repairsEmail: 'repairs@genthrust.net',
   hours: {
     weekdays: 'Monday — Friday 9am – 5pm',
     saturday: 'Saturday — Closed',

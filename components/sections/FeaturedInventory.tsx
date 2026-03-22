@@ -129,11 +129,11 @@ export function FeaturedInventory() {
               <ArrowRight className="w-4 h-4" />
             </a>
             <a
-              href="tel:+13054500191"
+              href="tel:+17864093897"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 border border-burgundy-300 hover:bg-burgundy-100 text-burgundy-700 font-semibold rounded transition-colors"
             >
               <Phone className="w-4 h-4" />
-              AOG? Call (305) 450-0191
+              AOG? Call (786) 409-3897
             </a>
           </div>
         </motion.div>

@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
   LogOut,
+  ExternalLink,
 } from 'lucide-react'
 
 const navItems = [
@@ -208,6 +209,21 @@ function SideNavContents({
           )
         })}
       </nav>
+
+      {/* FlightDeck link */}
+      <div className="px-2 pb-1">
+        <a
+          href="/api/internal/sso/flightdeck"
+          title={collapsed ? 'Open FlightDeck' : undefined}
+          onClick={onNavClick}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium
+            text-[#58a6ff] hover:text-[#79c0ff] hover:bg-[#1f6feb]/[0.08]
+            transition-all duration-150 w-full"
+        >
+          <ExternalLink className="w-5 h-5 flex-shrink-0" aria-hidden="true" />
+          {!collapsed && <span className="truncate">Open FlightDeck</span>}
+        </a>
+      </div>
 
       {/* Bottom zone */}
       <div className="flex-shrink-0 border-t border-white/[0.06] p-2 space-y-0.5">
