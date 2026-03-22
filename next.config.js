@@ -37,6 +37,8 @@ const nextConfig = {
               "img-src 'self' data: blob:",
               // Google Fonts (if used)
               "font-src 'self' https://fonts.gstatic.com",
+              // Google Maps embed on contact page
+              "frame-src 'self' https://www.google.com",
               // ERP API and Microsoft Graph API calls
               "connect-src 'self' https://wapi.erp.aero https://graph.microsoft.com",
               // Prevent this page from being embedded in iframes
