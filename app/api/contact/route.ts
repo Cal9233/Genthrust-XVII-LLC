@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Resend } from 'resend'
 import { z } from 'zod'
 import { createRateLimiter } from '@/lib/rate-limit'
 export const dynamic = 'force-dynamic'
@@ -49,60 +50,52 @@ export async function POST(request: NextRequest) {
 
     const { name, email, phone, company, subject, message } = parsed.data
 
-    // TODO: Configure email service (Resend, SendGrid, Nodemailer, etc.)
-    // For now, this is a placeholder that logs the email
-    // Replace this with actual email sending logic
-    
-    const emailContent = {
-      to: 'sales@genthrust.net',
-      from: email,
-      subject: `Contact Form: ${subject}`,
-      text: `
-Name: ${name}
+    const emailSubject = `Contact Form: ${subject}`
+    const emailText = `Name: ${name}
 Email: ${email}
 Phone: ${phone || 'Not provided'}
 Company: ${company || 'Not provided'}
 
 Message:
-${message}
-      `.trim(),
-      html: `
-        <h2>New Contact Form Submission</h2>
-        <p><strong>Name:</strong> ${escapeHtml(name)}</p>
-        <p><strong>Email:</strong> ${escapeHtml(email)}</p>
-        <p><strong>Phone:</strong> ${phone ? escapeHtml(phone) : 'Not provided'}</p>
-        <p><strong>Company:</strong> ${company ? escapeHtml(company) : 'Not provided'}</p>
-        <h3>Message:</h3>
-        <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
-      `,
+${message}`
+    const emailHtml = `
+      <h2>New Contact Form Submission</h2>
+      <p><strong>Name:</strong> ${escapeHtml(name)}</p>
+      <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+      <p><strong>Phone:</strong> ${phone ? escapeHtml(phone) : 'Not provided'}</p>
+      <p><strong>Company:</strong> ${company ? escapeHtml(company) : 'Not provided'}</p>
+      <h3>Message:</h3>
+      <p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>
+    `
+
+    if (!process.env.RESEND_API_KEY) {
+      console.warn('[contact] RESEND_API_KEY is not set — email not sent. Submission:', {
+        name,
+        email,
+        phone,
+        company,
+        subject: emailSubject,
+        message,
+      })
+    } else {
+      const resend = new Resend(process.env.RESEND_API_KEY)
+      const { error: sendError } = await resend.emails.send({
+        from: 'contact@genthrust.net',
+        to: 'sales@genthrust.net',
+        replyTo: email,
+        subject: emailSubject,
+        text: emailText,
+        html: emailHtml,
+      })
+      if (sendError) {
+        console.error('[contact] Resend delivery error:', sendError)
+        return NextResponse.json(
+          { error: 'Failed to send message. Please try again later.' },
+          { status: 500 }
+        )
+      }
     }
 
-    // Log for development (remove in production)
-    console.log('Contact form submission:', emailContent)
-
-    // Example with Resend (uncomment and configure):
-    // const resend = new Resend(process.env.RESEND_API_KEY)
-    // await resend.emails.send({
-    //   from: 'contact@genthrust.net',
-    //   to: 'sales@genthrust.net',
-    //   subject: emailContent.subject,
-    //   html: emailContent.html,
-    //   replyTo: email,
-    // })
-
-    // Example with SendGrid (uncomment and configure):
-    // const sgMail = require('@sendgrid/mail')
-    // sgMail.setApiKey(process.env.SENDGRID_API_KEY)
-    // await sgMail.send({
-    //   to: 'sales@genthrust.net',
-    //   from: 'contact@genthrust.net',
-    //   subject: emailContent.subject,
-    //   text: emailContent.text,
-    //   html: emailContent.html,
-    //   replyTo: email,
-    // })
-
-    // For now, return success (replace with actual email sending)
     return NextResponse.json(
       { message: 'Message sent successfully' },
       { status: 200 }
