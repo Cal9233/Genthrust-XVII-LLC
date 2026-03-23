@@ -17,36 +17,12 @@ const nextConfig = {
     ]
   },
   async headers() {
-    // unsafe-eval is required for Next.js HMR in development only; omit in production
-    const scriptSrc = process.env.NODE_ENV === 'development'
-      ? "script-src 'self' 'unsafe-eval' 'unsafe-inline'"
-      : "script-src 'self'";
+    // CSP is now set dynamically by middleware.ts with per-request nonces.
+    // Only non-CSP security headers remain here.
     return [
       {
         source: '/(.*)',
         headers: [
-          // OPT-016: Content-Security-Policy
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              scriptSrc,
-              // Tailwind injects inline styles
-              "style-src 'self' 'unsafe-inline'",
-              // QR codes may be data: URIs; blob: for canvas-generated images
-              "img-src 'self' data: blob:",
-              // Google Fonts (if used)
-              "font-src 'self' https://fonts.gstatic.com",
-              // Google Maps embed on contact page
-              "frame-src 'self' https://www.google.com",
-              // ERP API, Microsoft Graph/Entra, and Upstash Redis (rate-limiting)
-              "connect-src 'self' https://wapi.erp.aero https://graph.microsoft.com https://login.microsoftonline.com https://*.upstash.io",
-              // Prevent this page from being embedded in iframes
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join('; '),
-          },
           // OPT-017: HTTP Strict Transport Security
           {
             key: 'Strict-Transport-Security',

@@ -80,7 +80,9 @@ describe('CSP script-src regression (C-5)', () => {
     expect(typeof nextConfig.headers).toBe('function')
   })
 
-  it('next.config.js headers() returns a group with a Content-Security-Policy header', async () => {
+  it('CSP is no longer in next.config.js (moved to middleware for nonce support)', async () => {
+    // CSP was moved from next.config.js to middleware.ts to support per-request
+    // nonces. Verify next.config.js no longer sets a CSP header.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const nextConfig = require(CONFIG_PATH)
     const headerGroups = await nextConfig.headers()
@@ -88,25 +90,24 @@ describe('CSP script-src regression (C-5)', () => {
       (g: { headers: { key: string; value: string }[] }) => g.headers
     )
     const cspHeader = allHeaders.find((h) => h.key === 'Content-Security-Policy')
-    expect(cspHeader).toBeDefined()
-    expect(cspHeader!.value).toContain('script-src')
+    expect(cspHeader).toBeUndefined()
   })
 
-  it('live next.config.js production CSP script-src matches expected safe policy', async () => {
-    // Run with the current NODE_ENV (test environment). Since the config
-    // branches on 'development', in the test environment (not 'development')
-    // it should produce the safe production policy.
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const nextConfig = require(CONFIG_PATH)
-    const headerGroups = await nextConfig.headers()
-    const allHeaders: { key: string; value: string }[] = headerGroups.flatMap(
-      (g: { headers: { key: string; value: string }[] }) => g.headers
+  it('middleware.ts builds CSP with nonce and without unsafe-inline', () => {
+    // Verify the middleware CSP builder produces safe output
+    const fs = require('fs')
+    const middlewareSrc = fs.readFileSync(
+      path.resolve(__dirname, '..', 'middleware.ts'),
+      'utf-8'
     )
-    const cspHeader = allHeaders.find((h) => h.key === 'Content-Security-Policy')!
-    const scriptSrc = extractScriptSrc(cspHeader.value)
-    // In vitest's node environment NODE_ENV is 'test', not 'development',
-    // so the production branch executes — unsafe-inline must be absent.
-    expect(scriptSrc).not.toContain('unsafe-inline')
-    expect(scriptSrc).toContain("'self'")
+    // Must contain nonce-based script-src
+    expect(middlewareSrc).toContain("'nonce-${nonce}'")
+    // Must NOT contain unsafe-inline in script-src
+    // (style-src unsafe-inline is OK and expected)
+    const scriptSrcLine = middlewareSrc.split('\n').find(
+      (line: string) => line.includes('script-src') && !line.includes('//')
+    )
+    expect(scriptSrcLine).toBeDefined()
+    expect(scriptSrcLine).not.toContain('unsafe-inline')
   })
 })
