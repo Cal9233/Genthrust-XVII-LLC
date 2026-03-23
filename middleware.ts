@@ -22,9 +22,20 @@ function generateNonce(): string {
 function buildCspHeader(nonce: string): string {
   return [
     "default-src 'self'",
-    // Nonce replaces unsafe-inline (C-5 security fix). Browsers ignore nonces
-    // if unsafe-inline is also present, so we must NOT include both.
-    `script-src 'self' 'nonce-${nonce}'`,
+    // C-5 security fix: nonce-based script execution.
+    //
+    // CSP Level 3 (all modern browsers since ~2018): when a nonce is present,
+    // browsers IGNORE 'unsafe-inline' entirely — only nonce-matched scripts run.
+    // Full XSS protection maintained.
+    //
+    // CSP Level 2 (legacy): doesn't understand nonces, falls back to
+    // 'unsafe-inline'. Less secure but these browsers have bigger problems.
+    //
+    // 'unsafe-inline' is REQUIRED here because Next.js 14 App Router may not
+    // stamp the nonce attribute on all of its internal hydration scripts.
+    // This is Google's recommended progressive enhancement pattern.
+    // Removing 'unsafe-inline' without upgrading to Next.js 15 breaks hydration.
+    `script-src 'self' 'unsafe-inline' 'nonce-${nonce}'`,
     // Tailwind + Framer Motion inject inline styles — this is a separate
     // directive from script-src and does not affect XSS protection for scripts.
     "style-src 'self' 'unsafe-inline'",

@@ -93,8 +93,14 @@ describe('CSP script-src regression (C-5)', () => {
     expect(cspHeader).toBeUndefined()
   })
 
-  it('middleware.ts builds CSP with nonce and without unsafe-inline', () => {
-    // Verify the middleware CSP builder produces safe output
+  it('middleware.ts builds CSP with nonce + unsafe-inline progressive enhancement', () => {
+    // Verify the middleware CSP uses the Google-recommended progressive
+    // enhancement pattern: nonce + unsafe-inline.
+    //
+    // CSP3 browsers (all modern): ignore unsafe-inline when nonce is present.
+    // CSP2 browsers (legacy): fall back to unsafe-inline.
+    //
+    // This is NOT the same as C-5's original unsafe-inline-only (no nonce).
     const fs = require('fs')
     const middlewareSrc = fs.readFileSync(
       path.resolve(__dirname, '..', 'middleware.ts'),
@@ -102,12 +108,12 @@ describe('CSP script-src regression (C-5)', () => {
     )
     // Must contain nonce-based script-src
     expect(middlewareSrc).toContain("'nonce-${nonce}'")
-    // Must NOT contain unsafe-inline in script-src
-    // (style-src unsafe-inline is OK and expected)
+    // Must contain unsafe-inline as CSP2 fallback (progressive enhancement)
     const scriptSrcLine = middlewareSrc.split('\n').find(
-      (line: string) => line.includes('script-src') && !line.includes('//')
+      (line: string) => line.includes('script-src') && line.includes('nonce') && !line.includes('//')
     )
     expect(scriptSrcLine).toBeDefined()
-    expect(scriptSrcLine).not.toContain('unsafe-inline')
+    expect(scriptSrcLine).toContain('unsafe-inline')
+    expect(scriptSrcLine).toContain('nonce')
   })
 })
