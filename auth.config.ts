@@ -30,10 +30,14 @@ export const authConfig = {
         return false
       } else if (isOnPortal) {
         if (isLoggedIn) {
-          // Enforce mandatory MFA enrollment for clients
           const role = (auth as any)?.user?.role
+          // Internal users must not access portal — bounce to their dashboard
+          if (role !== 'client') {
+            return Response.redirect(new URL('/internal', nextUrl))
+          }
+          // Enforce mandatory MFA enrollment for clients
           const mfaEnabled = (auth as any)?.user?.mfaEnabled
-          if (role === 'client' && mfaEnabled === false && !nextUrl.pathname.startsWith('/portal/mfa-setup')) {
+          if (mfaEnabled === false && !nextUrl.pathname.startsWith('/portal/mfa-setup')) {
             return Response.redirect(new URL('/portal/mfa-setup', nextUrl))
           }
           return true
