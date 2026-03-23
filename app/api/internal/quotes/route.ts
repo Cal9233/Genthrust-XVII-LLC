@@ -60,11 +60,21 @@ export async function GET(request: NextRequest) {
       ),
     ])
 
-    // Parse JSON part_numbers
-    const parsed = quotes.map((q: any) => ({
-      ...q,
-      part_numbers: typeof q.part_numbers === 'string' ? JSON.parse(q.part_numbers) : q.part_numbers,
-    }))
+    // Parse JSON part_numbers — guard against malformed stored values
+    const parsed = quotes.map((q: any) => {
+      let part_numbers: string[] = []
+      if (typeof q.part_numbers === 'string') {
+        try {
+          const v = JSON.parse(q.part_numbers)
+          part_numbers = Array.isArray(v) ? v : []
+        } catch {
+          part_numbers = []
+        }
+      } else if (Array.isArray(q.part_numbers)) {
+        part_numbers = q.part_numbers
+      }
+      return { ...q, part_numbers }
+    })
 
     const stats: Record<string, number> = { pending: 0, processed: 0, responded: 0 }
     for (const row of statsRows) {

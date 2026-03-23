@@ -31,6 +31,10 @@ interface PortalUserRow {
 
 export async function POST(request: Request) {
   try {
+    // Vercel sets x-forwarded-for from the actual client IP and strips any
+    // client-supplied values before appending its own. The first entry is safe.
+    // For non-Vercel deployments, validate this header against trusted proxy IPs
+    // to prevent clients from spoofing their IP and bypassing rate limiting.
     const ip =
       request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
       request.headers.get('x-real-ip') ||

@@ -69,3 +69,9 @@ export async function getPartDetails(productId: number): Promise<any> {
 export function clearTokenCache() {
   clearErpTokenCache()
 }
+
+// Flush cached token on graceful shutdown.
+if (typeof process !== 'undefined') {
+  process.on('SIGTERM', clearTokenCache)
+  process.on('SIGINT', clearTokenCache)
+}

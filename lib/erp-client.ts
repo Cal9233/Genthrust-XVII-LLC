@@ -96,6 +96,17 @@ export function clearErpTokenCache() {
 }
 
 /**
+ * Alias for clearErpTokenCache — used by shutdown handlers and erp-aero.ts.
+ */
+export const clearTokenCache = clearErpTokenCache
+
+// Flush cached token on graceful shutdown so it is not left in memory.
+if (typeof process !== 'undefined') {
+  process.on('SIGTERM', clearTokenCache)
+  process.on('SIGINT', clearTokenCache)
+}
+
+/**
  * Generic GET against ERP AERO API. Auto-retries signin on 401.
  */
 async function erpGet(endpoint: string, params?: Record<string, string>): Promise<any> {

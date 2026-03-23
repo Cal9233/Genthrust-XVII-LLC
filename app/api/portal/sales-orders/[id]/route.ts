@@ -11,7 +11,10 @@ export async function GET(
     const ctx = await getPortalContext()
     if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { companyName } = ctx
+    // companyId is the authoritative identity — verified against the companies table
+    // by getPortalContext(). companyName is the denormalized value from that same DB
+    // lookup, used here because the sales_orders table has no company_id FK column.
+    const { companyId: _companyId, companyName } = ctx
     const { id } = await params
 
     const rows = await query<any[]>(
