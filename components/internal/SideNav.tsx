@@ -8,8 +8,6 @@ import { signOut } from 'next-auth/react'
 import {
   LayoutDashboard,
   Bot,
-  Database,
-  Zap,
   Users,
   ShieldCheck,
   ChevronLeft,
@@ -21,8 +19,6 @@ import {
 const navItems = [
   { href: '/internal',            label: 'Dashboard',  icon: LayoutDashboard, exact: true  },
   { href: '/internal/bots',       label: 'Bots',       icon: Bot,             exact: false },
-  { href: '/internal/erp',        label: 'ERP',        icon: Database,        exact: false },
-  { href: '/internal/automation', label: 'Automation', icon: Zap,             exact: false },
   { href: '/internal/clients',    label: 'Clients',    icon: Users,           exact: false },
   { href: '/internal/audit-log',  label: 'Audit Log',  icon: ShieldCheck,     exact: false },
 ]

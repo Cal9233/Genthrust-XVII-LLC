@@ -38,12 +38,10 @@ import { signOut } from 'next-auth/react'
 // ---------------------------------------------------------------------------
 
 describe('SideNav nav items', () => {
-  it('renders all 6 nav items', () => {
+  it('renders all 4 nav items', () => {
     render(<SideNav />)
     expect(screen.getByText('Dashboard')).toBeInTheDocument()
     expect(screen.getByText('Bots')).toBeInTheDocument()
-    expect(screen.getByText('ERP')).toBeInTheDocument()
-    expect(screen.getByText('Automation')).toBeInTheDocument()
     expect(screen.getByText('Clients')).toBeInTheDocument()
     expect(screen.getByText('Audit Log')).toBeInTheDocument()
   })
