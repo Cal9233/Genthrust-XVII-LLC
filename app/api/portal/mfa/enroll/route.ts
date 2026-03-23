@@ -20,9 +20,9 @@ export async function POST() {
     const userId = parseInt(session.user.id)
     const email = session.user.email!
 
-    // Delete any existing pending factor
+    // Soft-delete any existing pending factor
     await query(
-      `DELETE FROM mfa_factors WHERE user_id = ? AND status = 'pending'`,
+      `UPDATE mfa_factors SET deleted_at = NOW() WHERE user_id = ? AND status = 'pending' AND deleted_at IS NULL`,
       [userId]
     )
 
@@ -32,7 +32,7 @@ export async function POST() {
     // Encrypt the secret
     const { encrypted, iv, authTag } = encryptSecret(secret)
 
-    // Store as pending
+    // Store as pending; revive a soft-deleted row if the unique key matches
     await query(
       `INSERT INTO mfa_factors (user_id, factor_type, secret_encrypted, secret_iv, secret_auth_tag, status)
        VALUES (?, 'totp', ?, ?, ?, 'pending')
@@ -41,7 +41,8 @@ export async function POST() {
          secret_iv = VALUES(secret_iv),
          secret_auth_tag = VALUES(secret_auth_tag),
          status = 'pending',
-         verified_at = NULL`,
+         verified_at = NULL,
+         deleted_at = NULL`,
       [userId, encrypted, iv, authTag]
     )
 

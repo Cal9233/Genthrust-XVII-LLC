@@ -65,12 +65,17 @@ export async function PATCH(
       )
     }
 
-    const processedAt = status === 'processed' || status === 'responded' ? 'NOW()' : 'processed_at'
-
-    await query(
-      `UPDATE quote_requests SET status = ?, processed_at = ${processedAt}, updated_at = NOW() WHERE id = ?`,
-      [status, id]
-    )
+    if (status === 'processed' || status === 'responded') {
+      await query(
+        `UPDATE quote_requests SET status = ?, processed_at = NOW(), updated_at = NOW() WHERE id = ?`,
+        [status, id]
+      )
+    } else {
+      await query(
+        `UPDATE quote_requests SET status = ?, updated_at = NOW() WHERE id = ?`,
+        [status, id]
+      )
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

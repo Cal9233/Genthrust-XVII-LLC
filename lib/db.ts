@@ -18,6 +18,7 @@ globalForRawDb.rawMysqlPool ??= mysql.createPool({
   connectTimeout: 5000,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  ...(process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: true } } : {}),
 })
 
 const pool = globalForRawDb.rawMysqlPool

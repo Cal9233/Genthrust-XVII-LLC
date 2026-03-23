@@ -26,6 +26,7 @@ export function getInventoryPool(): mysql.Pool {
       connectTimeout: 5000,
       enableKeepAlive: true,
       keepAliveInitialDelay: 0,
+      ...(process.env.BOT_DB_SSL === 'true' ? { ssl: { rejectUnauthorized: true } } : {}),
     })
   }
   return globalForInventoryDb.inventoryMysqlPool

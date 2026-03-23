@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     // Get verified factor
     const factors = await query<FactorRow[]>(
       `SELECT secret_encrypted, secret_iv, secret_auth_tag
-       FROM mfa_factors WHERE user_id = ? AND factor_type = 'totp' AND status = 'verified'`,
+       FROM mfa_factors WHERE user_id = ? AND factor_type = 'totp' AND status = 'verified' AND deleted_at IS NULL`,
       [userId]
     )
 
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
     let usedRecoveryCodeId: number | null = null
     if (!codeValid) {
       const recoveryCodes = await query<RecoveryCodeRow[]>(
-        `SELECT id, code_hash FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL`,
+        `SELECT id, code_hash FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL AND deleted_at IS NULL`,
         [userId]
       )
       for (const rc of recoveryCodes) {
@@ -93,9 +93,9 @@ export async function POST(request: Request) {
       )
     }
 
-    // Delete factor and recovery codes, reset flag
-    await query(`DELETE FROM mfa_factors WHERE user_id = ?`, [userId])
-    await query(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`, [userId])
+    // Soft-delete factor and recovery codes, reset flag
+    await query(`UPDATE mfa_factors SET deleted_at = NOW(), status = 'pending' WHERE user_id = ? AND deleted_at IS NULL`, [userId])
+    await query(`UPDATE mfa_recovery_codes SET deleted_at = NOW() WHERE user_id = ? AND deleted_at IS NULL`, [userId])
     await query(`UPDATE portal_users SET mfa_enabled = 0 WHERE id = ?`, [userId])
 
     logAuditEvent({

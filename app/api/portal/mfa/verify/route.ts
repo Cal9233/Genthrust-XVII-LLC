@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const factors = await query<PendingFactorRow[]>(
       `SELECT id, secret_encrypted, secret_iv, secret_auth_tag
        FROM mfa_factors
-       WHERE user_id = ? AND factor_type = 'totp' AND status = 'pending'`,
+       WHERE user_id = ? AND factor_type = 'totp' AND status = 'pending' AND deleted_at IS NULL`,
       [userId]
     )
 
@@ -85,8 +85,8 @@ export async function POST(request: Request) {
       [userId]
     )
 
-    // Delete any existing recovery codes and generate new ones
-    await query(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`, [userId])
+    // Soft-delete any existing recovery codes and generate new ones
+    await query(`UPDATE mfa_recovery_codes SET deleted_at = NOW() WHERE user_id = ? AND deleted_at IS NULL`, [userId])
 
     const recoveryCodes = generateRecoveryCodes(10)
     const hashes = await Promise.all(recoveryCodes.map(code => bcrypt.hash(code, 12)))

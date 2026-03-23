@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { hashPassword } from '@/lib/password'
 import { z } from 'zod'
+import { createRateLimiter } from '@/lib/rate-limit'
 export const dynamic = 'force-dynamic'
 
 const RegisterSchema = z.object({
@@ -11,28 +12,18 @@ const RegisterSchema = z.object({
   company_name: z.string().max(255).optional(),
 })
 
-// In-memory rate limiter: 3 registrations per hour per IP
-const registerAttempts = new Map<string, { count: number; resetAt: number }>()
-const REGISTER_LIMIT = 3
-const REGISTER_WINDOW_MS = 60 * 60 * 1000 // 1 hour
-
-function checkRegisterRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = registerAttempts.get(ip)
-  if (!entry || now >= entry.resetAt) {
-    registerAttempts.set(ip, { count: 1, resetAt: now + REGISTER_WINDOW_MS })
-    return true
-  }
-  if (entry.count >= REGISTER_LIMIT) return false
-  entry.count++
-  return true
-}
+const registerLimiter = createRateLimiter({ maxAttempts: 3, windowMs: 60 * 60 * 1000, name: 'register' })
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? request.headers.get('x-real-ip') ?? 'unknown'
-  if (!checkRegisterRateLimit(ip)) {
-    return NextResponse.json({ error: 'Too many registration attempts. Please try again later.' }, { status: 429 })
+  const rateCheck = await registerLimiter.check(ip)
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: 'Too many registration attempts. Please try again later.' },
+      { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSeconds) } }
+    )
   }
+  await registerLimiter.record(ip)
   try {
     const body = await request.json()
     const parsed = RegisterSchema.safeParse(body)

@@ -30,9 +30,9 @@ export async function POST(request: Request) {
 
     const targetUser = users[0]
 
-    // Delete factor and recovery codes, reset flag
-    await query(`DELETE FROM mfa_factors WHERE user_id = ?`, [parsedId])
-    await query(`DELETE FROM mfa_recovery_codes WHERE user_id = ?`, [parsedId])
+    // Soft-delete factor and recovery codes, reset flag
+    await query(`UPDATE mfa_factors SET deleted_at = NOW(), status = 'pending' WHERE user_id = ? AND deleted_at IS NULL`, [parsedId])
+    await query(`UPDATE mfa_recovery_codes SET deleted_at = NOW() WHERE user_id = ? AND deleted_at IS NULL`, [parsedId])
     await query(`UPDATE portal_users SET mfa_enabled = 0 WHERE id = ?`, [parsedId])
 
     // Audit log the admin MFA reset

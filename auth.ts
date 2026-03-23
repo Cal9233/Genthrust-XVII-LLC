@@ -102,7 +102,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const factors = await query<MfaFactorRow[]>(
             `SELECT secret_encrypted, secret_iv, secret_auth_tag
              FROM mfa_factors
-             WHERE user_id = ? AND factor_type = 'totp' AND status = 'verified'`,
+             WHERE user_id = ? AND factor_type = 'totp' AND status = 'verified' AND deleted_at IS NULL`,
             [user.id]
           )
 
@@ -118,7 +118,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!codeValid) {
             const recoveryCodes = await query<RecoveryCodeRow[]>(
               `SELECT id, code_hash FROM mfa_recovery_codes
-               WHERE user_id = ? AND used_at IS NULL`,
+               WHERE user_id = ? AND used_at IS NULL AND deleted_at IS NULL`,
               [user.id]
             )
 

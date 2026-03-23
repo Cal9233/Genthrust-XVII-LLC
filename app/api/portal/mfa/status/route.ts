@@ -22,7 +22,7 @@ export async function GET() {
     let recoveryCodesRemaining = 0
     if (enabled) {
       const result = await query<{ count: number }[]>(
-        `SELECT COUNT(*) as count FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL`,
+        `SELECT COUNT(*) as count FROM mfa_recovery_codes WHERE user_id = ? AND used_at IS NULL AND deleted_at IS NULL`,
         [userId]
       )
       recoveryCodesRemaining = result[0]?.count ?? 0
