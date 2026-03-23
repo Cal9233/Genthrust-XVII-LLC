@@ -8,15 +8,21 @@ import { verifyMfaChallengeToken, decryptSecret, verifyTotpCode } from '@/lib/mf
 import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
 import bcrypt from 'bcryptjs'
 
-interface PortalUserRow {
+interface UsersV2Row {
   id: number
   email: string
-  password_hash: string
-  contact_name: string
+  password_hash: string | null
+  first_name: string
+  last_name: string
+  role: 'admin' | 'internal' | 'client'
+  portal_user_id: number | null
   company_id: number | null
-  company_name: string | null
   erp_contact_id: number | null
   mfa_enabled: number
+}
+
+interface UsersV2WithCompanyRow extends UsersV2Row {
+  company_name: string | null
 }
 
 interface MfaFactorRow {
@@ -74,36 +80,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           const challenge = verifyMfaChallengeToken(mfaToken)
           if (!challenge) return null
 
-          // Pre-check: block internal users from MFA client flow too
-          const preCheck = await query<{ email: string }[]>(
-            'SELECT email FROM portal_users WHERE id = ? AND is_active = 1',
-            [challenge.userId]
-          )
-          if (preCheck.length && preCheck[0].email.toLowerCase().endsWith('@genthrust.net')) {
-            return null
-          }
-
-          const rows = await query<PortalUserRow[]>(
-            `SELECT pu.id, pu.email, pu.password_hash, pu.contact_name, pu.company_id,
-                    pu.erp_contact_id, pu.mfa_enabled, c.company_name
-             FROM portal_users pu
-             LEFT JOIN companies c ON pu.company_id = c.id
-             WHERE pu.id = ? AND pu.is_active = 1`,
+          // Look up the user in users_v2 by challenge userId
+          const rows = await query<UsersV2WithCompanyRow[]>(
+            `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.role,
+                    u.portal_user_id, u.company_id, u.erp_contact_id, u.mfa_enabled,
+                    c.company_name
+             FROM users_v2 u
+             LEFT JOIN companies c ON u.company_id = c.id
+             WHERE u.id = ? AND u.is_active = 1`,
             [challenge.userId]
           )
 
           if (!rows.length) return null
           const user = rows[0]
 
+          // Block internal/admin users from the MFA client flow
+          if (user.email.toLowerCase().endsWith('@genthrust.net')) return null
+
           // H-2: Cross-check token email against DB email to prevent token reuse across accounts
           if (challenge.email.toLowerCase() !== user.email.toLowerCase()) return null
+
+          // MFA factors are stored against portal_user_id (the legacy portal_users.id FK)
+          const mfaUserId = user.portal_user_id
+          if (!mfaUserId) return null
 
           // Get the verified TOTP factor
           const factors = await query<MfaFactorRow[]>(
             `SELECT secret_encrypted, secret_iv, secret_auth_tag
              FROM mfa_factors
              WHERE user_id = ? AND factor_type = 'totp' AND status = 'verified' AND deleted_at IS NULL`,
-            [user.id]
+            [mfaUserId]
           )
 
           if (!factors.length) return null
@@ -119,7 +125,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             const recoveryCodes = await query<RecoveryCodeRow[]>(
               `SELECT id, code_hash FROM mfa_recovery_codes
                WHERE user_id = ? AND used_at IS NULL AND deleted_at IS NULL`,
-              [user.id]
+              [mfaUserId]
             )
 
             for (const rc of recoveryCodes) {
@@ -147,7 +153,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return {
             id: String(user.id),
             email: user.email,
-            name: user.contact_name,
+            name: `${user.first_name} ${user.last_name}`.trim(),
+            role: user.role,
             companyId: user.company_id,
             companyName: user.company_name,
             erpContactId: user.erp_contact_id,
@@ -158,22 +165,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // --- Mode A: email + password ---
         if (!email || !password) return null
 
-        // Block internal (@genthrust.net) users from client login flow —
+        // Block internal/admin (@genthrust.net) users from client login flow —
         // they must use /signin (Microsoft Entra) instead
         if (email.toLowerCase().endsWith('@genthrust.net')) return null
 
-        const rows = await query<PortalUserRow[]>(
-          `SELECT pu.id, pu.email, pu.password_hash, pu.contact_name, pu.company_id,
-                  pu.erp_contact_id, pu.mfa_enabled, c.company_name
-           FROM portal_users pu
-           LEFT JOIN companies c ON pu.company_id = c.id
-           WHERE pu.email = ? AND pu.is_active = 1`,
+        const rows = await query<UsersV2WithCompanyRow[]>(
+          `SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name, u.role,
+                  u.portal_user_id, u.company_id, u.erp_contact_id, u.mfa_enabled,
+                  c.company_name
+           FROM users_v2 u
+           LEFT JOIN companies c ON u.company_id = c.id
+           WHERE u.email = ? AND u.is_active = 1`,
           [email]
         )
 
         if (!rows.length) return null
 
         const user = rows[0]
+        if (!user.password_hash) return null
+
         const isValid = await verifyPassword(password, user.password_hash)
 
         if (!isValid) {
@@ -188,7 +198,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           id: String(user.id),
           email: user.email,
-          name: user.contact_name,
+          name: `${user.first_name} ${user.last_name}`.trim(),
+          role: user.role,
           companyId: user.company_id,
           companyName: user.company_name,
           erpContactId: user.erp_contact_id,

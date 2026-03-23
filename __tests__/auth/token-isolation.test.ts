@@ -4,8 +4,8 @@
  * Proves that role boundaries are enforced at every API endpoint:
  *   - Client tokens cannot reach any /api/internal/* route
  *   - Internal tokens cannot reach any /api/portal/* route
- *   - JWT/session callbacks set roles correctly and safely
- *   - SSO endpoint is gated to internal-only
+ *   - JWT/session callbacks set roles correctly and safely (3-role: admin|internal|client)
+ *   - SSO endpoint is gated to internal/admin only
  *   - create-client password max is 72 (bcrypt limit)
  *
  * All DB calls and library functions are mocked — no real network or DB needed.
@@ -119,7 +119,7 @@ describe('Client token cannot access internal API routes', () => {
     expect(mockQuery).not.toHaveBeenCalled()
   })
 
-  it('GET /api/internal/sso/flightdeck → 401 for client role (CRITICAL: client cannot SSO to FlightDeck)', async () => {
+  it('GET /api/internal/sso/flightdeck → 401 for client role (CRITICAL: client cannot SSO to FlightDeck, only internal/admin can)', async () => {
     const { GET } = await import('@/app/api/internal/sso/flightdeck/route')
     const res = await GET()
     expect(res.status).toBe(401)
@@ -222,13 +222,14 @@ describe('Internal token cannot access portal API routes', () => {
 // ===========================================================================
 // TOKEN INTEGRITY (5 tests)
 // Tests the JWT/session callback logic defined in auth.config.ts
+// Updated for 3-role system: admin | internal | client
 // ===========================================================================
 
 describe('Token integrity — JWT and session callbacks', () => {
   // Mirror the exact callback logic from auth.config.ts for unit testing.
   // If auth.config.ts diverges, these tests will catch it.
 
-  // jwt callback: sets token.role based on account.provider
+  // jwt callback: role from user object for credentials; email-based for Entra ID
   function jwtCallback({
     token,
     user,
@@ -240,6 +241,10 @@ describe('Token integrity — JWT and session callbacks', () => {
   }): Record<string, any> {
     if (user) {
       token.id = user.id
+      // Role from user object (DB value for credentials; set below for Entra)
+      if ('role' in user) {
+        token.role = (user as any).role
+      }
       if ('companyId' in user) {
         token.companyId = (user as any).companyId ?? null
         token.companyName = (user as any).companyName ?? null
@@ -250,12 +255,21 @@ describe('Token integrity — JWT and session callbacks', () => {
       }
     }
     if (account) {
-      token.role = account.provider === 'credentials' ? 'client' : 'internal'
+      if (account.provider === 'credentials') {
+        // Safety guard: default to 'client' if role not present on user object
+        if (!token.role) {
+          token.role = 'client'
+        }
+      } else {
+        // Entra ID: cmalagon@genthrust.net → admin, all others → internal
+        const email = (token.email as string | undefined) ?? ''
+        token.role = email.toLowerCase() === 'cmalagon@genthrust.net' ? 'admin' : 'internal'
+      }
     }
     return token
   }
 
-  // session callback: assigns role, never promotes missing role to 'internal'
+  // session callback: assigns 3-way role, never promotes missing role to 'internal' or 'admin'
   function sessionCallback({
     session,
     token,
@@ -265,8 +279,15 @@ describe('Token integrity — JWT and session callbacks', () => {
   }): Record<string, any> {
     if (session.user) {
       if (token.id) session.user.id = token.id
-      // Critical: missing/unknown role must NEVER become 'internal'
-      session.user.role = token.role === 'internal' ? 'internal' : 'client'
+      // Critical: missing/unknown role must NEVER become 'internal' or 'admin'
+      const tokenRole = token.role
+      if (tokenRole === 'admin') {
+        session.user.role = 'admin'
+      } else if (tokenRole === 'internal') {
+        session.user.role = 'internal'
+      } else {
+        session.user.role = 'client'
+      }
       session.user.mfaEnabled = token.mfaEnabled ?? undefined
       session.user.companyId = token.companyId ?? null
       session.user.companyName = token.companyName ?? null
@@ -275,25 +296,25 @@ describe('Token integrity — JWT and session callbacks', () => {
     return session
   }
 
-  it('credentials provider sets role = "client" in JWT callback', () => {
+  it('credentials provider sets role = "client" in JWT callback (when user has no role field)', () => {
     const token = jwtCallback({
       token: {},
-      user: { id: '5', email: 'client@example.com' },
+      user: { id: '5', email: 'client@example.com' }, // no role on user object
       account: { provider: 'credentials' },
     })
     expect(token.role).toBe('client')
   })
 
-  it('non-credentials provider (Entra) sets role = "internal" in JWT callback', () => {
+  it('non-credentials provider (Entra) for non-admin email sets role = "internal" in JWT callback', () => {
     const token = jwtCallback({
-      token: {},
-      user: { id: '1', email: 'staff@genthrust.net' },
+      token: { email: 'staff@genthrust.net' },
+      user: { id: '2' },
       account: { provider: 'microsoft-entra-id' },
     })
     expect(token.role).toBe('internal')
   })
 
-  it('session callback defaults missing role to "client" (never elevates to internal)', () => {
+  it('session callback defaults missing role to "client" (never elevates to internal or admin)', () => {
     const session = sessionCallback({
       session: { user: { email: 'unknown@example.com' } },
       token: {}, // no role field
@@ -302,24 +323,25 @@ describe('Token integrity — JWT and session callbacks', () => {
   })
 
   it('session callback never returns "internal" unless token.role is explicitly "internal"', () => {
-    // Adversarial: try every falsy/unexpected value — none should yield 'internal'
-    const badValues = [undefined, null, '', 'INTERNAL', 'Internal', 'admin', 0, false, 'client']
+    // Adversarial: try every falsy/unexpected value — none should yield 'internal' or 'admin'
+    const badValues = [undefined, null, '', 'INTERNAL', 'Internal', 'ADMIN', 'Admin', 0, false, 'client', 'superuser']
     for (const badRole of badValues) {
       const session = sessionCallback({
         session: { user: {} },
         token: { role: badRole },
       })
       expect(session.user.role).not.toBe('internal')
+      expect(session.user.role).not.toBe('admin')
     }
   })
 
   it('role field from token is not overridable by user-supplied input (session uses token, not request body)', () => {
     // The session callback only reads from token — there is no path for user input
-    // to inject 'internal'. This test confirms the contract: token.role='client' stays 'client'
+    // to inject 'internal' or 'admin'. This test confirms the contract: token.role='client' stays 'client'
     // even if we pass extra properties through the token that look like escalation attempts.
     const session = sessionCallback({
-      session: { user: { role: 'internal' } }, // attacker pre-sets session.user.role
-      token: { role: 'client' },              // token says 'client' — token wins
+      session: { user: { role: 'admin' } }, // attacker pre-sets session.user.role
+      token: { role: 'client' },            // token says 'client' — token wins
     })
     expect(session.user.role).toBe('client')
   })
@@ -327,6 +349,7 @@ describe('Token integrity — JWT and session callbacks', () => {
 
 // ===========================================================================
 // SSO PROTECTION (3 tests)
+// Both 'internal' and 'admin' roles are permitted; 'client' and anonymous are not.
 // ===========================================================================
 
 describe('SSO endpoint protection — /api/internal/sso/flightdeck', () => {
@@ -366,6 +389,7 @@ describe('SSO endpoint protection — /api/internal/sso/flightdeck', () => {
     const { GET } = await import('@/app/api/internal/sso/flightdeck/route')
     const res = await GET()
     // NextResponse.redirect produces a 307 (temporary redirect) in test env
+    // Internal role → FlightDeck role='sales'
     expect([302, 307, 308]).toContain(res.status)
   })
 })

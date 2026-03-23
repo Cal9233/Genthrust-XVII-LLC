@@ -10,7 +10,9 @@ export async function GET() {
   }
 
   const session = await auth()
-  if (!session?.user || (session.user as any).role !== 'internal') {
+  const role = (session?.user as any)?.role
+
+  if (!session?.user || (role !== 'internal' && role !== 'admin')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -18,10 +20,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Incomplete session' }, { status: 401 })
   }
 
+  // Admin → FlightDeck owner, Internal → FlightDeck sales
+  const flightDeckRole = role === 'admin' ? 'owner' : 'sales'
+
   const token = generateSsoToken({
     email: session.user.email,
     name: session.user.name,
-    role: 'owner',
+    role: flightDeckRole,
     tenantId: process.env.ENTRA_TENANT_ID!,
   })
 

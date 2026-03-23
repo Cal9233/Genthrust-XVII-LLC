@@ -5,7 +5,7 @@ declare module "next-auth" {
   interface Session {
     user: {
       id: string
-      role: "internal" | "client"
+      role: "admin" | "internal" | "client"
       mfaEnabled?: boolean
       companyId?: number | null
       companyName?: string | null
@@ -16,7 +16,7 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    role?: "internal" | "client"
+    role?: "admin" | "internal" | "client"
     mfaEnabled?: boolean
     companyId?: number | null
     companyName?: string | null

@@ -21,7 +21,8 @@ export const authConfig = {
       if (isOnInternal) {
         if (isLoggedIn) {
           const role = (auth as any)?.user?.role
-          if (role !== 'internal') {
+          // Only admin and internal can access /internal routes
+          if (role !== 'internal' && role !== 'admin') {
             // Client users must not access internal — bounce to their portal
             return Response.redirect(new URL('/portal', nextUrl))
           }
@@ -31,7 +32,7 @@ export const authConfig = {
       } else if (isOnPortal) {
         if (isLoggedIn) {
           const role = (auth as any)?.user?.role
-          // Internal users must not access portal — bounce to their dashboard
+          // Admin and internal users must not access portal — bounce to their dashboard
           if (role !== 'client') {
             return Response.redirect(new URL('/internal', nextUrl))
           }
@@ -46,9 +47,11 @@ export const authConfig = {
       } else if (isOnSignIn) {
         if (isLoggedIn) {
           const role = (auth as any)?.user?.role
-          // Internal users go straight to FlightDeck via SSO
+          // Admin and internal users go straight to FlightDeck via SSO
           // Client users who somehow land here go to /portal
-          return Response.redirect(new URL(role === 'internal' ? '/api/internal/sso/flightdeck' : '/portal', nextUrl))
+          return Response.redirect(
+            new URL(role === 'internal' || role === 'admin' ? '/api/internal/sso/flightdeck' : '/portal', nextUrl)
+          )
         }
         return true
       } else if (isOnLogin) {
@@ -59,7 +62,9 @@ export const authConfig = {
       } else if (isOnRegister) {
         if (isLoggedIn) {
           const role = (auth as any)?.user?.role
-          return Response.redirect(new URL(role === 'internal' ? '/internal' : '/portal', nextUrl))
+          return Response.redirect(
+            new URL(role === 'internal' || role === 'admin' ? '/internal' : '/portal', nextUrl)
+          )
         }
         return true
       }
@@ -86,6 +91,14 @@ export const authConfig = {
       try {
         if (user) {
           token.id = user.id
+          // Carry role from user object (set by credentials authorize() from DB,
+          // or determined below for Entra ID logins)
+          if ('role' in user) {
+            const userRole = (user as { role?: string }).role
+            if (userRole === 'admin' || userRole === 'internal' || userRole === 'client') {
+              token.role = userRole
+            }
+          }
           // Carry company info for portal users
           if ('companyId' in user) {
             token.companyId = (user as { companyId?: number | null }).companyId ?? null
@@ -98,7 +111,19 @@ export const authConfig = {
           }
         }
         if (account) {
-          token.role = account.provider === 'credentials' ? 'client' : 'internal'
+          if (account.provider === 'credentials') {
+            // Role is already set from user object (DB value)
+            // Default to 'client' if not present (safety guard)
+            if (!token.role) {
+              token.role = 'client'
+            }
+          } else {
+            // Entra ID login: determine role by email
+            // cmalagon@genthrust.net → admin, all others → internal
+            // Edge-safe: no DB access, role determined by email allowlist
+            const email = (token.email as string | undefined) ?? ''
+            token.role = email.toLowerCase() === 'cmalagon@genthrust.net' ? 'admin' : 'internal'
+          }
         }
       } catch (error) {
         console.error('[auth] JWT callback error:', error)
@@ -111,8 +136,15 @@ export const authConfig = {
           if (token.id) {
             session.user.id = token.id as string
           }
-          // Never default to 'internal' — missing/unknown role is always 'client'
-          session.user.role = (token.role === 'internal' ? 'internal' : 'client')
+          // Never default to 'internal' or 'admin' — missing/unknown role is always 'client'
+          const tokenRole = token.role
+          if (tokenRole === 'admin') {
+            session.user.role = 'admin'
+          } else if (tokenRole === 'internal') {
+            session.user.role = 'internal'
+          } else {
+            session.user.role = 'client'
+          }
           session.user.mfaEnabled = token.mfaEnabled ?? undefined
           // Expose company info for portal pages (always set so portal can show appropriate UI)
           session.user.companyId = token.companyId ?? null

@@ -41,7 +41,8 @@ async function safeQuery<T>(sql: string, params?: any[]): Promise<T | null> {
 export async function GET() {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'internal') {
+    const _role = (session?.user as any)?.role
+    if (!session?.user || (_role !== 'internal' && _role !== 'admin')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

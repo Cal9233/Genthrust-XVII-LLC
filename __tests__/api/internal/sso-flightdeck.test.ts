@@ -77,9 +77,10 @@ describe('GET /api/internal/sso/flightdeck', () => {
     expect(body.error).toBe('Incomplete session')
   })
 
-  it('redirects internal users to FlightDeck SSO endpoint', async () => {
+  it('redirects admin users to FlightDeck SSO endpoint', async () => {
     mockAuth.mockResolvedValue({
-      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'internal' },
+      // cal@genthrust.net has role='admin' in the 3-role system
+      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'admin' },
     } as any)
 
     const res = await GET()
@@ -92,9 +93,10 @@ describe('GET /api/internal/sso/flightdeck', () => {
     )
   })
 
-  it('redirect URL contains a valid JWT with correct claims', async () => {
+  it('redirect URL contains a valid JWT with correct claims (admin → role=owner)', async () => {
     mockAuth.mockResolvedValue({
-      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'internal' },
+      // Admin role maps to FlightDeck role='owner'
+      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'admin' },
     } as any)
 
     const res = await GET()
@@ -117,7 +119,7 @@ describe('GET /api/internal/sso/flightdeck', () => {
 
   it('redirect URL contains a correctly signed JWT', async () => {
     mockAuth.mockResolvedValue({
-      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'internal' },
+      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'admin' },
     } as any)
 
     const res = await GET()
@@ -137,7 +139,7 @@ describe('GET /api/internal/sso/flightdeck', () => {
 
   it('redirect includes default redirect=/ parameter', async () => {
     mockAuth.mockResolvedValue({
-      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'internal' },
+      user: { email: 'cal@genthrust.net', name: 'Cal Malagon', role: 'admin' },
     } as any)
 
     const res = await GET()

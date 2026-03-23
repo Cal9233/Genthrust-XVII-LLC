@@ -23,6 +23,7 @@ export interface PortalContext {
 export async function getPortalContext(): Promise<PortalContext | null> {
   const session = await auth()
   if (!session?.user) return null
+  // Only 'client' role may access portal resources
   if ((session.user as any).role !== 'client') return null
 
   const companyId = (session.user as any).companyId

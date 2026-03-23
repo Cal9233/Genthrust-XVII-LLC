@@ -14,19 +14,27 @@ const DeleteClientSchema = z.object({
   userId: z.number().int().positive(),
 })
 
+function isInternalOrAdmin(session: any): boolean {
+  const role = session?.user?.role
+  return role === 'internal' || role === 'admin'
+}
+
 export async function GET() {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'internal') {
+    if (!session?.user || !isInternalOrAdmin(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const clients = await query<any[]>(
-      `SELECT pu.id, pu.email, pu.contact_name, pu.is_active, pu.mfa_enabled, pu.created_at, pu.last_login,
+      `SELECT u.id, u.email,
+              CONCAT(u.first_name, ' ', u.last_name) AS contact_name,
+              u.is_active, u.mfa_enabled, u.created_at, u.last_login,
               c.company_name
-       FROM portal_users pu
-       LEFT JOIN companies c ON pu.company_id = c.id
-       ORDER BY pu.is_active ASC, pu.id DESC`
+       FROM users_v2 u
+       LEFT JOIN companies c ON u.company_id = c.id
+       WHERE u.role = 'client'
+       ORDER BY u.is_active ASC, u.id DESC`
     )
 
     return NextResponse.json({ clients })
@@ -39,7 +47,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'internal') {
+    if (!session?.user || !isInternalOrAdmin(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -50,24 +58,34 @@ export async function PATCH(request: Request) {
     }
     const { userId, is_active } = parsed.data
 
-    // Verify target user exists before operating — prevents blind writes on arbitrary IDs
-    const targets = await query<any[]>(`SELECT id FROM portal_users WHERE id = ?`, [userId])
+    // Verify target user exists and is a client before operating
+    const targets = await query<any[]>(`SELECT id FROM users_v2 WHERE id = ? AND role = 'client'`, [userId])
     if (!targets || targets.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     await query(
-      `UPDATE portal_users SET is_active = ?, updated_at = NOW() WHERE id = ?`,
+      `UPDATE users_v2 SET is_active = ?, updated_at = NOW() WHERE id = ?`,
       [is_active, userId]
     )
 
+    // Keep portal_users in sync for MFA FK consistency
+    await query(
+      `UPDATE portal_users pu
+       INNER JOIN users_v2 u ON pu.id = u.portal_user_id
+       SET pu.is_active = ?, pu.updated_at = NOW()
+       WHERE u.id = ?`,
+      [is_active, userId]
+    )
+
+    const sessionRole = (session.user as any).role
     logAuditEvent({
       action: ACTION_TYPES.UPDATE,
       resource_type: RESOURCE_TYPES.CLIENT,
       resource_id: String(userId),
       user_id: session.user.id,
       user_email: session.user.email ?? null,
-      user_role: 'internal',
+      user_role: sessionRole,
       success: true,
       status_code: 200,
       metadata: { is_active },
@@ -83,7 +101,7 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const session = await auth()
-    if (!session?.user || (session.user as any).role !== 'internal') {
+    if (!session?.user || !isInternalOrAdmin(session)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -94,14 +112,17 @@ export async function DELETE(request: Request) {
     }
     const { userId } = parsed.data
 
-    // Verify target user exists before operating — prevents blind deletes on arbitrary IDs
-    const targets = await query<any[]>(`SELECT id FROM portal_users WHERE id = ?`, [userId])
+    // Verify target user exists and is a client before operating
+    const targets = await query<any[]>(
+      `SELECT id, portal_user_id FROM users_v2 WHERE id = ? AND role = 'client'`,
+      [userId]
+    )
     if (!targets || targets.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
     const result = await query<import('mysql2').ResultSetHeader>(
-      `DELETE FROM portal_users WHERE id = ? AND is_active = 0`,
+      `DELETE FROM users_v2 WHERE id = ? AND is_active = 0 AND role = 'client'`,
       [userId]
     )
 
@@ -112,13 +133,20 @@ export async function DELETE(request: Request) {
       )
     }
 
+    // Also clean up portal_users row if one exists (maintains table consistency)
+    const portalUserId = targets[0].portal_user_id
+    if (portalUserId) {
+      await query(`DELETE FROM portal_users WHERE id = ? AND is_active = 0`, [portalUserId])
+    }
+
+    const sessionRole = (session.user as any).role
     logAuditEvent({
       action: ACTION_TYPES.DELETE,
       resource_type: RESOURCE_TYPES.CLIENT,
       resource_id: String(userId),
       user_id: session.user.id,
       user_email: session.user.email ?? null,
-      user_role: 'internal',
+      user_role: sessionRole,
       success: true,
       status_code: 200,
     }).catch(() => {})
