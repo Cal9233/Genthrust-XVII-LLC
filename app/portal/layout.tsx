@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { LogOut, Settings, Rocket } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+import PortalNav from './PortalNav'
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -89,6 +90,9 @@ export default async function PortalLayout({ children }: { children: React.React
           </div>
         </div>
       </header>
+
+      {/* Nav bar below header */}
+      <PortalNav />
 
       <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
     </div>
