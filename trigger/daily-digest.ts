@@ -49,7 +49,7 @@ interface MailboxHealth {
 
 export const dailyDigest = schedules.task({
   id: "daily-digest",
-  cron: "0 13 * * *",
+  // cron: "0 13 * * *",  // DISABLED — re-enable to resume daily 8 AM ET digest
   machine: { preset: "small-1x" },
   run: async () => {
     // Run all 5 read-only queries in parallel — none depend on each other

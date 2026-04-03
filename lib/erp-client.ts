@@ -185,11 +185,11 @@ export type { ERPPurchaseOrder, ERPRepairOrder, Net30Order, FollowupRO }
  * Callers can pass prefetched items to avoid redundant API calls.
  */
 export async function getAllRepairOrderItems(): Promise<any[]> {
-  return fetchAllPages('v1/ro/list')
+  return fetchAllPages('v1/repair_order/list')
 }
 
 export async function getOpenPurchaseOrders(): Promise<ERPPurchaseOrder[]> {
-  const items = await fetchAllPages('v1/po/list')
+  const items = await fetchAllPages('v1/purchase_order/list')
   const orders: ERPPurchaseOrder[] = []
 
   for (const item of items) {
@@ -218,7 +218,7 @@ export async function getOpenPurchaseOrders(): Promise<ERPPurchaseOrder[]> {
 }
 
 export async function getActiveRepairOrders(limit: number = 50, prefetchedItems?: any[]): Promise<ERPRepairOrder[]> {
-  const items = prefetchedItems ?? await fetchAllPages('v1/ro/list')
+  const items = prefetchedItems ?? await fetchAllPages('v1/repair_order/list')
   const orders: ERPRepairOrder[] = []
 
   for (const item of items) {
@@ -248,7 +248,7 @@ export async function getNet30PaymentDates(prefetchedItems?: any[]): Promise<{
   summary: { past_due: number; due_soon: number; upcoming: number }
   orders: Net30Order[]
 }> {
-  const items = prefetchedItems ?? await fetchAllPages('v1/ro/list')
+  const items = prefetchedItems ?? await fetchAllPages('v1/repair_order/list')
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
@@ -322,7 +322,7 @@ export async function getFollowupROs(prefetchedItems?: any[]): Promise<{
   statuses: { Approved: number; Delivered: number }
   orders: FollowupRO[]
 }> {
-  const items = prefetchedItems ?? await fetchAllPages('v1/ro/list')
+  const items = prefetchedItems ?? await fetchAllPages('v1/repair_order/list')
   const orders: FollowupRO[] = []
 
   for (const item of items) {
