@@ -1,189 +1,124 @@
 /**
- * TDD RED phase — tests for document routes
+ * Tests for portal documents proxy routes.
  *
- * Route files do NOT exist yet:
- *   app/api/portal/documents/route.ts              (GET list)
- *   app/api/portal/documents/[id]/download/route.ts (GET file download)
- *
- * All tests should FAIL (import error) until production files are created.
- *
- * GET  /api/portal/documents              → { documents: Document[] }
- * GET  /api/portal/documents/[id]/download → File stream (NextResponse with blob/stream)
- *
- * Auth: getPortalContext() — role must be 'client'.
- * Isolation: documents are scoped to the authenticated company_id.
+ * Routes are now thin proxies to genthrust-ai via lib/api-proxy.ts.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ---------------------------------------------------------------------------
-// Mock @/auth and @/lib/db
-// ---------------------------------------------------------------------------
+const mockAuth = vi.fn();
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 
-const mockAuth = vi.fn()
-vi.mock('@/auth', () => ({
-  auth: mockAuth,
-}))
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
-const mockQuery = vi.fn()
-vi.mock('@/lib/db', () => ({
-  query: mockQuery,
-}))
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeClientSession(companyId: number) {
-  return {
-    user: {
-      id: 'user-1',
-      email: 'client@example.com',
-      role: 'client',
-      companyId,
-    },
-  }
+function makeSession() {
+  return { user: { id: "1", email: "client@test.com", role: "client", companyId: 1 } };
 }
 
-function makeListRequest(params: Record<string, string> = {}) {
-  const url = new URL('http://localhost/api/portal/documents')
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(k, v)
-  }
-  return new Request(url.toString())
+function makeRequest(url = "http://localhost/api/portal/documents") {
+  return new Request(url, { headers: { cookie: "session=abc" } });
 }
 
-function makeDownloadRequest(id: string) {
-  return {
-    params: Promise.resolve({ id }),
-  } as any
+function upstream(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }
 
-// ---------------------------------------------------------------------------
-// GET /api/portal/documents — list
-// ---------------------------------------------------------------------------
-
-describe('GET /api/portal/documents', () => {
+describe("GET /api/portal/documents (proxy)", () => {
   beforeEach(() => {
-    vi.resetModules()
-    mockAuth.mockReset()
-    mockQuery.mockReset()
-  })
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-    const { GET } = await import('@/app/api/portal/documents/route')
-    const res = await GET(makeListRequest())
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/portal/documents/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-  it('returns documents for the authenticated company', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    const docs = [
-      { id: 1, company_id: 1, name: 'Invoice INV-001.pdf', type: 'invoice', created_at: '2026-03-01' },
-      { id: 2, company_id: 1, name: 'SO-005 Packing List.pdf', type: 'packing_list', created_at: '2026-03-10' },
-    ]
-    mockQuery.mockResolvedValueOnce(docs)
+  it("proxies GET to /api/portal/documents on genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(200, { documents: [] }));
 
-    const { GET } = await import('@/app/api/portal/documents/route')
-    const res = await GET(makeListRequest())
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/documents/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(200);
 
-    expect(res.status).toBe(200)
-    expect(body.documents).toHaveLength(2)
-    expect(body.documents[0]).toHaveProperty('name')
-    expect(body.documents[0]).toHaveProperty('type')
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/documents");
+  });
 
-  it('returns empty documents array for a company with no documents', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(3))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'No Docs Co' }])
-    mockQuery.mockResolvedValueOnce([])
+  it("forwards type query param to genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(200, { documents: [] }));
 
-    const { GET } = await import('@/app/api/portal/documents/route')
-    const res = await GET(makeListRequest())
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/documents/route");
+    await GET(makeRequest("http://localhost/api/portal/documents?type=invoice"));
 
-    expect(res.status).toBe(200)
-    expect(body.documents).toEqual([])
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("type=invoice");
+  });
 
-  it('filters by type query param (?type=invoice)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    mockQuery.mockResolvedValueOnce([
-      { id: 1, company_id: 1, name: 'Invoice INV-001.pdf', type: 'invoice', created_at: '2026-03-01' },
-    ])
+  it("returns 502 when genthrust-ai is unreachable", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockRejectedValue(new Error("ECONNREFUSED"));
 
-    const { GET } = await import('@/app/api/portal/documents/route')
-    const res = await GET(makeListRequest({ type: 'invoice' }))
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/documents/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(502);
+  });
+});
 
-    expect(res.status).toBe(200)
-    // SQL must include the type filter
-    const dataSql = mockQuery.mock.calls[1][0] as string
-    const dataParams = mockQuery.mock.calls[1][1] as any[]
-    expect(dataSql.toLowerCase()).toContain('type')
-    expect(dataParams).toContain('invoice')
-    for (const doc of body.documents) {
-      expect(doc.type).toBe('invoice')
-    }
-  })
-})
-
-// ---------------------------------------------------------------------------
-// GET /api/portal/documents/[id]/download
-// ---------------------------------------------------------------------------
-
-describe('GET /api/portal/documents/[id]/download', () => {
+describe("GET /api/portal/documents/[id]/download (proxy)", () => {
   beforeEach(() => {
-    vi.resetModules()
-    mockAuth.mockReset()
-    mockQuery.mockReset()
-  })
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-    const { GET } = await import('@/app/api/portal/documents/[id]/download/route')
-    const res = await GET({} as any, makeDownloadRequest('1'))
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/portal/documents/[id]/download/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "1" }) });
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-  it('returns the file for an authorized document (200 with content)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    // Document lookup returns a row with file data
-    const doc = { id: 1, company_id: 1, name: 'Invoice.pdf', type: 'invoice', file_path: '/files/invoice-001.pdf', mime_type: 'application/pdf' }
-    mockQuery.mockResolvedValueOnce([doc])
+  it("proxies GET /documents/:id/download with id in path", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(
+      new Response(
+        JSON.stringify({ name: "doc.pdf", type: "invoice", file_path: "/files/doc.pdf" }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json",
+            "content-disposition": 'attachment; filename="doc.pdf"',
+          },
+        }
+      )
+    );
 
-    const { GET } = await import('@/app/api/portal/documents/[id]/download/route')
-    const res = await GET({} as any, makeDownloadRequest('1'))
+    const { GET } = await import("@/app/api/portal/documents/[id]/download/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "8" }) });
+    expect(res.status).toBe(200);
 
-    // Should be a successful file response (200 or a redirect/stream)
-    expect(res.status).toBe(200)
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/documents/8/download");
+  });
 
-  it('returns 404 for a non-existent document', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    mockQuery.mockResolvedValueOnce([]) // no rows
+  it("passes through 404 from genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(404, { error: "Not found" }));
 
-    const { GET } = await import('@/app/api/portal/documents/[id]/download/route')
-    const res = await GET({} as any, makeDownloadRequest('9999'))
-    expect(res.status).toBe(404)
-  })
-
-  it('returns 404 for a document belonging to a different company (cross-company block)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2)) // company 2
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Other Corp' }])
-    // Document query scoped by company; returns empty because doc belongs to company 1
-    mockQuery.mockResolvedValueOnce([])
-
-    const { GET } = await import('@/app/api/portal/documents/[id]/download/route')
-    const res = await GET({} as any, makeDownloadRequest('1'))
-    expect(res.status).toBe(404)
-  })
-})
+    const { GET } = await import("@/app/api/portal/documents/[id]/download/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "9999" }) });
+    expect(res.status).toBe(404);
+  });
+});

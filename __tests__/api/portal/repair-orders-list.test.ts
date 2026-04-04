@@ -1,245 +1,113 @@
 /**
- * TDD RED phase — tests for GET /api/portal/repair-orders
+ * Tests for portal repair-orders proxy routes.
  *
- * Route file does NOT exist yet: app/api/portal/repair-orders/route.ts
- * All tests should FAIL (import error / 404) until the production file is created.
- *
- * Expected response shape:
- *   { data: RepairOrder[], total: number, page: number, limit: number }
- *
- * RepairOrder fields: ro_number, vendor_name, status, priority, due_date, total
- *
- * Auth: getPortalContext() — role must be 'client', companyId must be numeric.
- * Company isolation is enforced by scoping WHERE vendor_name = companyName.
+ * Routes are now thin proxies to genthrust-ai via lib/api-proxy.ts.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ---------------------------------------------------------------------------
-// Mock @/auth and @/lib/db
-// ---------------------------------------------------------------------------
+const mockAuth = vi.fn();
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 
-const mockAuth = vi.fn()
-vi.mock('@/auth', () => ({
-  auth: mockAuth,
-}))
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
-const mockQuery = vi.fn()
-vi.mock('@/lib/db', () => ({
-  query: mockQuery,
-}))
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function makeClientSession(companyId: number) {
-  return {
-    user: {
-      id: 'user-1',
-      email: 'client@example.com',
-      role: 'client',
-      companyId,
-    },
-  }
+function makeSession() {
+  return { user: { id: "1", email: "client@test.com", role: "client", companyId: 1 } };
 }
 
-function makeRequest(params: Record<string, string> = {}) {
-  const url = new URL('http://localhost/api/portal/repair-orders')
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(k, v)
-  }
-  return new Request(url.toString())
+function makeRequest(url = "http://localhost/api/portal/repair-orders") {
+  return new Request(url, { headers: { cookie: "session=abc" } });
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
+function upstream(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
+}
 
-describe('GET /api/portal/repair-orders', () => {
+describe("GET /api/portal/repair-orders (proxy)", () => {
   beforeEach(() => {
-    vi.resetModules()
-    mockAuth.mockReset()
-    mockQuery.mockReset()
-  })
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  // -------------------------------------------------------------------------
-  // Auth / access control
-  // -------------------------------------------------------------------------
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/portal/repair-orders/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+  it("proxies GET to /api/portal/repair-orders on genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(200, { data: [], total: 0, page: 1, limit: 20 }));
 
-  it('returns 401 when user role is internal (portal-only endpoint)', async () => {
-    mockAuth.mockResolvedValue({ user: { role: 'internal', companyId: 1 } })
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+    const { GET } = await import("@/app/api/portal/repair-orders/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(200);
 
-  // -------------------------------------------------------------------------
-  // Default pagination
-  // -------------------------------------------------------------------------
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/repair-orders");
+  });
 
-  it('returns paginated RO list with default page=1 and limit=20', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Vendor LLC' }])
-    mockQuery.mockResolvedValueOnce([{ total: 2 }])
-    const rows = [
-      { ro_number: 'RO-001', vendor_name: 'Vendor LLC', status: 'open', priority: 'normal', due_date: '2026-04-01', total: 500 },
-      { ro_number: 'RO-002', vendor_name: 'Vendor LLC', status: 'in_progress', priority: 'high', due_date: null, total: 1200 },
-    ]
-    mockQuery.mockResolvedValueOnce(rows)
+  it("forwards query params to genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(200, { data: [], total: 0, page: 1, limit: 10 }));
 
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/repair-orders/route");
+    await GET(makeRequest("http://localhost/api/portal/repair-orders?page=1&status=Open"));
 
-    expect(res.status).toBe(200)
-    expect(body.data).toHaveLength(2)
-    expect(body.total).toBe(2)
-    expect(body.page).toBe(1)
-    expect(body.limit).toBe(20)
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("status=Open");
+  });
 
-  it('returns correct fields: ro_number, vendor_name, status, priority, due_date, total', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Vendor LLC' }])
-    mockQuery.mockResolvedValueOnce([{ total: 1 }])
-    mockQuery.mockResolvedValueOnce([
-      { ro_number: 'RO-001', vendor_name: 'Vendor LLC', status: 'open', priority: 'normal', due_date: null, total: 500 },
-    ])
+  it("returns 502 when genthrust-ai is unreachable", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockRejectedValue(new Error("ECONNREFUSED"));
 
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/repair-orders/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(502);
+  });
+});
 
-    expect(res.status).toBe(200)
-    const item = body.data[0]
-    expect(item).toHaveProperty('ro_number')
-    expect(item).toHaveProperty('vendor_name')
-    expect(item).toHaveProperty('status')
-    expect(item).toHaveProperty('priority')
-    expect(item).toHaveProperty('due_date')
-    expect(item).toHaveProperty('total')
-  })
+describe("GET /api/portal/repair-orders/[id] (proxy)", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  it('returns only the authenticated company\'s ROs (company isolation)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(7))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Secure Vendor' }])
-    mockQuery.mockResolvedValueOnce([{ total: 1 }])
-    mockQuery.mockResolvedValueOnce([
-      { ro_number: 'RO-007', vendor_name: 'Secure Vendor', status: 'open', priority: 'low', due_date: null, total: 300 },
-    ])
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/portal/repair-orders/[id]/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "1" }) });
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    const body = await res.json()
+  it("proxies GET /repair-orders/:id with id in path", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(200, { order: { id: 5 }, lines: [] }));
 
-    expect(res.status).toBe(200)
-    for (const ro of body.data) {
-      expect(ro.vendor_name).toBe('Secure Vendor')
-    }
-    // Count and data queries must be scoped to companyName
-    expect(mockQuery.mock.calls[1][1]).toContain('Secure Vendor')
-    expect(mockQuery.mock.calls[2][1]).toContain('Secure Vendor')
-  })
+    const { GET } = await import("@/app/api/portal/repair-orders/[id]/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "5" }) });
+    expect(res.status).toBe(200);
 
-  it('returns empty array and total=0 for company with no ROs', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(3))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Empty Vendor' }])
-    mockQuery.mockResolvedValueOnce([{ total: 0 }])
-    mockQuery.mockResolvedValueOnce([])
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/repair-orders/5");
+  });
 
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    const body = await res.json()
+  it("passes through 404 from genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeSession());
+    mockFetch.mockResolvedValue(upstream(404, { error: "Not found" }));
 
-    expect(res.status).toBe(200)
-    expect(body.data).toEqual([])
-    expect(body.total).toBe(0)
-  })
-
-  // -------------------------------------------------------------------------
-  // Filters
-  // -------------------------------------------------------------------------
-
-  it('filters by status query param (?status=open)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Vendor LLC' }])
-    mockQuery.mockResolvedValueOnce([{ total: 1 }])
-    mockQuery.mockResolvedValueOnce([
-      { ro_number: 'RO-001', vendor_name: 'Vendor LLC', status: 'open', priority: 'normal', due_date: null, total: 500 },
-    ])
-
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest({ status: 'open' }))
-    const body = await res.json()
-
-    expect(res.status).toBe(200)
-    const countSql = mockQuery.mock.calls[1][0] as string
-    const dataSql = mockQuery.mock.calls[2][0] as string
-    expect(countSql.toLowerCase()).toContain('status')
-    expect(dataSql.toLowerCase()).toContain('status')
-    expect(mockQuery.mock.calls[1][1]).toContain('open')
-    expect(body.data[0].status).toBe('open')
-  })
-
-  it('searches by RO number (?search=RO001)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Vendor LLC' }])
-    mockQuery.mockResolvedValueOnce([{ total: 1 }])
-    mockQuery.mockResolvedValueOnce([
-      { ro_number: 'RO001', vendor_name: 'Vendor LLC', status: 'open', priority: 'normal', due_date: null, total: 500 },
-    ])
-
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest({ search: 'RO001' }))
-
-    expect(res.status).toBe(200)
-    const dataSql = mockQuery.mock.calls[2][0] as string
-    expect(dataSql.toLowerCase()).toContain('ro_number')
-  })
-
-  // -------------------------------------------------------------------------
-  // Pagination
-  // -------------------------------------------------------------------------
-
-  it('supports page param for pagination (page=3, limit=20 → OFFSET 40)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Vendor LLC' }])
-    mockQuery.mockResolvedValueOnce([{ total: 65 }])
-    mockQuery.mockResolvedValueOnce([])
-
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest({ page: '3' }))
-    const body = await res.json()
-
-    expect(res.status).toBe(200)
-    expect(body.page).toBe(3)
-    expect(body.total).toBe(65)
-    const dataSql = mockQuery.mock.calls[2][0] as string
-    expect(dataSql.toUpperCase()).toContain('OFFSET')
-  })
-
-  it('returns total count for pagination UI', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Vendor LLC' }])
-    mockQuery.mockResolvedValueOnce([{ total: 42 }])
-    mockQuery.mockResolvedValueOnce([])
-
-    const { GET } = await import('@/app/api/portal/repair-orders/route')
-    const res = await GET(makeRequest())
-    const body = await res.json()
-
-    expect(res.status).toBe(200)
-    expect(body.total).toBe(42)
-    expect(mockQuery).toHaveBeenCalledTimes(3) // companies + count + data
-  })
-})
+    const { GET } = await import("@/app/api/portal/repair-orders/[id]/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "9999" }) });
+    expect(res.status).toBe(404);
+  });
+});

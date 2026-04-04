@@ -1,84 +1,11 @@
-import { NextResponse } from 'next/server'
-import { getPortalContext } from '@/lib/portal-auth'
-import { query } from '@/lib/db'
-export const dynamic = 'force-dynamic'
+import { type NextRequest } from "next/server";
+import { proxyToGenthrust } from "@/lib/api-proxy";
 
-export async function GET() {
-  try {
-    const ctx = await getPortalContext()
-    if (!ctx) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export const dynamic = "force-dynamic";
 
-    const { companyName } = ctx
-
-    const [
-      [{ activeSOs }],
-      [{ openInvoices, openBalance }],
-      [{ activeROs }],
-      recentSOs,
-      recentInvoices,
-      recentROs,
-    ] = await Promise.all([
-      query<any[]>(
-        `SELECT COUNT(*) as activeSOs FROM sales_orders
-         WHERE customer_name = ? AND (status NOT IN ('Closed', 'Cancelled', 'Completed') OR status IS NULL)`,
-        [companyName]
-      ),
-      query<any[]>(
-        `SELECT COUNT(*) as openInvoices, COALESCE(SUM(open_balance), 0) as openBalance FROM invoices
-         WHERE account_name = ? AND (status NOT IN ('Paid', 'Closed', 'Cancelled') OR status IS NULL)`,
-        [companyName]
-      ),
-      query<any[]>(
-        `SELECT COUNT(*) as activeROs FROM repair_orders
-         WHERE vendor_name = ? AND (status NOT IN ('Closed', 'Cancelled', 'Completed') OR status IS NULL)`,
-        [companyName]
-      ),
-      query<any[]>(
-        `SELECT id, erp_so_id, so_number, customer_po, customer_name, status, priority,
-                due_date, total, erp_created_at
-         FROM sales_orders
-         WHERE customer_name = ?
-         ORDER BY erp_modified_at DESC
-         LIMIT 10`,
-        [companyName]
-      ),
-      query<any[]>(
-        `SELECT id, erp_invoice_id, invoice_no, account_name, status, due_date,
-                invoice_date, total, open_balance
-         FROM invoices
-         WHERE account_name = ?
-         ORDER BY erp_modified_at DESC
-         LIMIT 10`,
-        [companyName]
-      ),
-      query<any[]>(
-        `SELECT id, erp_po_id, ro_number, vendor_name, status, priority, due_date, total,
-                erp_created_at, erp_modified_at
-         FROM repair_orders
-         WHERE vendor_name = ?
-         ORDER BY erp_modified_at DESC
-         LIMIT 10`,
-        [companyName]
-      ),
-    ])
-
-    return NextResponse.json({
-      companyName,
-      stats: {
-        activeSOs,
-        openInvoices,
-        openBalance: parseFloat(openBalance) || 0,
-        activeROs,
-      },
-      recentSalesOrders: recentSOs,
-      recentInvoices,
-      recentRepairOrders: recentROs,
-    })
-  } catch (error) {
-    console.error('Portal dashboard API error:', error)
-    return NextResponse.json(
-      { error: 'Failed to load dashboard data' },
-      { status: 500 }
-    )
-  }
+// TODO: genthrust-ai must implement GET /api/portal/dashboard
+// Expected response: { companyName, stats: { activeSOs, openInvoices, openBalance, activeROs },
+//   recentSalesOrders, recentInvoices, recentRepairOrders }
+export async function GET(request: NextRequest) {
+  return proxyToGenthrust({ path: "/api/portal/dashboard", request });
 }

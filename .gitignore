@@ -55,3 +55,5 @@ export-erp.js
 # Agent ecosystem artifacts
 .task-runner/
 .git.backup/
+.backups/
+CLAUDE.md.bak

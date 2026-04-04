@@ -1,335 +1,200 @@
 /**
- * TDD RED phase — tests for quote request routes
+ * Tests for portal quotes proxy routes.
  *
- * Route files do NOT exist yet:
- *   app/api/portal/quotes/route.ts          (GET list, POST create)
- *   app/api/portal/quotes/[id]/route.ts     (GET detail)
- *
- * All tests should FAIL (import error) until production files are created.
- *
- * GET  /api/portal/quotes        → { data: Quote[], total: number }
- * POST /api/portal/quotes        → { id: number, status: 'pending' }
- * GET  /api/portal/quotes/[id]   → { quote: Quote, lineItems: LineItem[] }
- *
- * POST body shape:
- *   { line_items: Array<{ part_number: string, quantity: number }> }
- *
- * Auth: getPortalContext() — role must be 'client'.
- * Isolation: quotes are bound to company_id from the authenticated context.
+ * Routes are now thin proxies to genthrust-ai via lib/api-proxy.ts.
+ * These tests verify:
+ *   1. Unauthenticated requests return 401 (XVII-LLC gate, before proxy)
+ *   2. Authenticated requests forward to genthrust-ai and return its response
+ *   3. Query params and request body are forwarded
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ---------------------------------------------------------------------------
-// Mock @/auth and @/lib/db
+// Mocks
 // ---------------------------------------------------------------------------
 
-const mockAuth = vi.fn()
-vi.mock('@/auth', () => ({
-  auth: mockAuth,
-}))
+const mockAuth = vi.fn();
+vi.mock("@/auth", () => ({ auth: mockAuth }));
 
-const mockQuery = vi.fn()
-vi.mock('@/lib/db', () => ({
-  query: mockQuery,
-}))
+// Mock global fetch used by the proxy helper
+const mockFetch = vi.fn();
+vi.stubGlobal("fetch", mockFetch);
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-function makeClientSession(companyId: number) {
+function makeClientSession() {
   return {
-    user: {
-      id: 'user-1',
-      email: 'client@example.com',
-      role: 'client',
-      companyId,
-    },
-  }
+    user: { id: "user-1", email: "client@example.com", role: "client", companyId: 1 },
+  };
 }
 
-function makeRequest(body?: unknown, params: Record<string, string> = {}) {
-  const url = new URL('http://localhost/api/portal/quotes')
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(k, v)
+function makeRequest(opts: { method?: string; body?: unknown; url?: string } = {}) {
+  const url = opts.url ?? "http://localhost/api/portal/quotes";
+  if (opts.body !== undefined) {
+    return new Request(url, {
+      method: opts.method ?? "POST",
+      headers: { "Content-Type": "application/json", cookie: "next-auth.session-token=abc" },
+      body: JSON.stringify(opts.body),
+    });
   }
-  if (body !== undefined) {
-    return new Request(url.toString(), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-  }
-  return new Request(url.toString())
+  return new Request(url, {
+    method: opts.method ?? "GET",
+    headers: { cookie: "next-auth.session-token=abc" },
+  });
 }
 
-function makeDetailRequest(id: string) {
-  return {
-    params: Promise.resolve({ id }),
-  } as any
+function upstreamResponse(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "content-type": "application/json" },
+  });
 }
 
 // ---------------------------------------------------------------------------
-// GET /api/portal/quotes — list
+// GET /api/portal/quotes
 // ---------------------------------------------------------------------------
 
-describe('GET /api/portal/quotes', () => {
+describe("GET /api/portal/quotes (proxy)", () => {
   beforeEach(() => {
-    vi.resetModules()
-    mockAuth.mockReset()
-    mockQuery.mockReset()
-  })
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-    const { GET } = await import('@/app/api/portal/quotes/route')
-    const res = await GET(makeRequest())
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+  it("returns 401 when unauthenticated (XVII-LLC gate)", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/portal/quotes/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-  it('returns pending and responded quotes for the authenticated company', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    const quotes = [
-      { id: 1, company_id: 1, company_name: 'ACME Corp', contact_email: 'buyer@acme.com', status: 'pending', created_at: '2026-03-20T10:00:00Z' },
-      { id: 2, company_id: 1, company_name: 'ACME Corp', contact_email: 'buyer@acme.com', status: 'responded', created_at: '2026-03-18T08:00:00Z' },
-    ]
-    mockQuery.mockResolvedValueOnce(quotes)
+  it("proxies GET to genthrust-ai and returns upstream response", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    const upstream = upstreamResponse(200, { data: [{ id: 1 }], total: 1 });
+    mockFetch.mockResolvedValue(upstream);
 
-    const { GET } = await import('@/app/api/portal/quotes/route')
-    const res = await GET(makeRequest())
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/quotes/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(200);
+    expect(mockFetch).toHaveBeenCalledOnce();
 
-    expect(res.status).toBe(200)
-    expect(body.data).toHaveLength(2)
-    expect(body.total).toBe(2)
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/quotes");
+  });
 
-  it('returns newest first (ORDER BY created_at DESC)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    mockQuery.mockResolvedValueOnce([
-      { id: 5, company_id: 1, company_name: 'ACME Corp', contact_email: 'a@acme.com', status: 'pending', created_at: '2026-03-22T09:00:00Z' },
-      { id: 3, company_id: 1, company_name: 'ACME Corp', contact_email: 'a@acme.com', status: 'responded', created_at: '2026-03-20T07:00:00Z' },
-    ])
+  it("forwards query params to genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    mockFetch.mockResolvedValue(upstreamResponse(200, { data: [], total: 0 }));
 
-    const { GET } = await import('@/app/api/portal/quotes/route')
-    await GET(makeRequest())
+    const { GET } = await import("@/app/api/portal/quotes/route");
+    const req = makeRequest({ url: "http://localhost/api/portal/quotes?page=2&limit=5" });
+    await GET(req);
 
-    // SQL must contain ORDER BY and DESC
-    const dataSql = mockQuery.mock.calls[1][0] as string
-    expect(dataSql.toUpperCase()).toContain('ORDER BY')
-    expect(dataSql.toUpperCase()).toContain('DESC')
-    expect(dataSql.toLowerCase()).toContain('created_at')
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("page=2");
+    expect(String(url)).toContain("limit=5");
+  });
 
-  it('scopes list query to authenticated company (company_id isolation)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(9))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Tenant Nine' }])
-    mockQuery.mockResolvedValueOnce([])
+  it("returns 502 when genthrust-ai is unreachable", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    mockFetch.mockRejectedValue(new Error("ECONNREFUSED"));
 
-    const { GET } = await import('@/app/api/portal/quotes/route')
-    await GET(makeRequest())
-
-    // The data query must be scoped by company_id (numeric) or company_name
-    const dataSql = mockQuery.mock.calls[1][0] as string
-    const dataParams = mockQuery.mock.calls[1][1] as any[]
-    // Either company_id=9 or company_name='Tenant Nine' in the bind params
-    const hasIsolation = dataParams.includes(9) || dataParams.includes('Tenant Nine')
-    expect(hasIsolation).toBe(true)
-    expect(dataSql.toLowerCase()).toMatch(/company_id|company_name/)
-  })
-})
+    const { GET } = await import("@/app/api/portal/quotes/route");
+    const res = await GET(makeRequest());
+    expect(res.status).toBe(502);
+  });
+});
 
 // ---------------------------------------------------------------------------
-// POST /api/portal/quotes — create
+// POST /api/portal/quotes
 // ---------------------------------------------------------------------------
 
-describe('POST /api/portal/quotes', () => {
+describe("POST /api/portal/quotes (proxy)", () => {
   beforeEach(() => {
-    vi.resetModules()
-    mockAuth.mockReset()
-    mockQuery.mockReset()
-  })
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({ line_items: [{ part_number: 'PN-001', quantity: 1 }] }))
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { POST } = await import("@/app/api/portal/quotes/route");
+    const res = await POST(
+      makeRequest({ body: { line_items: [{ part_number: "PN-1", quantity: 1 }] } })
+    );
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-  it('creates a quote and returns { id, status: "pending" }', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    // INSERT quote → returns insertId
-    mockQuery.mockResolvedValueOnce({ insertId: 42 })
-    // INSERT line items (may be one call per line or bulk)
-    mockQuery.mockResolvedValueOnce({ affectedRows: 2 })
+  it("proxies POST with body to genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    mockFetch.mockResolvedValue(upstreamResponse(201, { id: 42, status: "pending" }));
 
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({
-      line_items: [
-        { part_number: 'PN-001', quantity: 2 },
-        { part_number: 'PN-002', quantity: 1 },
-      ],
-    }))
-    const body = await res.json()
+    const { POST } = await import("@/app/api/portal/quotes/route");
+    const payload = { line_items: [{ part_number: "PN-001", quantity: 2 }] };
+    const res = await POST(makeRequest({ body: payload }));
 
-    expect(res.status).toBe(201)
-    expect(body.id).toBe(42)
-    expect(body.status).toBe('pending')
-  })
+    expect(res.status).toBe(201);
+    expect(mockFetch).toHaveBeenCalledOnce();
 
-  it('binds the quote to the authenticated company (no company_id override from body)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(5))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Isolated Co' }])
-    mockQuery.mockResolvedValueOnce({ insertId: 10 })
-    mockQuery.mockResolvedValueOnce({ affectedRows: 1 })
+    const [url, options] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/quotes");
+    expect(options.method).toBe("POST");
+  });
 
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    await POST(makeRequest({ line_items: [{ part_number: 'PN-X', quantity: 1 }] }))
+  it("passes through 400 from genthrust-ai (validation error)", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    mockFetch.mockResolvedValue(
+      upstreamResponse(400, { error: "line_items must be a non-empty array" })
+    );
 
-    // INSERT quote must bind companyId=5 (from session, not from request body)
-    const insertSql = mockQuery.mock.calls[1][0] as string
-    const insertParams = mockQuery.mock.calls[1][1] as any[]
-    expect(insertSql.toLowerCase()).toContain('insert')
-    expect(insertParams).toContain(5)
-  })
-
-  it('returns 400 when line_items is missing from body', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({}))
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 400 when line_items is an empty array', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({ line_items: [] }))
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 400 when a line item is missing part_number', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({
-      line_items: [{ quantity: 1 }], // missing part_number
-    }))
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 400 when quantity is negative', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({
-      line_items: [{ part_number: 'PN-001', quantity: -1 }],
-    }))
-    expect(res.status).toBe(400)
-  })
-
-  it('returns 400 when quantity is zero', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-
-    const { POST } = await import('@/app/api/portal/quotes/route')
-    const res = await POST(makeRequest({
-      line_items: [{ part_number: 'PN-001', quantity: 0 }],
-    }))
-    expect(res.status).toBe(400)
-  })
-})
+    const { POST } = await import("@/app/api/portal/quotes/route");
+    const res = await POST(makeRequest({ body: {} }));
+    expect(res.status).toBe(400);
+  });
+});
 
 // ---------------------------------------------------------------------------
-// GET /api/portal/quotes/[id] — detail
+// GET /api/portal/quotes/[id]
 // ---------------------------------------------------------------------------
 
-describe('GET /api/portal/quotes/[id]', () => {
+describe("GET /api/portal/quotes/[id] (proxy)", () => {
   beforeEach(() => {
-    vi.resetModules()
-    mockAuth.mockReset()
-    mockQuery.mockReset()
-  })
+    vi.resetModules();
+    mockAuth.mockReset();
+    mockFetch.mockReset();
+  });
 
-  it('returns 401 when unauthenticated', async () => {
-    mockAuth.mockResolvedValue(null)
-    const { GET } = await import('@/app/api/portal/quotes/[id]/route')
-    const res = await GET({} as any, makeDetailRequest('1'))
-    expect(res.status).toBe(401)
-    expect(mockQuery).not.toHaveBeenCalled()
-  })
+  it("returns 401 when unauthenticated", async () => {
+    mockAuth.mockResolvedValue(null);
+    const { GET } = await import("@/app/api/portal/quotes/[id]/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "1" }) });
+    expect(res.status).toBe(401);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
 
-  it('returns full quote with line items for a valid id', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    const quote = {
-      id: 1, company_id: 1, company_name: 'ACME Corp', contact_email: 'buyer@acme.com',
-      status: 'pending', notes: 'Urgent', created_at: '2026-03-20T10:00:00Z',
-    }
-    mockQuery.mockResolvedValueOnce([quote])
-    const lineItems = [
-      { id: 10, quote_id: 1, part_number: 'PN-001', quantity: 2 },
-      { id: 11, quote_id: 1, part_number: 'PN-002', quantity: 1 },
-    ]
-    mockQuery.mockResolvedValueOnce(lineItems)
+  it("proxies GET /quotes/:id to genthrust-ai with id in path", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    mockFetch.mockResolvedValue(upstreamResponse(200, { quote: { id: 7 }, lineItems: [] }));
 
-    const { GET } = await import('@/app/api/portal/quotes/[id]/route')
-    const res = await GET({} as any, makeDetailRequest('1'))
-    const body = await res.json()
+    const { GET } = await import("@/app/api/portal/quotes/[id]/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "7" }) });
+    expect(res.status).toBe(200);
 
-    expect(res.status).toBe(200)
-    expect(body.quote).toMatchObject({ id: 1, status: 'pending' })
-    expect(body.lineItems).toHaveLength(2)
-  })
+    const [url] = mockFetch.mock.calls[0];
+    expect(String(url)).toContain("/api/portal/quotes/7");
+  });
 
-  it('returns 404 for a non-existent quote id', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    mockQuery.mockResolvedValueOnce([]) // no rows
+  it("passes through 404 from genthrust-ai", async () => {
+    mockAuth.mockResolvedValue(makeClientSession());
+    mockFetch.mockResolvedValue(upstreamResponse(404, { error: "Not found" }));
 
-    const { GET } = await import('@/app/api/portal/quotes/[id]/route')
-    const res = await GET({} as any, makeDetailRequest('9999'))
-    expect(res.status).toBe(404)
-  })
-
-  it('returns 404 for a quote belonging to a different company (IDOR block)', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(2)) // company 2
-    mockQuery.mockResolvedValueOnce([{ company_name: 'Other Co' }])
-    // Route must scope by company; returns empty for quote owned by company 1
-    mockQuery.mockResolvedValueOnce([])
-
-    const { GET } = await import('@/app/api/portal/quotes/[id]/route')
-    const res = await GET({} as any, makeDetailRequest('1'))
-    expect(res.status).toBe(404)
-  })
-
-  it('includes company_name and contact_email on the quote object', async () => {
-    mockAuth.mockResolvedValue(makeClientSession(1))
-    mockQuery.mockResolvedValueOnce([{ company_name: 'ACME Corp' }])
-    mockQuery.mockResolvedValueOnce([{
-      id: 3, company_id: 1, company_name: 'ACME Corp',
-      contact_email: 'buyer@acme.com', status: 'responded', created_at: '2026-03-21T00:00:00Z',
-    }])
-    mockQuery.mockResolvedValueOnce([])
-
-    const { GET } = await import('@/app/api/portal/quotes/[id]/route')
-    const res = await GET({} as any, makeDetailRequest('3'))
-    const body = await res.json()
-
-    expect(res.status).toBe(200)
-    expect(body.quote).toHaveProperty('company_name')
-    expect(body.quote).toHaveProperty('contact_email')
-  })
-})
+    const { GET } = await import("@/app/api/portal/quotes/[id]/route");
+    const res = await GET(makeRequest(), { params: Promise.resolve({ id: "9999" }) });
+    expect(res.status).toBe(404);
+  });
+});
