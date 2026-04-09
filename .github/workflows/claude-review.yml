@@ -1,0 +1,154 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: claude-review-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Get PR info
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "number=${{ github.event.pull_request.number }}" >> "$GITHUB_OUTPUT"
+          echo "title=${{ github.event.pull_request.title }}" >> "$GITHUB_OUTPUT"
+
+      - name: Run enhanced review
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PR_TITLE: ${{ steps.pr.outputs.title }}
+        run: |
+          DIFF=$(gh pr diff "$PR_NUMBER")
+
+          # Skip if diff is empty or trivially small
+          DIFF_LINES=$(echo "$DIFF" | wc -l)
+          if [ "$DIFF_LINES" -lt 5 ]; then
+            echo "Trivial PR (${DIFF_LINES} diff lines), skipping review."
+            echo '{"findings":[],"summary":"Trivial change, no review needed.","verdict":"approved"}' > /tmp/review-output.json
+            exit 0
+          fi
+
+          # Skip if diff is too large for context window
+          if [ "$DIFF_LINES" -gt 8000 ]; then
+            echo "Diff too large (${DIFF_LINES} lines) for automated review."
+            echo '{"findings":[],"summary":"Diff too large for automated review. Please request a manual review.","verdict":"approved"}' > /tmp/review-output.json
+            exit 0
+          fi
+
+          REVIEW_PROMPT="Review this PR diff for bugs, security issues, performance problems, and CLAUDE.md compliance.
+
+          This is a Next.js 14 single-app with NextAuth, Drizzle ORM (MySQL), and Trigger.dev background tasks. Flag auth bypass risks, missing input validation on API routes, and Drizzle query safety issues.
+
+          PR #${PR_NUMBER}: ${PR_TITLE}
+
+          ${DIFF}
+
+          Return findings as structured JSON. For each finding include: file path, line number, severity (critical/high/medium/low), issue description, suggested fix, and confidence score 0-100. Only include findings with confidence >= 80. Focus on HIGH SIGNAL issues only:
+          - BUG: Code that will fail to compile, parse, or produce wrong results
+          - SECURITY: Injection, auth bypass, secrets exposure, missing input validation
+          - PERFORMANCE: N+1 queries, missing indexes, blocking operations, memory leaks
+          - STYLE: Clear CLAUDE.md violations where you can quote the exact rule
+          - SUGGESTION: Significant improvements only (not cosmetic)
+
+          Do NOT flag: style concerns, potential issues depending on specific inputs, subjective suggestions, issues a linter will catch."
+
+          claude --bare -p "$REVIEW_PROMPT" \
+            --output-format json \
+            --append-system-prompt-file CLAUDE.md \
+            --json-schema '{"type":"object","properties":{"findings":{"type":"array","items":{"type":"object","properties":{"file":{"type":"string"},"line":{"type":"integer"},"severity":{"type":"string","enum":["critical","high","medium","low"]},"issue":{"type":"string"},"fix":{"type":"string"},"confidence":{"type":"integer","minimum":0,"maximum":100}},"required":["file","line","severity","issue","fix","confidence"]}},"summary":{"type":"string"},"verdict":{"type":"string","enum":["approved","changes_requested"]}},"required":["findings","summary","verdict"]}' \
+            --allowedTools "Read,Glob,Grep,Bash(git diff *),Bash(git log *),Bash(git blame *)" \
+            > /tmp/review-output.json
+
+      - name: Post review
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+        run: |
+          if [ ! -f /tmp/review-output.json ]; then
+            echo "No review output found, skipping comment."
+            exit 0
+          fi
+
+          # Extract structured output (try structured_output first, fall back to result)
+          FINDINGS=$(jq -r '.structured_output // .result' /tmp/review-output.json 2>/dev/null)
+          if [ -z "$FINDINGS" ] || [ "$FINDINGS" = "null" ]; then
+            echo "Could not parse review output."
+            exit 0
+          fi
+
+          COUNT=$(echo "$FINDINGS" | jq '.findings | length' 2>/dev/null || echo "0")
+
+          if [ "$COUNT" -eq 0 ]; then
+            gh pr comment "$PR_NUMBER" --body "## Code Review
+
+          No issues found. Checked for bugs, security, performance, and CLAUDE.md compliance.
+
+          ---
+          Automated review via Claude Code with structured output."
+            exit 0
+          fi
+
+          # Build summary comment
+          BODY=$(cat <<REVIEW_EOF
+          ## Code Review
+
+          Found ${COUNT} issue(s):
+
+          $(echo "$FINDINGS" | jq -r '.findings[] | "- **[\(.severity)]** \`\(.file):\(.line)\` — \(.issue) (confidence: \(.confidence))\n  **Fix:** \(.fix)\n"')
+
+          ---
+          Automated review via Claude Code with structured output.
+          REVIEW_EOF
+          )
+
+          echo "$BODY" | gh pr comment "$PR_NUMBER" --body-file -
+
+          # Post inline comments via GitHub review API
+          OWNER=$(gh repo view --json owner -q '.owner.login')
+          REPO=$(gh repo view --json name -q '.name')
+          SHA=$(gh pr view "$PR_NUMBER" --json headRefOid -q '.headRefOid')
+
+          COMMENTS=$(echo "$FINDINGS" | jq '[.findings[] | {
+            path: .file,
+            line: .line,
+            body: ("**[\(.severity)]** \(.issue)\n\nConfidence: \(.confidence)\n\n**Fix:** \(.fix)")
+          }]')
+
+          EVENT="COMMENT"
+          if echo "$FINDINGS" | jq -e '.findings[] | select(.severity == "critical")' > /dev/null 2>&1; then
+            EVENT="REQUEST_CHANGES"
+          fi
+
+          gh api "repos/${OWNER}/${REPO}/pulls/${PR_NUMBER}/reviews" \
+            --method POST \
+            -f commit_id="$SHA" \
+            -f event="$EVENT" \
+            -f body="Automated review: ${COUNT} issue(s) found." \
+            --argjson comments "$COMMENTS" || echo "Warning: inline comments failed (line numbers may be outside diff range)"
