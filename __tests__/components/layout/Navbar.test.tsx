@@ -1,6 +1,6 @@
 /**
  * Tests for components/layout/Navbar.tsx
- * Tests: renders logo text, renders navigation links, mobile menu toggle.
+ * Tests: renders logo, navigation links, Login link, mobile menu toggle.
  *
  * @vitest-environment jsdom
  */
@@ -15,15 +15,6 @@ vi.mock('framer-motion', () => ({
     span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
   },
   AnimatePresence: ({ children }: any) => <>{children}</>,
-}))
-
-vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: any) => <img src={src} alt={alt} {...props} />,
-}))
-
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/',
-  useRouter: () => ({ push: vi.fn() }),
 }))
 
 import { Navbar } from '@/components/layout/Navbar'
@@ -55,26 +46,35 @@ describe('Navbar logo', () => {
 // ---------------------------------------------------------------------------
 
 describe('Navbar navigation links', () => {
-  it('renders the Inventory link', () => {
-    render(<Navbar />)
-    expect(screen.getAllByText('Inventory').length).toBeGreaterThan(0)
-  })
-
   it('renders the About link', () => {
     render(<Navbar />)
-    expect(screen.getAllByText('About').length).toBeGreaterThan(0)
+    const links = screen.getAllByText('About')
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0]).toHaveAttribute('href', '/about')
+  })
+
+  it('renders the Services link', () => {
+    render(<Navbar />)
+    const links = screen.getAllByText('Services')
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0]).toHaveAttribute('href', '/services')
   })
 
   it('renders the Contact link', () => {
     render(<Navbar />)
-    expect(screen.getAllByText('Contact').length).toBeGreaterThan(0)
+    const links = screen.getAllByText('Contact')
+    expect(links.length).toBeGreaterThan(0)
+    expect(links[0]).toHaveAttribute('href', '/contact')
   })
 
-  it('renders the Portal button', () => {
+  it('renders the Login link pointing to SSO', () => {
     render(<Navbar />)
-    // Portal appears both in desktop and potentially mobile
-    const portalButtons = screen.getAllByText('Portal')
-    expect(portalButtons.length).toBeGreaterThan(0)
+    const loginLinks = screen.getAllByText('Login')
+    expect(loginLinks.length).toBeGreaterThan(0)
+    expect(loginLinks[0]).toHaveAttribute(
+      'href',
+      '/api/auth/signin/microsoft-entra-id?callbackUrl=%2Fapi%2Finternal%2Fsso%2Fflightdeck'
+    )
   })
 })
 
@@ -91,8 +91,8 @@ describe('Navbar mobile menu', () => {
   it('shows mobile navigation links when menu button is clicked', () => {
     render(<Navbar />)
     fireEvent.click(screen.getByRole('button', { name: /toggle menu/i }))
-    // All three NAV_LINKS should now be visible (as mobile links)
-    expect(screen.getAllByText('Inventory').length).toBeGreaterThan(1)
+    // Links appear both in desktop and mobile menus
+    expect(screen.getAllByText('About').length).toBeGreaterThan(1)
   })
 
   it('closes mobile menu on second click', () => {
@@ -101,37 +101,12 @@ describe('Navbar mobile menu', () => {
     fireEvent.click(btn) // open
     fireEvent.click(btn) // close
     // Only one instance of each nav link (desktop only)
-    expect(screen.getAllByText('Inventory').length).toBe(1)
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Portal modal
-// ---------------------------------------------------------------------------
-
-describe('Navbar portal modal', () => {
-  it('opens portal modal when Portal button is clicked', () => {
-    render(<Navbar />)
-    // Click the first Portal button (desktop)
-    fireEvent.click(screen.getAllByText('Portal')[0])
-    expect(screen.getByText('Portal Access')).toBeInTheDocument()
+    expect(screen.getAllByText('About').length).toBe(1)
   })
 
-  it('shows Internal Team and Client options in modal', () => {
+  it('shows Login link in mobile menu', () => {
     render(<Navbar />)
-    fireEvent.click(screen.getAllByText('Portal')[0])
-    expect(screen.getByText('Internal Team')).toBeInTheDocument()
-    expect(screen.getByText('Client')).toBeInTheDocument()
-  })
-
-  it('closes portal modal when backdrop is clicked', () => {
-    render(<Navbar />)
-    fireEvent.click(screen.getAllByText('Portal')[0])
-    // The backdrop is the outermost modal div
-    const backdrop = screen.getByText('Portal Access').closest('[class*="fixed inset-0"]') as HTMLElement
-    if (backdrop) {
-      fireEvent.click(backdrop)
-      expect(screen.queryByText('Portal Access')).not.toBeInTheDocument()
-    }
+    fireEvent.click(screen.getByRole('button', { name: /toggle menu/i }))
+    expect(screen.getAllByText('Login').length).toBeGreaterThan(1)
   })
 })

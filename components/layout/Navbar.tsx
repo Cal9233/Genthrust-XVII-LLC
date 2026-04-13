@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Shield, Users } from 'lucide-react'
-import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { Menu, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { NAV_LINKS } from '@/lib/constants'
+
+// Login redirects to Entra ID SSO, then to FlightDeck (genthrust-ai) via signed JWT
+const LOGIN_URL =
+  '/api/auth/signin/microsoft-entra-id?callbackUrl=%2Fapi%2Finternal%2Fsso%2Fflightdeck'
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  const [isPortalModalOpen, setIsPortalModalOpen] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,12 +73,12 @@ export function Navbar() {
 
           {/* CTA Button */}
           <div className="hidden md:block">
-            <button
-              onClick={() => setIsPortalModalOpen(true)}
+            <a
+              href={LOGIN_URL}
               className="px-4 py-2 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 transition-colors"
             >
-              Portal
-            </button>
+              Login
+            </a>
           </div>
 
           {/* Mobile Menu Button */}
@@ -119,78 +119,15 @@ export function Navbar() {
                 </a>
               ))}
               <div className="pt-4 border-t border-navy-700">
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false)
-                    setIsPortalModalOpen(true)
-                  }}
+                <a
+                  href={LOGIN_URL}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className="block w-full text-center px-4 py-3 text-sm font-medium text-white bg-burgundy-600 rounded hover:bg-burgundy-700 transition-colors"
                 >
-                  Portal
-                </button>
+                  Login
+                </a>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {/* Portal Selection Modal */}
-      <AnimatePresence>
-        {isPortalModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-            onClick={() => setIsPortalModalOpen(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              transition={{ duration: 0.2 }}
-              className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full text-center"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex justify-center mb-6">
-                <Image
-                  src="/GenLogoTab.png"
-                  alt="GENTHRUST"
-                  width={64}
-                  height={64}
-                  className="w-16 h-16"
-                />
-              </div>
-              <h2 className="text-2xl font-extrabold text-navy-900 mb-2">Portal Access</h2>
-              <p className="text-slate-600 mb-8 font-medium">Please select your access type to continue.</p>
-
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => {
-                    setIsPortalModalOpen(false)
-                    router.push('/signin')
-                  }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors focus:outline-none focus:ring-2 focus:ring-navy-500 focus:ring-offset-2"
-                >
-                  <Shield className="w-5 h-5" />
-                  Internal Team
-                </button>
-                <button
-                  onClick={() => {
-                    setIsPortalModalOpen(false)
-                    router.push('/login')
-                  }}
-                  className="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-burgundy-600 rounded-lg hover:bg-burgundy-700 transition-colors focus:outline-none focus:ring-2 focus:ring-burgundy-500 focus:ring-offset-2"
-                >
-                  <Users className="w-5 h-5" />
-                  Client
-                </button>
-              </div>
-
-              <p className="text-xs text-slate-400 mt-6">
-                Contact your administrator if you need access.
-              </p>
-            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

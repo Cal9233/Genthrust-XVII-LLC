@@ -1,14 +1,18 @@
 # Architecture — Genthrust XVII LLC
 
+## System Role
+
+This project is the **public marketing website** for Genthrust XVII LLC. Business logic (portal, dashboard, ERP, email intelligence) lives in **genthrust-ai** (`~/Projects/genthrust/genthrust-ai`).
+
 ## Data Flow
 
-| Flow | Entry | Auth | Data Source |
-|------|-------|------|-------------|
-| **Public site** | `/` → parts search | None | `parts` table via LIKE queries |
-| **Internal dashboard** | `/signin` → `/internal/*` | Microsoft Entra ID (`@genthrust.net`) | MySQL + ERP AERO API |
-| **Client portal** | `/login` → `/portal/*` | Credentials (bcryptjs) | Company-scoped MySQL queries |
-| **ERP sync** | Bot fleet + `/api/internal/sync/parts` | ERP AERO token | ERP AERO REST → MySQL cache |
-| **Registration** | `/register` → `/api/register` | None | Creates inactive `portal_user`, admin activates via `/internal/clients` |
+| Flow | Entry | Auth | Purpose |
+|------|-------|------|---------|
+| **Public site** | `/` | None | Marketing pages |
+| **Staff login** | Login button → Entra ID | `@genthrust.net` | SSO redirect to FlightDeck (genthrust-ai) |
+| **Bot bridge** | genthrust-ai → `/api/internal/bots/*` | Bearer token via Cloudflare Tunnel | Bot fleet status and inventory |
+| **Excel sync** | Trigger.dev cron | Microsoft Graph per-user OAuth | Sync repair orders to SharePoint Excel |
+| **Contact form** | `/contact` → `/api/contact` | None | Resend email to sales@genthrust.net |
 
 ## MCP Servers (Project-Scoped via `.mcp.json`)
 
@@ -24,15 +28,15 @@
 
 ## Component Patterns
 
-**Layout:** `Navbar`, `Footer`, `InternalNav` (sidebar for `/internal/*`)
+**Layout:** `Navbar` (with Login → SSO link), `Footer`
 
-**UI Primitives:** `Button`, `GlassCard` (glass-morphism with backdrop-blur), `Dialog`, `Modal`, `Dropdown`, `SearchInput`, `ProgressBar`
+**UI Primitives:** `Button`, `GlassCard` (glass-morphism with backdrop-blur), `Dialog`, `Modal`, `Dropdown`, `SearchInput`, `ProgressBar`, `Spinner`, `Toggle`, `TypewriterText`, `AnimatedCounter`, `BorderBeam`, `DataPing`, `AnamorphicFlare`, `MagneticButton`, `ParticleBackground`
 
 **Animation:** `AnimatedCounter`, `BorderBeam` (4s linear infinite), `DataPing`, `AnamorphicFlare`, `MagneticButton`, `ParticleBackground`
 
 **3D:** `ParticleVertexAircraft` / `AircraftParticles` (Three.js via @react-three/fiber)
 
-**Page Sections:** `HeroSection`, `SearchSection`, `CredentialsSection`, `FeaturedInventory`, `ContactSection`, `ServicesBento`, `BentoInventoryGrid`, `StatsBar`
+**Page Sections:** `HeroSection`, `CredentialsSection`, `ContactSection`, `ServicesBento`, `StatsBar`
 
 ## Theme Reference
 
@@ -50,11 +54,22 @@ From `tailwind.config.js`:
 
 **Shadows:** card, card-hover, navy-focus
 
-## Key Directories
+## Key Directories (this project)
 
 | Path | What |
 |------|------|
-| `~/Projects/genthrust/Genthrust-XVII-LLC` | This project (Next.js app) |
-| `~/Projects/genthrust/Genthrust_ILS_RFQ_Bot` | Python bot fleet (5 bots) |
+| `app/` | Next.js App Router (4 public pages + API routes) |
+| `components/` | React components (ui/, layout/, sections/, Hero/, ParticleVertexAircraft/) |
+| `lib/` | Utilities (db, graph, auth, rate-limit, bot-helpers, etc.) |
+| `trigger/` | 2 Trigger.dev tasks (excel-sync, move-ro-sheet) |
+| `hooks/` | Custom React hooks |
+| `types/` | Global TypeScript declarations |
+| `__tests__/` | Vitest test suite |
+
+## Related Projects
+
+| Path | Purpose |
+|------|---------|
+| `~/Projects/genthrust/genthrust-ai` | Full backend — FlightDeck dashboard, client portal, ERP, email intelligence |
+| `~/Projects/genthrust/Genthrust_ILS_RFQ_Bot` | Python bot fleet (5 Windows services) |
 | `~/Projects/genthrust/GENTHRUST_LLM` | Email agent + AI service |
-| `~/Projects/genthrust/genthrust-parts-agent` | WhatsApp parts lookup |

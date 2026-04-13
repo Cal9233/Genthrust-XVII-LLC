@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 import { BOT_REGISTRY } from '@/lib/bot-helpers'
 import { logAuditEvent, ACTION_TYPES, RESOURCE_TYPES } from '@/lib/audit-logger'
+import { requireInternalSession } from '@/lib/api-auth'
 import { z } from 'zod'
 export const dynamic = 'force-dynamic'
 
@@ -16,11 +16,9 @@ const RestartBotSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth()
-    const _role = (session?.user as any)?.role
-    if (!session?.user || (_role !== 'internal' && _role !== 'admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authResult = await requireInternalSession()
+    if (!authResult.ok) return authResult.response
+    const { session, role } = authResult
 
     const body = await request.json()
     const parsed = RestartBotSchema.safeParse(body)
@@ -53,7 +51,7 @@ export async function POST(request: NextRequest) {
         resource_id: botName,
         user_id: session.user.id,
         user_email: session.user.email ?? null,
-        user_role: 'internal',
+        user_role: role === 'admin' ? 'internal' : role,
         success: true,
         status_code: 200,
         metadata: { botName, serviceName },
@@ -74,7 +72,7 @@ export async function POST(request: NextRequest) {
         resource_id: botName,
         user_id: session.user.id,
         user_email: session.user.email ?? null,
-        user_role: 'internal',
+        user_role: role === 'admin' ? 'internal' : role,
         success: false,
         error_message: msg.substring(0, 500),
         metadata: { botName, serviceName },

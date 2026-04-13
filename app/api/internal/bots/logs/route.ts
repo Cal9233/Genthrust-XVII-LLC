@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { getLogTail, BOT_REGISTRY } from '@/lib/bot-helpers'
+import { requireInternalSession } from '@/lib/api-auth'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth()
-    const _role = (session?.user as any)?.role
-    if (!session?.user || (_role !== 'internal' && _role !== 'admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireInternalSession()
+    if (!auth.ok) return auth.response
 
     const { searchParams } = new URL(request.url)
     const bot = searchParams.get('bot') || 'ils'

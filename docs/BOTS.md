@@ -1,4 +1,15 @@
-# Bot Fleet & ERP Integration — Genthrust XVII LLC
+# Bot Fleet — Genthrust XVII LLC
+
+## Architecture
+
+The Python bot fleet runs as Windows services on-prem. genthrust-ai calls this project's bot API routes via **Cloudflare Tunnel** (bearer token auth) to get fleet status and inventory data.
+
+```
+genthrust-ai (tRPC botsRouter)
+  → Cloudflare Tunnel (BOT_BRIDGE_URL, bearer token)
+  → XVII-LLC /api/internal/bots/**
+  → lib/bot-helpers.ts (sc query) + lib/inventory-db.ts
+```
 
 ## Bot Fleet
 
@@ -14,13 +25,26 @@
 
 Bot metrics extracted via regex from log files (`getBotMetrics()`). Notifications aggregated across all bots (`getNotificationFeed()`).
 
-## ERP AERO Integration
+## Bot API Routes
 
-- **Base URL:** `https://wapi.erp.aero`
-- **Basic client:** `lib/erp-aero.ts` — simple token + fetch, auto-retry on 401
-- **Production client:** `lib/erp-client.ts` — 30-min token TTL, single concurrent auth request (prevents thundering herd)
-- **Auth:** POST `/v1/auth/signin` with form-encoded cid/email/password
-- **Functions:** `getPartsList(page, pageSize)`, `getPartDetails(productId)`, `clearTokenCache()`
-- **Sync endpoint:** `/api/internal/sync/parts` pulls parts into MySQL `parts` table
-- **Sync script:** `scripts/sync-parts.ts` (also via trigger.dev)
-- **Automation:** NET30 payment reminders, RO digests via `genthrust-automation` MCP server
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/internal/bots` | GET | Fleet status for all 5 bots |
+| `/api/internal/bots/inventory` | GET | Inventory snapshot from `genthrust_inventory` DB |
+| `/api/internal/bots/logs` | GET | Log tail for specified bot |
+| `/api/internal/bots/restart` | POST | Restart a bot Windows service |
+
+## Key Files
+
+- `lib/bot-helpers.ts` — `sc query` wrapper, log parsing, metrics extraction
+- `lib/inventory-db.ts` — `genthrust_inventory` DB connection (port 3306)
+
+## Environment Variables
+
+```
+# Bot inventory DB (port 3306, native MySQL)
+BOT_DB_HOST, BOT_DB_PORT, BOT_DB_NAME, BOT_DB_USER, BOT_DB_PASSWORD
+
+# Cloudflare Tunnel auth (used by genthrust-ai to call bot routes)
+BOT_BRIDGE_SECRET
+```

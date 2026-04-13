@@ -14,7 +14,24 @@
       "Bash(git fetch:*)",
       "Bash(npm ls next-auth)",
       "Bash(npm ls next-auth @auth/core)",
-      "WebFetch(domain:login.microsoftonline.com)"
+      "WebFetch(domain:login.microsoftonline.com)",
+      "WebSearch",
+      "WebFetch(domain:claude.com)",
+      "WebFetch(domain:www.humanlayer.dev)",
+      "WebFetch(domain:www.builder.io)",
+      "WebFetch(domain:www.jdhodges.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www-cdn.anthropic.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:kirill-markin.com)",
+      "WebFetch(domain:skillsplayground.com)",
+      "WebFetch(domain:www.dailydoseofds.com)",
+      "WebFetch(domain:thepromptshelf.dev)",
+      "Bash(node:*)",
+      "Bash(grep -v '\\\\.map$')",
+      "Bash(npm run:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)"
     ]
   }
 }

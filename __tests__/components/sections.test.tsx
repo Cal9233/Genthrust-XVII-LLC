@@ -21,7 +21,6 @@ vi.mock('framer-motion', () => ({
 }))
 
 import { ContactSection } from '@/components/sections/ContactSection'
-import { FeaturedInventory } from '@/components/sections/FeaturedInventory'
 import { ServicesBento } from '@/components/sections/ServicesBento'
 import { StatsBar } from '@/components/sections/StatsBar'
 
@@ -145,59 +144,6 @@ describe('ContactSection form behavior', () => {
     await waitFor(() => {
       expect(screen.getByText(/submit another request/i)).toBeInTheDocument()
     })
-  })
-})
-
-// ===========================================================================
-// FeaturedInventory
-// ===========================================================================
-
-describe('FeaturedInventory rendering', () => {
-  it('renders the Featured Components heading', () => {
-    render(<FeaturedInventory />)
-    expect(screen.getByText('Featured Components')).toBeInTheDocument()
-  })
-
-  it('renders 4 part cards from FEATURED_PARTS', () => {
-    render(<FeaturedInventory />)
-    const requestButtons = screen.getAllByText('Request Quote')
-    expect(requestButtons.length).toBe(4)
-  })
-
-  it('renders CFM56-5B part number', () => {
-    render(<FeaturedInventory />)
-    expect(screen.getByText('CFM56-5B-P001')).toBeInTheDocument()
-  })
-
-  it('renders part descriptions', () => {
-    render(<FeaturedInventory />)
-    expect(screen.getByText('CFM56-5B Engine Fan Blade')).toBeInTheDocument()
-    expect(screen.getByText('APU Starter Generator')).toBeInTheDocument()
-  })
-
-  it('renders condition labels', () => {
-    render(<FeaturedInventory />)
-    // Two parts have "Overhauled" — use getAllByText
-    expect(screen.getAllByText('Overhauled').length).toBeGreaterThan(0)
-    expect(screen.getByText('Serviceable')).toBeInTheDocument()
-    expect(screen.getByText('New')).toBeInTheDocument()
-  })
-
-  it('renders status badges', () => {
-    render(<FeaturedInventory />)
-    // There should be at least one "In Stock" badge
-    expect(screen.getAllByText('In Stock').length).toBeGreaterThan(0)
-    expect(screen.getByText('Limited')).toBeInTheDocument()
-  })
-
-  it('renders View All Inventory link', () => {
-    render(<FeaturedInventory />)
-    expect(screen.getByText("View All Inventory")).toBeInTheDocument()
-  })
-
-  it('renders the AOG phone CTA', () => {
-    render(<FeaturedInventory />)
-    expect(screen.getByText(/can't find what you need/i)).toBeInTheDocument()
   })
 })
 

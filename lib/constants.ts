@@ -1,7 +1,7 @@
 export const NAV_LINKS = [
-  { label: 'Inventory', href: '#search' },
-  { label: 'About', href: '#credentials' },
-  { label: 'Contact', href: '#contact' },
+  { label: 'About', href: '/about' },
+  { label: 'Services', href: '/services' },
+  { label: 'Contact', href: '/contact' },
 ]
 
 export const COMPANY_INFO = {
