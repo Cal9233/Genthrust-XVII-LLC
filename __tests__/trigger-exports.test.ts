@@ -4,20 +4,6 @@
  */
 import { describe, it, expect } from "vitest";
 
-// --- ro-lifecycle-flow ---
-import {
-  handleRoStatusChange,
-  roStatusChangePayloadSchema,
-  type RoStatusChangePayload,
-} from "@/trigger/ro-lifecycle-flow";
-
-// --- send-approved-email ---
-import {
-  sendApprovedEmail,
-  sendApprovedEmailPayloadSchema,
-  type SendApprovedEmailPayload,
-} from "@/trigger/send-approved-email";
-
 // --- excel-sync ---
 import {
   syncRepairOrders,
@@ -25,130 +11,12 @@ import {
   type SyncRepairOrdersPayload,
 } from "@/trigger/excel-sync";
 
-// --- check-overdue-ros ---
-import { checkOverdueRos } from "@/trigger/check-overdue-ros";
-
-// --- ai-tools ---
+// --- move-ro-sheet ---
 import {
-  searchInventoryTool,
-  getRepairOrderTool,
-  createRepairOrderTool,
-  updateRepairOrderTool,
-  archiveRepairOrderTool,
-  createEmailDraftTool,
-} from "@/trigger/ai-tools";
-
-// ============================================================
-// ro-lifecycle-flow
-// ============================================================
-
-describe("handleRoStatusChange task", () => {
-  it("exports the handleRoStatusChange task", () => {
-    expect(handleRoStatusChange).toBeDefined();
-  });
-
-  it("has the correct task id", () => {
-    expect(handleRoStatusChange.id).toBe("handle-ro-status-change");
-  });
-
-  it("exports a valid Zod schema for RoStatusChangePayload", () => {
-    expect(roStatusChangePayloadSchema).toBeDefined();
-  });
-});
-
-describe("roStatusChangePayloadSchema validation", () => {
-  it("accepts a valid payload", () => {
-    const valid: RoStatusChangePayload = {
-      repairOrderId: 42,
-      newStatus: "WAITING QUOTE",
-      oldStatus: "DRAFT",
-      userId: "user-abc",
-    };
-    const result = roStatusChangePayloadSchema.safeParse(valid);
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects payload missing repairOrderId", () => {
-    const result = roStatusChangePayloadSchema.safeParse({
-      newStatus: "WAITING QUOTE",
-      oldStatus: "DRAFT",
-      userId: "user-abc",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects payload with non-numeric repairOrderId", () => {
-    const result = roStatusChangePayloadSchema.safeParse({
-      repairOrderId: "not-a-number",
-      newStatus: "WAITING QUOTE",
-      oldStatus: "DRAFT",
-      userId: "user-abc",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects payload missing userId", () => {
-    const result = roStatusChangePayloadSchema.safeParse({
-      repairOrderId: 1,
-      newStatus: "APPROVED",
-      oldStatus: "WAITING QUOTE",
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
-// ============================================================
-// send-approved-email
-// ============================================================
-
-describe("sendApprovedEmail task", () => {
-  it("exports the sendApprovedEmail task", () => {
-    expect(sendApprovedEmail).toBeDefined();
-  });
-
-  it("has the correct task id", () => {
-    expect(sendApprovedEmail.id).toBe("send-approved-email");
-  });
-
-  it("exports the sendApprovedEmailPayloadSchema", () => {
-    expect(sendApprovedEmailPayloadSchema).toBeDefined();
-  });
-});
-
-describe("sendApprovedEmailPayloadSchema validation", () => {
-  it("accepts a minimal valid payload (no batch)", () => {
-    const result = sendApprovedEmailPayloadSchema.safeParse({
-      notificationId: 7,
-      userId: "user-xyz",
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("accepts payload with optional batchedNotificationIds", () => {
-    const result = sendApprovedEmailPayloadSchema.safeParse({
-      notificationId: 7,
-      userId: "user-xyz",
-      batchedNotificationIds: [8, 9, 10],
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects payload missing notificationId", () => {
-    const result = sendApprovedEmailPayloadSchema.safeParse({
-      userId: "user-xyz",
-    });
-    expect(result.success).toBe(false);
-  });
-
-  it("rejects payload with non-number in batchedNotificationIds", () => {
-    const result = sendApprovedEmailPayloadSchema.safeParse({
-      notificationId: 7,
-      userId: "user-xyz",
-      batchedNotificationIds: ["not-a-number"],
-    });
-    expect(result.success).toBe(false);
-  });
-});
+  moveRoSheet,
+  moveRoSheetPayloadSchema,
+  type MoveRoSheetPayload,
+} from "@/trigger/move-ro-sheet";
 
 // ============================================================
 // excel-sync
@@ -194,51 +62,60 @@ describe("syncRepairOrdersPayloadSchema validation", () => {
 });
 
 // ============================================================
-// check-overdue-ros
+// move-ro-sheet
 // ============================================================
 
-describe("checkOverdueRos scheduled task", () => {
-  it("exports the checkOverdueRos task", () => {
-    expect(checkOverdueRos).toBeDefined();
+describe("moveRoSheet task", () => {
+  it("exports the moveRoSheet task", () => {
+    expect(moveRoSheet).toBeDefined();
   });
 
   it("has the correct task id", () => {
-    expect(checkOverdueRos.id).toBe("check-overdue-ros");
+    expect(moveRoSheet.id).toBe("move-ro-sheet");
+  });
+
+  it("exports the moveRoSheetPayloadSchema", () => {
+    expect(moveRoSheetPayloadSchema).toBeDefined();
   });
 });
 
-// ============================================================
-// ai-tools
-// ============================================================
-
-describe("AI tool tasks exports", () => {
-  it("exports searchInventoryTool with correct id", () => {
-    expect(searchInventoryTool).toBeDefined();
-    expect(searchInventoryTool.id).toBe("ai-tool-search-inventory");
+describe("moveRoSheetPayloadSchema validation", () => {
+  it("accepts a valid payload", () => {
+    const valid: MoveRoSheetPayload = {
+      userId: "user-abc",
+      roId: 42,
+      fromSheet: "Active",
+      toSheet: "Net",
+    };
+    const result = moveRoSheetPayloadSchema.safeParse(valid);
+    expect(result.success).toBe(true);
   });
 
-  it("exports getRepairOrderTool with correct id", () => {
-    expect(getRepairOrderTool).toBeDefined();
-    expect(getRepairOrderTool.id).toBe("ai-tool-get-repair-order");
+  it("rejects payload missing roId", () => {
+    const result = moveRoSheetPayloadSchema.safeParse({
+      userId: "user-abc",
+      fromSheet: "Active",
+      toSheet: "Net",
+    });
+    expect(result.success).toBe(false);
   });
 
-  it("exports createRepairOrderTool with correct id", () => {
-    expect(createRepairOrderTool).toBeDefined();
-    expect(createRepairOrderTool.id).toBe("ai-tool-create-repair-order");
+  it("rejects payload with string roId", () => {
+    const result = moveRoSheetPayloadSchema.safeParse({
+      userId: "user-abc",
+      roId: "not-a-number",
+      fromSheet: "Active",
+      toSheet: "Net",
+    });
+    expect(result.success).toBe(false);
   });
 
-  it("exports updateRepairOrderTool with correct id", () => {
-    expect(updateRepairOrderTool).toBeDefined();
-    expect(updateRepairOrderTool.id).toBe("ai-tool-update-repair-order");
-  });
-
-  it("exports archiveRepairOrderTool with correct id", () => {
-    expect(archiveRepairOrderTool).toBeDefined();
-    expect(archiveRepairOrderTool.id).toBe("ai-tool-archive-repair-order");
-  });
-
-  it("exports createEmailDraftTool with correct id", () => {
-    expect(createEmailDraftTool).toBeDefined();
-    expect(createEmailDraftTool.id).toBe("ai-tool-create-email-draft");
+  it("rejects payload missing fromSheet", () => {
+    const result = moveRoSheetPayloadSchema.safeParse({
+      userId: "user-abc",
+      roId: 42,
+      toSheet: "Net",
+    });
+    expect(result.success).toBe(false);
   });
 });

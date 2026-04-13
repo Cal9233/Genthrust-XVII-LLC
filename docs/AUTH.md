@@ -1,37 +1,42 @@
 # Authentication — Genthrust XVII LLC
 
-## Two Providers, One JWT Session
+## Entra ID Only
 
-- **Microsoft Entra ID** — internal staff, domain-checked to `@genthrust.net` in `auth.config.ts` `signIn` callback
-- **Credentials** — portal clients, bcryptjs password verification, must have `is_active=1`
+Auth is **Microsoft Entra ID** (Azure AD) only. There is no credentials/password login in this project — the client portal has been migrated to genthrust-ai.
 
-**Roles:** `'internal'` (Entra ID) | `'client'` (Credentials) — set in JWT callback based on `account.provider`
+- **Provider:** `MicrosoftEntraID` in `auth.ts`
+- **Allowed domain:** `@genthrust.net` — enforced in `signIn` callback in `auth.config.ts`
+- **Roles:** `admin` (cmalagon@genthrust.net) | `internal` (all other @genthrust.net) — set in JWT callback by email
+- **Session strategy:** JWT
 
 ## Middleware (`middleware.ts`)
 
-Protects: `/internal/:path*`, `/portal/:path*`, `/signin`, `/login`, `/register`
-- `/internal/*` → redirects unauthenticated to `/signin`
-- `/portal/*` → redirects unauthenticated to `/login`
-- `/signin` → redirects authenticated to `/internal`
-- `/login` → redirects authenticated to `/portal`
-- `/register` → redirects authenticated to role-appropriate dashboard
+- Generates a per-request CSP nonce for all routes
+- Returns `401 JSON` for unauthenticated requests to `/api/internal/*`
+- All marketing pages are public (no auth required)
 
-## MFA (Client Portal)
+## Login Flow (SSO to FlightDeck)
 
-- **Implementation:** `lib/mfa.ts` — TOTP via `otpauth`, secrets encrypted with AES-256-GCM (`MFA_ENCRYPTION_KEY` env var)
-- **Recovery codes:** 10 codes, bcrypt hashed, marked used on redemption
-- **Mandatory** for all client users — enforced in `auth.config.ts` callback, redirects to `/portal/mfa-setup`
-- **Two-step login:** POST `/api/auth/verify-credentials` → `mfaToken` (10-min JWT) → POST to NextAuth with TOTP code
-- **Rate limited:** 5 attempts per 60 seconds per IP on verify-credentials
-
-## Audit Logging
-
-`lib/audit-logger.ts` — logs access events to DB, viewable at `/api/internal/audit-log`
+```
+Staff clicks Login
+  → /api/auth/signin/microsoft-entra-id?callbackUrl=/api/internal/sso/flightdeck
+  → Microsoft Entra ID authenticates
+  → JWT set with role (admin or internal)
+  → /api/internal/sso/flightdeck called as callbackUrl
+  → lib/sso-redirect.ts generates HMAC-SHA256 signed JWT (SSO_REDIRECT_SECRET)
+  → Redirect to genthrust-ai /api/auth/sso-redirect?token=...
+  → genthrust-ai verifies token, creates session
+```
 
 ## Key Files
 
-- `auth.ts` (providers + NextAuth export)
-- `auth.config.ts` (edge-safe callbacks — no Node.js-only imports)
-- `middleware.ts`
-- `types/next-auth.d.ts` (Session/JWT type augmentation)
-- `lib/mfa.ts` (TOTP + encryption)
+- `auth.ts` — NextAuth config (Entra ID provider + JWT/session callbacks)
+- `auth.config.ts` — Edge-safe config (signIn callback, authorized callback)
+- `middleware.ts` — CSP nonces + /api/internal auth guard
+- `lib/sso-redirect.ts` — SSO token generator
+- `types/next-auth.d.ts` — Session/JWT type augmentation
+- `app/api/internal/sso/flightdeck/route.ts` — SSO redirect handler
+
+## Bot Route Auth
+
+`/api/internal/bots/**` routes are protected by `auth()` (session required). genthrust-ai calls them from the server via Cloudflare Tunnel. The tunnel adds a bearer token that these routes verify against `BOT_BRIDGE_SECRET`.

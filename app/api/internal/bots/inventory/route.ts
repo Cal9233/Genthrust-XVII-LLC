@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { auth } from '@/auth'
 import { inventoryQuery } from '@/lib/inventory-db'
+import { requireInternalSession } from '@/lib/api-auth'
 export const dynamic = 'force-dynamic'
 
 async function safeCount(sql: string): Promise<Record<string, any>> {
@@ -22,11 +22,8 @@ async function safeQuery(sql: string): Promise<any[]> {
 
 export async function GET() {
   try {
-    const session = await auth()
-    const _role = (session?.user as any)?.role
-    if (!session?.user || (_role !== 'internal' && _role !== 'admin')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const auth = await requireInternalSession()
+    if (!auth.ok) return auth.response
 
     const [pendingRow, committedRow, skuRow, conditionRows] = await Promise.all([
       safeCount('SELECT COUNT(*) as pendingDrafts FROM ils_pending_quotes'),
